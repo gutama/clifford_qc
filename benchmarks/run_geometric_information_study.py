@@ -20,6 +20,7 @@ Run:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import inspect
 import json
 from pathlib import Path
@@ -837,6 +838,12 @@ def main() -> None:
         "schema": "clifford_qc.geometric_information_study.v1",
         "metadata": {
             "git_sha": prov["git_sha"],
+            "git_dirty": prov["git_dirty"],
+            "implementation_sha256": {
+                str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in (Path(__file__), ROOT / "clifford_qc/subspace/commutators.py",
+                             ROOT / "clifford_qc/subspace/information.py")
+            },
             "python": prov["python"],
             "numpy": prov["dependencies"].get("numpy"),
             "utc": prov["utc"],

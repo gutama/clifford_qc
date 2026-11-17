@@ -498,6 +498,7 @@ def nested_commutator_hierarchy(
     total_kept = 0
     closure_reached = False
     closure_depth: int | None = None
+    incomplete = False
 
     def _unique_label(candidate_label: str) -> str:
         if candidate_label not in used_labels:
@@ -513,11 +514,15 @@ def nested_commutator_hierarchy(
     # Depth 0: seed generators
     d0_nodes: list[CommutatorNode] = []
     d0_vanished = d0_dedup = d0_dropped = 0
+    d0_attempted = 0
     for gen in seed_gens:
         if max_total_generators is not None and total_kept >= max_total_generators:
+            incomplete = True
             break
         if max_per_depth is not None and len(d0_nodes) >= max_per_depth:
+            incomplete = True
             break
+        d0_attempted += 1
         coeff_norm = _coeff_l2(gen.mv.terms)
         if coeff_norm == 0.0:
             if drop_zero_norm:
@@ -566,7 +571,7 @@ def nested_commutator_hierarchy(
         total_kept += 1
 
     levels.append(tuple(d0_nodes))
-    d0_attempted = len(seed_gens)
+    incomplete |= d0_dropped > 0
     summaries.append(
         DepthGrowthSummary(
             depth=0,
@@ -601,7 +606,7 @@ def nested_commutator_hierarchy(
                     vanished=0,
                     deduplicated=0,
                     dropped_by_filter=0,
-                    closure_fraction=1.0,
+                    closure_fraction=1.0 if closure_reached else 0.0,
                     mean_support=0.0,
                     max_support=0,
                     total_support=0,
@@ -611,17 +616,16 @@ def nested_commutator_hierarchy(
                     max_growth_ratio=0.0,
                 )
             )
-            if not closure_reached:
-                closure_reached = True
-                closure_depth = depth
             continue
 
         dk_nodes: list[CommutatorNode] = []
         attempted = vanished = deduplicated = dropped = 0
         for pnode in parents:
             if max_total_generators is not None and total_kept >= max_total_generators:
+                incomplete = True
                 break
             if max_per_depth is not None and len(dk_nodes) >= max_per_depth:
+                incomplete = True
                 break
             attempted += 1
             mv, diag = commutator_mv(
@@ -641,6 +645,7 @@ def nested_commutator_hierarchy(
                 else:
                     dropped += 1
                 continue
+            incomplete |= diag["retained_l2_fraction"] < 1.0 - 1e-12
             mw, _ = _max_pauli_weight(H.n, mv.terms.keys())
             if max_pauli_weight is not None and mw > max_pauli_weight:
                 dropped += 1
@@ -676,6 +681,7 @@ def nested_commutator_hierarchy(
             total_kept += 1
 
         levels.append(tuple(dk_nodes))
+        incomplete |= dropped > 0
         closure_frac = (vanished + deduplicated) / max(1, attempted)
         summaries.append(
             DepthGrowthSummary(
@@ -699,7 +705,10 @@ def nested_commutator_hierarchy(
                 max_growth_ratio=max((node.growth_ratio for node in dk_nodes), default=0.0),
             )
         )
-        if attempted > 0 and len(dk_nodes) == 0 and dropped == 0 and not closure_reached:
+        # Closure needs a witness for every branch. A budget or filter that
+        # emptied a frontier did not evaluate the missing commutators.
+        if (not incomplete and attempted == len(parents) and attempted > 0
+                and not dk_nodes and not closure_reached):
             closure_reached = True
             closure_depth = depth
 

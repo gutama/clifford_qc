@@ -215,6 +215,22 @@ class CommutatorAlgebraTests(unittest.TestCase):
         self.assertTrue(hier_abelian.closure_reached)
         self.assertEqual(hier_abelian.closure_depth, 1)
 
+    def test_a_generator_cap_is_not_a_witness_of_lie_closure(self):
+        hier = nested_commutator_hierarchy(
+            Z(1, 0), [X(1, 0)], max_depth=3, max_total_generators=1)
+        self.assertFalse(hier.closure_reached)
+        self.assertIsNone(hier.closure_depth)
+        self.assertTrue(all(s.closure_fraction == 0.0 for s in hier.summaries[1:]))
+        self.assertEqual(sum(s.attempted for s in hier.summaries[1:]), 0)
+
+    def test_a_filtered_frontier_cannot_claim_algebraic_closure(self):
+        hier = nested_commutator_hierarchy(
+            Z(2, 0) + Z(2, 1), [X(2, 0) * X(2, 1)],
+            max_depth=3, max_support=1, support_policy="drop")
+        self.assertEqual(hier.summaries[1].dropped_by_filter, 1)
+        self.assertFalse(hier.closure_reached)
+        self.assertIsNone(hier.closure_depth)
+
 
 class DynamicFrontierTests(unittest.TestCase):
     def test_dynamic_frontier_matches_static_with_fewer_commutators_on_spin(self):

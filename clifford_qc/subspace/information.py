@@ -23,7 +23,8 @@ information-acquisition controller targeting a declared physical accuracy
    - In exact mode, uses the generalized 2x2 Ritz lowering ``_two_by_two_lowering``.
    - In finite-shot mode from ``GroupedWordCache``, computes covariance-aware
      delta-method standard errors for both ``dE_A`` (7D joint covariance over
-     ``s_a, h_a, s_aa, h_aa, E_m``) and the full-subspace orthogonal fraction
+     ``s_a, h_a, s_aa, h_aa, E_m``, including the response of the measured Ritz
+     vectors) and the full-subspace orthogonal fraction
      ``1 - sum_k |<Psi_k|chi_hat>|^2``, rejecting shot-ambiguous near-dependent
      directions before nonlinear 2x2 division amplifies noise, and computing
      risk-adjusted or shrunk expected improvement.
@@ -41,6 +42,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import math
+from numbers import Integral
 import time
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -86,8 +88,8 @@ from .adaptive import (
 from .elements import MatrixElementBank
 from .generator_core import as_generators
 from .generators import identity_generator
-from .linalg import DEFAULT_NORM_FLOOR, SubspaceResult
-from .uncertainty import Interval, ritz_uncertainty
+from .linalg import DEFAULT_NORM_FLOOR, SubspaceResult, solve_projected
+from .uncertainty import Interval, _point_estimator, ritz_uncertainty
 
 _EI_MODES = ("point", "risk_adjusted", "shrinkage", "snr_gated")
 _STOP_METRICS = ("std_error", "ci_halfwidth")
@@ -374,6 +376,121 @@ def _combine_linear(
     return WordFunctional({c: v for c, v in terms.items() if v != 0.0}, const)
 
 
+@dataclass(frozen=True)
+class _BasisResponse:
+    """Response to independent real coordinates of the measured basis pencil.
+
+    The coordinates are composed with their Pauli functionals afterwards, so
+    correlations between repeated entries and measurement groups are retained.
+    One response is shared by all candidates scored against the same solve.
+    """
+
+    functionals: tuple[WordFunctional, ...]
+    coefficients: np.ndarray
+    energies: np.ndarray
+    projector: np.ndarray
+    valid_roots: tuple[bool, ...]
+    stable_rank: bool
+
+
+def _basis_response(bank: MatrixElementBank, basis: Sequence[int],
+                    result: SubspaceResult, cache: GroupedWordCache) -> _BasisResponse:
+    """Differentiate the measured solve, including normalization and truncation.
+
+    Central differences act on the small Hermitian pencil, not on individual
+    Pauli means. They rerun its recorded threshold policy while holding the
+    discrete retention decision locally fixed. A rank change or an unresolved
+    eigenvalue degeneracy makes the corresponding uncertainty unresolved.
+    """
+    session = SharedMeasurement(bank, basis, pooling=cache.pooling)
+    policy = _point_estimator(session, cache, result)
+    if (policy.get("overlap_repair", "none") != "none"
+            or policy.get("pencil_angle") is not None
+            or policy.get("ratio_error_budget") is not None
+            or result.resources.get("overlap_ridge", 0.0) != 0.0):
+        raise ValueError("lowering uncertainty requires an unrotated, thresholded pencil; "
+                         "use a full-estimator bootstrap for repair, rotation or ridge")
+    S, H = session.matrices(cache)
+    m, rank = result.coefficients.shape
+    C = result.coefficients
+    energy = np.asarray(result.energies)
+    scales = np.sqrt(np.maximum(np.abs(np.diag(S)), 1e-30))
+    h_scale = max(float(np.linalg.norm(H / scales[:, None] / scales[None, :], 2)),
+                  float(np.max(np.abs(energy))), 1e-30)
+    gaps = np.abs(energy[:, None] - energy[None, :])
+    np.fill_diagonal(gaps, np.inf)
+    nearest = np.min(gaps, axis=1)
+    valid = nearest > 256.0 * np.finfo(float).eps * h_scale
+    resolved = nearest[valid & np.isfinite(nearest)]
+    relative_step = min(1e-6, 1e-3 * float(np.min(resolved)) / h_scale) \
+        if resolved.size else 1e-6
+    noise_floor = result.resources.get("overlap_noise_floor_per_mode")
+    if noise_floor is None:
+        noise_floor = result.resources.get("overlap_noise_floor", 0.0)
+    kwargs = {name: policy[name] for name in ("tau_s", "rel_tau", "max_condition", "norm_floor")}
+    functionals = []
+    d_coefficients = []
+    d_energies = []
+    d_projector = []
+    stable_rank = True
+    for a, i in enumerate(basis):
+        for b in range(a, m):
+            entries = entry_functionals(bank, i, basis[b])
+            for kind, matrix in enumerate((S, H)):
+                for imaginary in range(1 if a == b else 2):
+                    functional = entries[kind][imaginary]
+                    if functional.is_deterministic:
+                        continue
+                    direction = np.zeros_like(matrix)
+                    direction[a, b] = 1j if imaginary else 1.0
+                    if a != b:
+                        direction[b, a] = direction[a, b].conjugate()
+                    scale = scales[a] * scales[b] * (h_scale if kind else 1.0)
+                    step = relative_step * max(scale, abs(matrix[a, b]), 1e-30)
+                    perturbed = []
+                    for _ in range(8):
+                        try:
+                            perturbed = [solve_projected(
+                                S + (sign * step * direction if kind == 0 else 0),
+                                H + (sign * step * direction if kind == 1 else 0),
+                                overlap_noise_floor=noise_floor, **kwargs)
+                                for sign in (-1, 1)]
+                        except (ValueError, np.linalg.LinAlgError):
+                            perturbed = []
+                        if perturbed and all(p.effective_rank == rank for p in perturbed):
+                            break
+                        step *= 0.25
+                    else:
+                        perturbed = []
+                    functionals.append(functional)
+                    if not perturbed:
+                        stable_rank = False
+                        d_coefficients.append(np.zeros_like(C))
+                        d_energies.append(np.zeros(rank))
+                        d_projector.append(np.zeros((m, m), dtype=complex))
+                        continue
+                    minus, plus = perturbed
+                    aligned = []
+                    for point in perturbed:
+                        overlap = np.diag(C.conj().T @ S @ point.coefficients)
+                        valid &= np.abs(overlap) > 0.5
+                        phase = np.ones(rank, dtype=complex)
+                        np.divide(overlap.conjugate(), np.abs(overlap), out=phase,
+                                  where=np.abs(overlap) > 0.0)
+                        aligned.append(point.coefficients * phase[None, :])
+                    d_coefficients.append((aligned[1] - aligned[0]) / (2.0 * step))
+                    d_energies.append((np.asarray(plus.energies) - minus.energies) / (2.0 * step))
+                    d_projector.append((plus.coefficients @ plus.coefficients.conj().T
+                                        - minus.coefficients @ minus.coefficients.conj().T)
+                                       / (2.0 * step))
+    return _BasisResponse(
+        tuple(functionals),
+        np.asarray(d_coefficients).reshape(-1, m, rank),
+        np.asarray(d_energies).reshape(-1, rank),
+        np.asarray(d_projector).reshape(-1, m, m),
+        tuple(bool(value) for value in valid), stable_rank)
+
+
 def _expected_lowering_details(
     bank: MatrixElementBank,
     basis: Sequence[int],
@@ -383,6 +500,7 @@ def _expected_lowering_details(
     root: int = 0,
     cache: GroupedWordCache | None = None,
     ritz_f: WordFunctional | None = None,
+    basis_response: _BasisResponse | None = None,
 ) -> tuple[
     float,
     float,
@@ -413,6 +531,10 @@ def _expected_lowering_details(
         lowering = _two_by_two_lowering(energy_r, s_a, h_a, s_aa, h_aa)
         return lowering, 0.0, orth, 0.0, coupling, 0.0, None, None
 
+    # The Ritz vectors were estimated from this cache too. Their response is
+    # first order for candidate couplings, unlike the stationary Ritz energy.
+    response = basis_response if basis_response is not None else _basis_response(
+        bank, basis, result, cache)
     # Finite-shot covariance-aware estimation
     (s_aa_f, _), (h_aa_f, _) = entry_functionals(bank, candidate, candidate)
     s_aa = float(s_aa_f.estimate(cache))
@@ -440,6 +562,17 @@ def _expected_lowering_details(
     h_a_im = float(h_a_im_f.estimate(cache))
     h_a = complex(h_a_re, h_a_im)
 
+    s_col = np.array([complex(*[part.estimate(cache) for part in
+                               entry_functionals(bank, i, candidate)[0]]) for i in basis])
+    h_col = np.array([complex(*[part.estimate(cache) for part in
+                               entry_functionals(bank, i, candidate)[1]]) for i in basis])
+    ds = np.einsum("ni,i->n", response.coefficients[:, :, root].conj(), s_col)
+    dh = np.einsum("ni,i->n", response.coefficients[:, :, root].conj(), h_col)
+    s_a_re_f += _combine_linear(ds.real, response.functionals)
+    s_a_im_f += _combine_linear(ds.imag, response.functionals)
+    h_a_re_f += _combine_linear(dh.real, response.functionals)
+    h_a_im_f += _combine_linear(dh.imag, response.functionals)
+
     proj_sq = sum(u * u + v * v for u, v in proj_vals)
     orth = max(0.0, 1.0 - proj_sq / s_aa)
     coupling = abs(h_a - energy_r * s_a) / math.sqrt(s_aa)
@@ -452,7 +585,9 @@ def _expected_lowering_details(
         grad_orth[1 + 2 * k] = -2.0 * uk / s_aa
         grad_orth[1 + 2 * k + 1] = -2.0 * vk / s_aa
     orth_f = _combine_linear(grad_orth, orth_funcs)
-    if _all_measured(orth_funcs, cache):
+    dq = np.einsum("i,nij,j->n", s_col.conj(), response.projector, s_col).real
+    orth_f += _combine_linear(-dq / s_aa, response.functionals)
+    if response.stable_rank and _all_measured([orth_f], cache):
         orth_std = math.sqrt(max(0.0, orth_f.variance(cache)))
     else:
         orth_std = float("inf")
@@ -460,7 +595,7 @@ def _expected_lowering_details(
     lowering = _two_by_two_lowering(energy_r, s_a, h_a, s_aa, h_aa)
 
     # 7D delta-method variance of 2x2 generalized lowering (s_a_r, s_a_i, h_a_r, h_a_i, s_aa, h_aa, E_r)
-    e_r_f = ritz_f if ritz_f is not None else ritz_functional(bank, basis, c_r, energy_r)
+    e_r_f = _combine_linear(response.energies[:, root], response.functionals)
     low_funcs = [s_a_re_f, s_a_im_f, h_a_re_f, h_a_im_f, s_aa_f, h_aa_f, e_r_f]
     theta = np.array(
         [s_a.real, s_a.imag, h_a.real, h_a.imag, s_aa, h_aa, energy_r],
@@ -514,7 +649,8 @@ def _expected_lowering_details(
         grad_coup[6] = -(dr * s_a.real + di * s_a.imag) * inv
     coup_f = _combine_linear(grad_coup, low_funcs)
 
-    if _all_measured(low_funcs, cache):
+    if (response.stable_rank and response.valid_roots[root]
+            and _all_measured(low_funcs, cache)):
         low_std = math.sqrt(max(0.0, low_f.variance(cache)))
         coup_std = math.sqrt(max(0.0, coup_f.variance(cache)))
     else:
@@ -537,8 +673,9 @@ def expected_lowering_estimate(
 
     When ``cache is None``, evaluates exact values with zero standard error.
     When ``cache`` is supplied, propagates joint grouped covariance via the
-    delta method over the 2x2 generalized eigenvalue block and ``E_r``, as
-    well as the orthogonal fraction against the full retained subspace.
+    delta method over the 2x2 generalized eigenvalue block and the response of
+    the measured basis Ritz values, vectors and retained-space projector.
+    Degenerate roots or unstable retention decisions have unresolved uncertainty.
     """
     low, low_std, orth, orth_std, coupling, _, _, _ = _expected_lowering_details(
         bank, basis, result, candidate, root=root, cache=cache
@@ -617,6 +754,7 @@ def _score_information_candidate_with_details(
     sector_target: tuple[int, float] | None = None,
     spin_ordering: str | tuple = "interleaved",
     ritz_f: WordFunctional | None = None,
+    basis_response: _BasisResponse | None = None,
 ) -> tuple[InformationScore, WordFunctional | None, WordFunctional | None]:
     label = bank.generator(candidate).label
     leakage = None
@@ -687,6 +825,8 @@ def _score_information_candidate_with_details(
     tracked = tuple(r for r in roots if r < len(result.energies))
     if not tracked:
         tracked = (0,)
+    if cache is not None and basis_response is None:
+        basis_response = _basis_response(bank, basis, result, cache)
 
     per_root_low: list[float] = []
     per_root_std: list[float] = []
@@ -701,7 +841,8 @@ def _score_information_candidate_with_details(
     for idx_r, r in enumerate(tracked):
         rf_arg = ritz_f if r == 0 else None
         low_r, std_r, ofrac, ostd, coup, cstd, of_r, lf_r = _expected_lowering_details(
-            bank, basis, result, candidate, root=r, cache=cache, ritz_f=rf_arg
+            bank, basis, result, candidate, root=r, cache=cache, ritz_f=rf_arg,
+            basis_response=basis_response
         )
         if idx_r == 0:
             orth_frac, orth_std = ofrac, ostd
@@ -1181,6 +1322,10 @@ class AcquisitionResult:
         return len(self.labels)
 
 
+class _AcquisitionBudgetExhausted(RuntimeError):
+    """The next measurement cannot fit the remaining physical resources."""
+
+
 class _IncrementalGroupRegistry:
     """Monotone QWC circuit ledger compatible with cumulative ``GroupedWordCache``.
 
@@ -1280,7 +1425,7 @@ class _IncrementalGroupRegistry:
         return costs
 
     def batch_time_us(self, groups: Sequence[Sequence[PauliWord]], shot_map_or_int) -> float:
-        total = 0.0
+        terms = []
         for group in groups:
             if not group:
                 continue
@@ -1291,8 +1436,8 @@ class _IncrementalGroupRegistry:
                 shots = shot_map_or_int
             else:
                 shots = max((int(shot_map_or_int.get(w.code, 0)) for w in group), default=0)
-            total += shots * dur
-        return total
+            terms.append(shots * dur)
+        return math.fsum(terms)
 
 
 def _qwc_reads_word(n: int, word_code: int, basis_code: int) -> bool:
@@ -1379,17 +1524,36 @@ def acquire_to_accuracy(
            ``sigma_stat`` smoothly according to exact per-group empirical variances
            ``sum_g V_{f,g} / (N_g + dN_g)``.
 
-    Stops when the combined error proxy reaches ``target_accuracy``, all
-    candidates are exhausted and statistical error is within ``target_accuracy``,
-    or the resource budget (``max_total_shots`` / ``max_total_time_us`` /
-    ``max_steps``) is reached.
+    Stops when the combined statistical and guarded remaining-lowering proxy
+    reaches ``target_accuracy``, or a resource limit is reached. This proxy
+    concerns the supplied candidate family; it does not bound true ground-state
+    error. The reported interval is an asymptotic single-look diagnostic, not
+    an anytime or finite-sample certificate for this adaptive schedule.
+
+    Shot and execution-time limits apply before every batch, including pilots.
+    A pilot is reduced uniformly to fit; if even one shot per required setting
+    cannot fit initially, raises ``ValueError`` without sampling. Later limits
+    return the last measured solve with unresolved remaining bias preserved.
     """
     if target_accuracy <= 0.0 or not math.isfinite(target_accuracy):
         raise ValueError("target_accuracy must be positive and finite")
     if stop_metric not in _STOP_METRICS:
         raise ValueError(f"stop_metric must be one of {_STOP_METRICS}")
-    if pilot_shots < 1 or refine_batch_shots < 1:
-        raise ValueError("pilot_shots and refine_batch_shots must be positive")
+    for name, value, minimum in (
+        ("pilot_shots", pilot_shots, 1), ("refine_batch_shots", refine_batch_shots, 1),
+        ("max_total_shots", max_total_shots, 1), ("max_basis_size", max_basis_size, 1),
+        ("max_steps", max_steps, 0),
+    ):
+        if isinstance(value, (bool, np.bool_)) or not isinstance(value, Integral) or value < minimum:
+            raise ValueError(f"{name} must be an integer of at least {minimum}")
+    pilot_shots, refine_batch_shots = int(pilot_shots), int(refine_batch_shots)
+    max_total_shots, max_steps = int(max_total_shots), int(max_steps)
+    if max_total_time_us is not None and (
+        not math.isfinite(max_total_time_us) or max_total_time_us <= 0.0
+    ):
+        raise ValueError("max_total_time_us must be positive and finite")
+    if not 0.0 < delta < 1.0:
+        raise ValueError("delta must be in (0, 1)")
     if pooling not in ("assigned", "shots"):
         raise ValueError("pooling must be 'assigned' or 'shots'")
 
@@ -1413,6 +1577,8 @@ def acquire_to_accuracy(
         as_generators(initial) if initial is not None else [identity_generator(bank.n)]
     )
     basis = list(bank.extend(initial_gens))
+    if len(basis) > max_basis_size:
+        raise ValueError("the initial basis exceeds max_basis_size")
     pool: list[int] = []
     for index in bank.extend(as_generators(candidates)):
         if index not in basis and index not in pool:
@@ -1448,31 +1614,93 @@ def acquire_to_accuracy(
         calibrate_overlap=calibrate_overlap,
     )
 
+    def _group_duration(group) -> float:
+        if cost_model.device_card is None:
+            return 1.0
+        basis_code = basis_dict_to_code(shared_basis(group))
+        return setting_duration_us(cost_model.device_card, qwc_setting_resources(bank.n, basis_code))
+
+    def _bounded_plan(groups, shots_spec) -> dict[int, int]:
+        """Clip a proposed batch before the backend can spend either budget."""
+        groups = [group for group in groups if group]
+        counts = [shots_spec if isinstance(shots_spec, int) else
+                  max((int(shots_spec.get(word.code, 0)) for word in group), default=0)
+                  for group in groups]
+        durations = [_group_duration(group) for group in groups]
+        shots_left = max_total_shots - cache.total_shots
+        time_left = (float("inf") if max_total_time_us is None else
+                     max_total_time_us - total_time_us)
+        requested = sum(counts)
+        requested_time = math.fsum(count * dur for count, dur in zip(counts, durations))
+        if requested <= 0 or shots_left <= 0:
+            raise _AcquisitionBudgetExhausted("shot budget reached")
+        scale = min(1.0, shots_left / requested,
+                    time_left / requested_time if requested_time > 0.0 else 1.0)
+        bounded = [max(0, math.floor(count * scale)) for count in counts]
+        if not any(bounded):
+            eligible = [i for i, (count, dur) in enumerate(zip(counts, durations))
+                        if count > 0 and dur <= time_left]
+            if not eligible:
+                raise _AcquisitionBudgetExhausted("hardware time budget reached")
+            best_group = max(eligible, key=lambda i: counts[i] / max(durations[i], 1e-30))
+            bounded[best_group] = 1
+        # Guard an integer boundary against floating-point rounding as well.
+        while (sum(bounded) > shots_left or
+               math.fsum(count * dur for count, dur in zip(bounded, durations)) > time_left):
+            last = next((i for i in reversed(range(len(bounded))) if bounded[i]), None)
+            if last is None:
+                raise _AcquisitionBudgetExhausted("hardware time budget reached")
+            bounded[last] -= 1
+        if not any(bounded):
+            raise _AcquisitionBudgetExhausted("hardware time budget reached")
+        return {word.code: count for group, count in zip(groups, bounded) if count
+                for word in group}
+
     def _sample_groups(groups_to_shoot, shots_spec) -> tuple[int, int, float]:
         nonlocal total_time_us
-        non_empty = [g for g in groups_to_shoot if g]
+        plan = _bounded_plan(groups_to_shoot, shots_spec)
+        non_empty = [g for g in groups_to_shoot if g and plan.get(g[0].code, 0) > 0]
         if not non_empty:
             return 0, 0, 0.0
-        batch = backend.sample_grouped_from_state(rho, non_empty, shots_spec)
+        batch = backend.sample_grouped_from_state(rho, non_empty, plan)
         cache.add_batch(batch)
-        dt_us = registry.batch_time_us(non_empty, shots_spec)
+        dt_us = registry.batch_time_us(non_empty, plan)
         total_time_us += dt_us
         return batch.hardware_shots, batch.circuits, dt_us
 
     def _ensure_covered(codes: Iterable[int]) -> tuple[int, int, float]:
-        new_groups = registry.register_words(codes)
+        codes = set(codes)
+        # Preview the fresh circuits before registration. An unfunded circuit
+        # must not look registered/readable to later scoring passes.
+        uncovered = [code for code in codes if code != 0 and not any(
+            _qwc_reads_word(bank.n, code, bc) for bc in registry.group_basis_codes)]
+        new_groups = qwc_groups(_non_identity_words(bank.n, uncovered)) if uncovered else []
         if not new_groups:
+            registry.register_words(codes)
             return 0, 0, 0.0
-        shots_each = pilot_shots
         shots_left = max_total_shots - cache.total_shots
-        if shots_left < len(new_groups) * pilot_shots and cache.total_shots > 0:
-            shots_each = max(1, shots_left // len(new_groups))
+        shots_each = min(pilot_shots, shots_left // len(new_groups))
+        if shots_each < 1:
+            raise _AcquisitionBudgetExhausted("shot budget reached before candidate screening")
+        round_time = math.fsum(_group_duration(group) for group in new_groups)
+        if max_total_time_us is not None and round_time > 0.0:
+            shots_each = min(shots_each, math.floor((max_total_time_us - total_time_us) / round_time))
+            while shots_each > 0 and math.fsum(
+                shots_each * _group_duration(group) for group in new_groups
+            ) > max_total_time_us - total_time_us:
+                shots_each -= 1
+        if shots_each < 1:
+            raise _AcquisitionBudgetExhausted("hardware time budget reached before candidate screening")
+        new_groups = registry.register_words(codes)
         return _sample_groups(new_groups, shots_each)
 
     # Initial measurement of basis block + candidate rows against initial basis
     init_codes = _words_needed_for_pairs(bank, basis, basis)
     init_cand_codes = _candidate_scoring_words(bank, basis, pool)
-    s0, c0, t0 = _ensure_covered(init_codes | init_cand_codes)
+    try:
+        s0, c0, t0 = _ensure_covered(init_codes | init_cand_codes)
+    except _AcquisitionBudgetExhausted as error:
+        raise ValueError(f"initial pilot cannot fit the resource budget: {error}") from error
 
     def _solve_current():
         req = _words_needed_for_pairs(bank, basis, basis)
@@ -1511,7 +1739,9 @@ def acquire_to_accuracy(
                 costs=costs,
                 min_shots=0,
             )
-        except ValueError:
+            if plan:
+                plan = _bounded_plan(registry.groups, plan)
+        except (ValueError, _AcquisitionBudgetExhausted):
             return {}, float(interval.std_error or 0.0), 0.0
         if not plan:
             return {}, float(interval.std_error or 0.0), 0.0
@@ -1556,7 +1786,11 @@ def acquire_to_accuracy(
             return False
         return True
 
+    assessment_stop_reason: str | None = None
+
     def _assess_state(*, allow_new_measurements: bool = True):
+        nonlocal session, result, interval, assessment_stop_reason
+        assessment_stop_reason = None
         remaining = [i for i in pool if i not in basis]
         add_s = add_c = 0
         add_t = 0.0
@@ -1575,7 +1809,14 @@ def acquire_to_accuracy(
                 and not any(_qwc_reads_word(bank.n, code, bc) for bc in registry.group_basis_codes)
             ]
             if not new_only or (max_total_shots - cache.total_shots) > 0:
-                add_s, add_c, add_t = _ensure_covered(cand_codes)
+                try:
+                    add_s, add_c, add_t = _ensure_covered(cand_codes)
+                except _AcquisitionBudgetExhausted as error:
+                    assessment_stop_reason = str(error)
+                if add_s:
+                    # With pooled readouts these new circuits also change the
+                    # current basis means, energy and interval.
+                    session, result, interval = _solve_current()
 
         basis_words = bank.word_set(basis)
         qwc_bases = tuple(registry.group_basis_codes)
@@ -1584,7 +1825,15 @@ def acquire_to_accuracy(
         )
         scores: list[InformationScore] = []
         cand_funcs: dict[int, tuple[WordFunctional | None, WordFunctional | None]] = {}
-        if remaining and len(basis) < max_basis_size:
+        required = _candidate_scoring_words(bank, basis, remaining)
+        if any(code != 0 and not cache.group_weights(code) for code in required):
+            if assessment_stop_reason is None:
+                assessment_stop_reason = ("basis budget reached before remaining bias could be assessed"
+                                          if len(basis) >= max_basis_size else "resource budget reached")
+            return (remaining, scores, None, float("inf"), float("inf"), ritz_f,
+                    cand_funcs, add_s, add_c, add_t)
+        if remaining:
+            response = _basis_response(bank, basis, result, cache)
             for idx in remaining:
                 sc, of_0, lf_0 = _score_information_candidate_with_details(
                     bank,
@@ -1598,17 +1847,18 @@ def acquire_to_accuracy(
                     qwc_bases=qwc_bases,
                     min_orthogonality=min_orthogonality,
                     ritz_f=ritz_f,
+                    basis_response=response,
                 )
                 scores.append(sc)
                 cand_funcs[idx] = (of_0, lf_0)
         best = select_information_candidate(scores)
         live_scores = [s for s in scores if s.accepted]
-        raw_best_upper = max(
-            (s.predicted_lowering + 1.0 * s.lowering_std for s in live_scores if math.isfinite(s.lowering_std)),
-            default=0.0,
-        )
+        unresolved = [s for s in scores if s.rejected is not None and
+                      s.rejected.startswith("orthogonal fraction unresolved")]
+        raw_best_upper = max((s.predicted_lowering + s.lowering_std
+                              for s in [*live_scores, *unresolved]), default=0.0)
         active_bias = max(
-            (s.predicted_lowering for s in live_scores if math.isfinite(s.lowering_std)),
+            (s.predicted_lowering for s in [*live_scores, *unresolved]),
             default=0.0,
         )
         return (
@@ -1626,7 +1876,7 @@ def acquire_to_accuracy(
 
     remaining, scores, best, active_bias, bias_upper, ritz_f, cand_funcs, _, _, _ = _assess_state()
     stat_now = _stat_err(interval)
-    rmse_now = math.hypot(stat_now, active_bias)
+    rmse_now = math.hypot(stat_now, bias_upper)
 
     steps.append(
         AcquisitionStep(
@@ -1638,7 +1888,7 @@ def acquire_to_accuracy(
             energy=result.ground_energy,
             stat_std_error=float(interval.std_error or 0.0),
             ci_halfwidth=0.5 * (interval.upper - interval.lower),
-            estimated_remaining_bias=active_bias,
+            estimated_remaining_bias=bias_upper,
             total_error_estimate=rmse_now,
             shots_added=s0,
             cumulative_shots=cache.total_shots,
@@ -1670,9 +1920,9 @@ def acquire_to_accuracy(
             s
             for s in scores
             if s.accepted
-            and s.risk_adjusted_lowering < min_lowering
-            and math.isfinite(s.lowering_std)
-            and (s.predicted_lowering + 1.0 * s.lowering_std) >= harm_thr
+            and (not math.isfinite(s.lowering_std) or (
+                s.risk_adjusted_lowering < min_lowering
+                and (s.predicted_lowering + s.lowering_std) >= harm_thr))
         ]
         unres_targets = [
             s
@@ -1687,12 +1937,18 @@ def acquire_to_accuracy(
         has_ambiguous = bool(ambig_targets)
         has_unresolved_orth = bool(unres_targets)
 
-        if stat_now <= target_accuracy and not can_expand and not has_ambiguous and not has_unresolved_orth:
+        if assessment_stop_reason is not None:
+            stopped_reason = assessment_stop_reason
+            break
+        if math.hypot(stat_now, bias_upper) <= target_accuracy:
             converged = True
             stopped_reason = (
                 f"target accuracy reached (stat={stat_now:.3e} <= {target_accuracy:.3e}, "
-                f"rem_bias={active_bias:.3e})"
+                f"rem_bias={bias_upper:.3e})"
             )
+            break
+        if remaining and len(basis) >= max_basis_size and bias_upper > target_accuracy:
+            stopped_reason = "basis budget reached with unresolved remaining bias"
             break
 
         if shots_left_now <= 0:
@@ -1719,6 +1975,8 @@ def acquire_to_accuracy(
                     refine_targets.append(of_c)
                 if lf_c is not None and not lf_c.is_deterministic:
                     refine_targets.append(lf_c)
+            if any(not math.isfinite(s.lowering_std) for s in top_cands):
+                refine_targets.extend(session.matrix_functionals())
 
         batch_budget = min(refine_batch_shots, shots_left_now)
         plan, stat_after_refine, refine_time_us = _predict_refined_stat(
@@ -1732,7 +1990,8 @@ def acquire_to_accuracy(
         refine_cost = (
             refine_time_us + cost_model.epsilon
             if use_device_time
-            else float(batch_budget) + cost_model.epsilon
+            else float(sum(max((plan.get(w.code, 0) for w in group), default=0)
+                           for group in registry.groups)) + cost_model.epsilon
         )
         rate_refine = delta_rmse_refine / refine_cost if plan else 0.0
 
@@ -1768,9 +2027,14 @@ def acquire_to_accuracy(
 
         # Decide action: Expand vs Refine Shots
         if can_expand and best is not None and (not plan or rate_expand >= rate_refine):
+            next_basis = [*basis, best.index]
+            add_req = _words_needed_for_pairs(bank, next_basis, next_basis)
+            try:
+                s_a, c_a, t_a = _ensure_covered(add_req)
+            except _AcquisitionBudgetExhausted as error:
+                stopped_reason = str(error)
+                break
             basis.append(best.index)
-            add_req = _words_needed_for_pairs(bank, basis, basis)
-            s_a, c_a, t_a = _ensure_covered(add_req)
             session, result, interval = _solve_current()
             (
                 remaining,
@@ -1795,8 +2059,8 @@ def acquire_to_accuracy(
                     energy=result.ground_energy,
                     stat_std_error=float(interval.std_error or 0.0),
                     ci_halfwidth=0.5 * (interval.upper - interval.lower),
-                    estimated_remaining_bias=active_bias,
-                    total_error_estimate=math.hypot(_stat_err(interval), active_bias),
+                    estimated_remaining_bias=bias_upper,
+                    total_error_estimate=math.hypot(_stat_err(interval), bias_upper),
                     shots_added=s_a + s_c,
                     cumulative_shots=cache.total_shots,
                     circuits_added=c_a + c_c,
@@ -1815,7 +2079,11 @@ def acquire_to_accuracy(
                 for group in registry.groups
                 if max((int(plan.get(w.code, 0)) for w in group), default=0) > 0
             ]
-            s_r, c_r, t_r = _sample_groups(active_groups_shot, plan)
+            try:
+                s_r, c_r, t_r = _sample_groups(active_groups_shot, plan)
+            except _AcquisitionBudgetExhausted as error:
+                stopped_reason = str(error)
+                break
             result = session.solve(cache, **solver_kwargs)
             interval = ritz_uncertainty(session, cache, result, root=0, delta=delta)
             (
@@ -1840,8 +2108,8 @@ def acquire_to_accuracy(
                     energy=result.ground_energy,
                     stat_std_error=float(interval.std_error or 0.0),
                     ci_halfwidth=0.5 * (interval.upper - interval.lower),
-                    estimated_remaining_bias=active_bias,
-                    total_error_estimate=math.hypot(_stat_err(interval), active_bias),
+                    estimated_remaining_bias=bias_upper,
+                    total_error_estimate=math.hypot(_stat_err(interval), bias_upper),
                     shots_added=s_r + s_c,
                     cumulative_shots=cache.total_shots,
                     circuits_added=c_r + c_c,
@@ -1859,7 +2127,13 @@ def acquire_to_accuracy(
             break
 
     final_stat = _stat_err(interval)
-    final_rmse = math.hypot(final_stat, active_bias)
+    final_rmse = math.hypot(final_stat, bias_upper)
+    if assessment_stop_reason is not None:
+        stopped_reason = assessment_stop_reason
+    elif final_rmse <= target_accuracy:
+        converged = True
+        stopped_reason = (f"target accuracy reached (stat={final_stat:.3e} <= {target_accuracy:.3e}, "
+                          f"rem_bias={bias_upper:.3e})")
     resources = dict(result.resources)
     resources.update(bank.resources(basis))
     resources.update(
@@ -1867,6 +2141,7 @@ def acquire_to_accuracy(
             "evidence": EvidenceLevel.ASYMPTOTIC.value,
             "target_accuracy": target_accuracy,
             "stop_metric": stop_metric,
+            "remaining_bias_point_estimate": active_bias,
             "pooling": pooling,
             "total_shots": cache.total_shots,
             "total_circuits": cache.total_circuits,
@@ -1885,7 +2160,7 @@ def acquire_to_accuracy(
         energy=result.ground_energy,
         std_error=float(interval.std_error or 0.0),
         ci_interval=interval,
-        estimated_remaining_bias=active_bias,
+        estimated_remaining_bias=bias_upper,
         total_error_estimate=final_rmse,
         target_accuracy=target_accuracy,
         converged=converged,

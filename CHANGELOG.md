@@ -52,6 +52,11 @@ Benchmark campaigns, their declarations and their outcomes are recorded in
 
 ### Fixed
 
+- Information acquisition now includes the measured Ritz-vector response in
+  candidate uncertainties, refreshes the solve after screening measurements,
+  preserves unresolved remaining bias at basis limits, and checks shot and
+  execution-time budgets before every batch. Commutator hierarchies no longer
+  report Lie closure when caps or filters leave branches uncomputed.
 - The constrained-ratio single-live-generator shortcut now rejects an
   unattainable error budget or denominator-CV gate. Deterministic phase-mixed
   starts also prevent the reviewed stationary two-direction maximum from
