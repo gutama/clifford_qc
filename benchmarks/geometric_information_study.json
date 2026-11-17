@@ -1,15 +1,15 @@
 {
   "metadata": {
-    "git_dirty": true,
-    "git_sha": "f8583276c64269e9cf11f3754c1133a6a93cfdb4",
+    "git_dirty": false,
+    "git_sha": "a846f35219c968cacf02f07aefbdb433f409a7e7",
     "implementation_sha256": {
-      "benchmarks/run_geometric_information_study.py": "afe89fd34b5b58c545412fd1cae0e67b15dc15fa89c1da45affbb35b679f90f1",
-      "clifford_qc/subspace/commutators.py": "bc28f751915d9470abbe6ae18e772a167aba1a35c31609b91d502b9583be1a24",
-      "clifford_qc/subspace/information.py": "1a0eaee03d10345f41928eecdd0218c3ebedecac1ef1eac46248e54c4590445d"
+      "benchmarks/run_geometric_information_study.py": "82526aab1985c386f2924e83c56825bcc5c72a84c7d30f47f839e2aba7aff240",
+      "clifford_qc/subspace/commutators.py": "b4dcbfc0184d902f26b46fea536868128c9a886fabf95eafcbd3625a5a5d1a0b",
+      "clifford_qc/subspace/information.py": "3b853bcc02f4e591bd694003d3789592f78f5968c260fc1c2d45c242cc8330d5"
     },
     "numpy": "2.5.2",
-    "python": "3.12.14",
-    "utc": "2026-11-17T11:44:23.937620+00:00"
+    "python": "3.12.3",
+    "utc": "2026-11-17T21:22:03.027709+00:00"
   },
   "part_a1_growth_closure_symmetry": {
     "fermionic_symmetry": [
@@ -575,7 +575,7 @@
             "max_generator_support": 1,
             "qwc_groups": 29,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.02275270000063756,
+            "wall_seconds": 0.027240831000085564,
             "word_universe": 180
           },
           "Dyn_on_stall": {
@@ -591,7 +591,7 @@
             "max_generator_support": 1,
             "qwc_groups": 29,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.014753763000044273,
+            "wall_seconds": 0.02032978199997615,
             "word_universe": 180
           },
           "Krylov6": {
@@ -605,7 +605,7 @@
             "max_generator_support": 285,
             "qwc_groups": 130,
             "stopped_reason": "fixed basis",
-            "wall_seconds": 0.7670388149999781,
+            "wall_seconds": 0.7602861579999853,
             "word_universe": 879
           },
           "Orbit_d0": {
@@ -619,7 +619,7 @@
             "max_generator_support": 1,
             "qwc_groups": 29,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.01244474099985382,
+            "wall_seconds": 0.01558069100008197,
             "word_universe": 180
           },
           "Static_d<=1": {
@@ -633,7 +633,7 @@
             "max_generator_support": 1,
             "qwc_groups": 29,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.01616685699991649,
+            "wall_seconds": 0.023235586000055264,
             "word_universe": 180
           },
           "Static_d<=2": {
@@ -647,7 +647,7 @@
             "max_generator_support": 1,
             "qwc_groups": 29,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.028030704999764566,
+            "wall_seconds": 0.03570156700004645,
             "word_universe": 180
           },
           "Static_d<=3": {
@@ -661,7 +661,7 @@
             "max_generator_support": 8,
             "qwc_groups": 89,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.07363534400064964,
+            "wall_seconds": 0.07328226599997834,
             "word_universe": 462
           }
         },
@@ -680,7 +680,7 @@
             "max_generator_support": 6,
             "qwc_groups": 65,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.024660228000357165,
+            "wall_seconds": 0.05183630900000935,
             "word_universe": 370
           },
           "Dyn_on_stall": {
@@ -697,7 +697,7 @@
             "max_generator_support": 6,
             "qwc_groups": 59,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.02268879300027038,
+            "wall_seconds": 0.02744148600004337,
             "word_universe": 330
           },
           "Krylov6": {
@@ -711,7 +711,7 @@
             "max_generator_support": 285,
             "qwc_groups": 130,
             "stopped_reason": "fixed basis",
-            "wall_seconds": 1.299686569998812,
+            "wall_seconds": 1.0384397530000342,
             "word_universe": 879
           },
           "Orbit_d0": {
@@ -725,7 +725,7 @@
             "max_generator_support": 1,
             "qwc_groups": 15,
             "stopped_reason": "every candidate rejected (conditioning or sector)",
-            "wall_seconds": 0.008373029000722454,
+            "wall_seconds": 0.010820463999948515,
             "word_universe": 122
           },
           "Static_d<=1": {
@@ -739,7 +739,7 @@
             "max_generator_support": 2,
             "qwc_groups": 15,
             "stopped_reason": "predicted lowering below threshold",
-            "wall_seconds": 0.017396335999364965,
+            "wall_seconds": 0.012469099999975697,
             "word_universe": 132
           },
           "Static_d<=2": {
@@ -753,7 +753,7 @@
             "max_generator_support": 6,
             "qwc_groups": 138,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.040663629999471596,
+            "wall_seconds": 0.05932217800000217,
             "word_universe": 720
           },
           "Static_d<=3": {
@@ -767,7 +767,7 @@
             "max_generator_support": 8,
             "qwc_groups": 209,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.06435728300129995,
+            "wall_seconds": 0.11214629599999171,
             "word_universe": 976
           }
         }
@@ -791,7 +791,7 @@
             "max_generator_support": 2,
             "qwc_groups": 112,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.024734336000619805,
+            "wall_seconds": 0.029510464999930264,
             "word_universe": 300
           },
           "Dyn_on_stall": {
@@ -807,7 +807,7 @@
             "max_generator_support": 1,
             "qwc_groups": 63,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.0159019980001176,
+            "wall_seconds": 0.01862079099987568,
             "word_universe": 217
           },
           "Krylov6": {
@@ -821,7 +821,7 @@
             "max_generator_support": 544,
             "qwc_groups": 183,
             "stopped_reason": "fixed basis",
-            "wall_seconds": 4.857382344000143,
+            "wall_seconds": 3.584028585000169,
             "word_universe": 544
           },
           "Orbit_d0": {
@@ -835,7 +835,7 @@
             "max_generator_support": 1,
             "qwc_groups": 63,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.014935514000171679,
+            "wall_seconds": 0.03219253799989019,
             "word_universe": 217
           },
           "Static_d<=1": {
@@ -849,7 +849,7 @@
             "max_generator_support": 4,
             "qwc_groups": 115,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.04076360600083717,
+            "wall_seconds": 0.0400533690001339,
             "word_universe": 310
           },
           "Static_d<=2": {
@@ -863,7 +863,7 @@
             "max_generator_support": 4,
             "qwc_groups": 115,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.10019392799949856,
+            "wall_seconds": 0.11958919899984721,
             "word_universe": 310
           },
           "Static_d<=3": {
@@ -877,7 +877,7 @@
             "max_generator_support": 4,
             "qwc_groups": 115,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.418016097999498,
+            "wall_seconds": 0.3942547310000464,
             "word_universe": 310
           }
         },
@@ -896,7 +896,7 @@
             "max_generator_support": 10,
             "qwc_groups": 217,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.03820225999879767,
+            "wall_seconds": 0.04742295699998067,
             "word_universe": 766
           },
           "Dyn_on_stall": {
@@ -914,7 +914,7 @@
             "max_generator_support": 23,
             "qwc_groups": 221,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.06562606599982246,
+            "wall_seconds": 0.0409289000000399,
             "word_universe": 730
           },
           "Krylov6": {
@@ -928,7 +928,7 @@
             "max_generator_support": 544,
             "qwc_groups": 183,
             "stopped_reason": "fixed basis",
-            "wall_seconds": 3.7909744379994663,
+            "wall_seconds": 3.5069562330000963,
             "word_universe": 544
           },
           "Orbit_d0": {
@@ -942,7 +942,7 @@
             "max_generator_support": 1,
             "qwc_groups": 21,
             "stopped_reason": "every candidate rejected (conditioning or sector)",
-            "wall_seconds": 0.009782779001398012,
+            "wall_seconds": 0.01231132999998863,
             "word_universe": 136
           },
           "Static_d<=1": {
@@ -956,7 +956,7 @@
             "max_generator_support": 4,
             "qwc_groups": 103,
             "stopped_reason": "predicted lowering below threshold",
-            "wall_seconds": 0.0522504709988425,
+            "wall_seconds": 0.04806443399991167,
             "word_universe": 345
           },
           "Static_d<=2": {
@@ -970,7 +970,7 @@
             "max_generator_support": 23,
             "qwc_groups": 333,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.3029484050002793,
+            "wall_seconds": 0.26919919899989964,
             "word_universe": 1024
           },
           "Static_d<=3": {
@@ -984,7 +984,7 @@
             "max_generator_support": 23,
             "qwc_groups": 333,
             "stopped_reason": "basis budget reached",
-            "wall_seconds": 0.9471300120003434,
+            "wall_seconds": 1.0967897289999655,
             "word_universe": 1024
           }
         }
@@ -1008,7 +1008,7 @@
           "max_generator_support": 116,
           "qwc_groups": 869,
           "stopped_reason": "basis budget reached",
-          "wall_seconds": 4.62231541500114,
+          "wall_seconds": 4.163119186000131,
           "word_universe": 7359
         },
         "Krylov2": {
@@ -1022,7 +1022,7 @@
           "max_generator_support": 1775,
           "qwc_groups": 441,
           "stopped_reason": "fixed basis",
-          "wall_seconds": 28.150757360999705,
+          "wall_seconds": 20.507563277999907,
           "word_universe": 4224
         },
         "SD_Pool": {
@@ -1036,7 +1036,7 @@
           "max_generator_support": 8,
           "qwc_groups": 913,
           "stopped_reason": "basis budget reached",
-          "wall_seconds": 3.453976059001434,
+          "wall_seconds": 2.0264188959999956,
           "word_universe": 7371
         },
         "Singles": {
@@ -1050,7 +1050,7 @@
           "max_generator_support": 1,
           "qwc_groups": 68,
           "stopped_reason": "predicted lowering below threshold",
-          "wall_seconds": 0.02493948499977705,
+          "wall_seconds": 0.0290164680000089,
           "word_universe": 185
         }
       },
@@ -1061,7 +1061,7 @@
           "error_mHa": 4.952898907791159,
           "matrix_nonzeros": 58,
           "selection_work": 224,
-          "total_seconds": 0.004025730000648764
+          "total_seconds": 0.004347730999825217
         },
         "MatchedSCI": {
           "basis_size": 8,
@@ -1069,7 +1069,7 @@
           "error_mHa": 6.109224146007897,
           "matrix_nonzeros": 58,
           "selection_work": 35,
-          "total_seconds": 0.0031697350004833424
+          "total_seconds": 0.003184108999903401
         },
         "RandomCI": {
           "basis_size": 8,
@@ -1077,7 +1077,7 @@
           "error_mHa": 707.4881138540594,
           "matrix_nonzeros": 28,
           "selection_work": 0,
-          "total_seconds": 0.00031066699921211693
+          "total_seconds": 0.00037854800007153244
         }
       },
       "exact_ground_energy": -2.1803166143238597,
@@ -1122,7 +1122,7 @@
               "max_generator_support": 6,
               "qwc_groups": 25,
               "stopped_reason": "every candidate rejected (conditioning or sector)",
-              "wall_seconds": 0.0411381630001415,
+              "wall_seconds": 0.00610308399996029,
               "word_universe": 58
             },
             "Krylov3": {
@@ -1136,7 +1136,7 @@
               "max_generator_support": 24,
               "qwc_groups": 13,
               "stopped_reason": "fixed basis",
-              "wall_seconds": 0.0028315380004642066,
+              "wall_seconds": 0.002281895999885819,
               "word_universe": 24
             },
             "SD_Pool": {
@@ -1150,7 +1150,7 @@
               "max_generator_support": 8,
               "qwc_groups": 25,
               "stopped_reason": "candidate pool exhausted",
-              "wall_seconds": 0.003798641999310348,
+              "wall_seconds": 0.003568274000144811,
               "word_universe": 60
             },
             "Singles": {
@@ -1164,7 +1164,7 @@
               "max_generator_support": 2,
               "qwc_groups": 25,
               "stopped_reason": "candidate pool exhausted",
-              "wall_seconds": 0.0028157340002508136,
+              "wall_seconds": 0.00304515400011951,
               "word_universe": 55
             },
             "controls": {
@@ -1174,7 +1174,7 @@
                 "error_mHa": 0.0,
                 "matrix_nonzeros": 10,
                 "selection_work": 6,
-                "total_seconds": 0.0005310390006343368
+                "total_seconds": 0.0004269140001724736
               },
               "MatchedSCI": {
                 "basis_size": 4,
@@ -1182,7 +1182,7 @@
                 "error_mHa": 0.0,
                 "matrix_nonzeros": 10,
                 "selection_work": 3,
-                "total_seconds": 0.00033152799915114883
+                "total_seconds": 0.0002783730003557139
               },
               "RandomCI": {
                 "basis_size": 4,
@@ -1190,7 +1190,7 @@
                 "error_mHa": 0.0,
                 "matrix_nonzeros": 10,
                 "selection_work": 0,
-                "total_seconds": 0.0002460409996274393
+                "total_seconds": 0.0002547590001995559
               }
             }
           },
@@ -1240,7 +1240,7 @@
               "max_generator_support": 8,
               "qwc_groups": 25,
               "stopped_reason": "every candidate rejected (conditioning or sector)",
-              "wall_seconds": 0.008324787000674405,
+              "wall_seconds": 0.00695803500002512,
               "word_universe": 62
             },
             "Krylov3": {
@@ -1254,7 +1254,7 @@
               "max_generator_support": 24,
               "qwc_groups": 13,
               "stopped_reason": "fixed basis",
-              "wall_seconds": 0.003322045000459184,
+              "wall_seconds": 0.0033707349998621794,
               "word_universe": 24
             },
             "SD_Pool": {
@@ -1268,7 +1268,7 @@
               "max_generator_support": 8,
               "qwc_groups": 25,
               "stopped_reason": "candidate pool exhausted",
-              "wall_seconds": 0.00417381500119518,
+              "wall_seconds": 0.004222627999979522,
               "word_universe": 60
             },
             "Singles": {
@@ -1282,7 +1282,7 @@
               "max_generator_support": 2,
               "qwc_groups": 25,
               "stopped_reason": "candidate pool exhausted",
-              "wall_seconds": 0.0032737220008129952,
+              "wall_seconds": 0.0028505770001174824,
               "word_universe": 55
             },
             "controls": {
@@ -1292,7 +1292,7 @@
                 "error_mHa": 0.0,
                 "matrix_nonzeros": 10,
                 "selection_work": 6,
-                "total_seconds": 0.0005710389996238519
+                "total_seconds": 0.0005180439998184738
               },
               "MatchedSCI": {
                 "basis_size": 4,
@@ -1300,7 +1300,7 @@
                 "error_mHa": 0.0,
                 "matrix_nonzeros": 10,
                 "selection_work": 3,
-                "total_seconds": 0.007753577998300898
+                "total_seconds": 0.07159173100012595
               },
               "RandomCI": {
                 "basis_size": 4,
@@ -1308,7 +1308,7 @@
                 "error_mHa": 0.0,
                 "matrix_nonzeros": 10,
                 "selection_work": 0,
-                "total_seconds": 0.008595103001425741
+                "total_seconds": 0.5231560859999718
               }
             }
           },
@@ -1359,7 +1359,7 @@
           "max_generator_support": 2,
           "qwc_groups": 259,
           "stopped_reason": "predicted lowering below threshold",
-          "wall_seconds": 0.06576988000051642,
+          "wall_seconds": 0.07202740899992932,
           "word_universe": 637
         },
         "DynComm(S)_d2_stall": {
@@ -1376,7 +1376,7 @@
           "max_generator_support": 34,
           "qwc_groups": 948,
           "stopped_reason": "basis budget reached",
-          "wall_seconds": 0.49975218399958976,
+          "wall_seconds": 0.4763723730000038,
           "word_universe": 5040
         },
         "Krylov3": {
@@ -1390,7 +1390,7 @@
           "max_generator_support": 615,
           "qwc_groups": 809,
           "stopped_reason": "fixed basis",
-          "wall_seconds": 3.163217874000111,
+          "wall_seconds": 2.5892543209999985,
           "word_universe": 3752
         },
         "SD_Pool": {
@@ -1404,7 +1404,7 @@
           "max_generator_support": 8,
           "qwc_groups": 1406,
           "stopped_reason": "basis budget reached",
-          "wall_seconds": 0.28922395300105563,
+          "wall_seconds": 0.23368741300009788,
           "word_universe": 5537
         },
         "Singles": {
@@ -1418,7 +1418,7 @@
           "max_generator_support": 2,
           "qwc_groups": 259,
           "stopped_reason": "predicted lowering below threshold",
-          "wall_seconds": 0.4469921899999463,
+          "wall_seconds": 0.07699898800001392,
           "word_universe": 637
         }
       },
@@ -1429,7 +1429,7 @@
           "error_mHa": 908.7741037559347,
           "matrix_nonzeros": 26,
           "selection_work": 224,
-          "total_seconds": 0.0019273430007160641
+          "total_seconds": 0.0019690410001658165
         },
         "MatchedSCI": {
           "basis_size": 8,
@@ -1437,7 +1437,7 @@
           "error_mHa": 1274.3213587158912,
           "matrix_nonzeros": 19,
           "selection_work": 35,
-          "total_seconds": 0.0023728029991616495
+          "total_seconds": 0.0013651110000409972
         },
         "RandomCI": {
           "basis_size": 8,
@@ -1445,7 +1445,7 @@
           "error_mHa": 1442.5976207327,
           "matrix_nonzeros": 24,
           "selection_work": 0,
-          "total_seconds": 0.00040205599907494616
+          "total_seconds": 0.0003850959999454062
         }
       },
       "exact_ground_energy": -10.102748483462076,
@@ -1502,7 +1502,7 @@
           "max_generator_support": 128,
           "qwc_groups": 917,
           "stopped_reason": "predicted lowering below threshold",
-          "wall_seconds": 14.903116212000896,
+          "wall_seconds": 12.590822643000138,
           "word_universe": 7355
         },
         "DynComm(S)_d2_top32": {
@@ -1519,7 +1519,7 @@
           "max_generator_support": 32,
           "qwc_groups": 917,
           "stopped_reason": "predicted lowering below threshold",
-          "wall_seconds": 16.594907628999863,
+          "wall_seconds": 9.12650901500001,
           "word_universe": 7091
         },
         "Krylov2": {
@@ -1533,7 +1533,7 @@
           "max_generator_support": 1783,
           "qwc_groups": 477,
           "stopped_reason": "fixed basis",
-          "wall_seconds": 34.78454530199997,
+          "wall_seconds": 22.37215988800017,
           "word_universe": 4224
         },
         "SD_Pool": {
@@ -1547,7 +1547,7 @@
           "max_generator_support": 8,
           "qwc_groups": 961,
           "stopped_reason": "basis budget reached",
-          "wall_seconds": 3.675206308998895,
+          "wall_seconds": 2.6518414229999507,
           "word_universe": 7697
         },
         "Singles": {
@@ -1561,7 +1561,7 @@
           "max_generator_support": 1,
           "qwc_groups": 42,
           "stopped_reason": "predicted lowering below threshold",
-          "wall_seconds": 0.06949371100017743,
+          "wall_seconds": 0.06523570000013024,
           "word_universe": 193
         }
       },
@@ -1572,7 +1572,7 @@
           "error_mHa": 0.01552404412752395,
           "matrix_nonzeros": 48,
           "selection_work": 224,
-          "total_seconds": 0.003638674998001079
+          "total_seconds": 0.0040943619999325165
         },
         "MatchedSCI": {
           "basis_size": 8,
@@ -1580,7 +1580,7 @@
           "error_mHa": 0.032229790138949,
           "matrix_nonzeros": 46,
           "selection_work": 35,
-          "total_seconds": 0.00278822600193962
+          "total_seconds": 0.00299684099991282
         },
         "RandomCI": {
           "basis_size": 8,
@@ -1588,7 +1588,7 @@
           "error_mHa": 591.0101503993009,
           "matrix_nonzeros": 24,
           "selection_work": 0,
-          "total_seconds": 0.0004872939989581937
+          "total_seconds": 0.00035137899999426736
         }
       },
       "exact_ground_energy": -7.8632225508906215,
@@ -4498,5 +4498,5 @@
     }
   },
   "schema": "clifford_qc.geometric_information_study.v1",
-  "total_wall_seconds": 201.85866269500002
+  "total_wall_seconds": 180.36027764900007
 }

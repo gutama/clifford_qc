@@ -69,6 +69,14 @@ Benchmark campaigns, their declarations and their outcomes are recorded in
   preserves unresolved remaining bias at basis limits, and checks shot and
   execution-time budgets before every batch. Commutator hierarchies no longer
   report Lie closure when caps or filters leave branches uncomputed.
+  Review follow-ups: a commutator erased only by `MV`'s absolute cutoff is
+  reported as `"underflow"` and never counts toward closure; truncation caps
+  seed support too; seeds already in the basis stay expandable; refinement
+  allocates to every word a setting reads; the lowering threshold applies
+  before the cost-ratio argmax; both resource-aware runners end with the
+  retained-subspace sector certificate (`retained_sector_certificate`); a
+  run stopped by hardware time says so; and a word an existing setting
+  already reads adds no setting cost.
 - The constrained-ratio single-live-generator shortcut now rejects an
   unattainable error budget or denominator-CV gate. Deterministic phase-mixed
   starts also prevent the reviewed stationary two-direction maximum from

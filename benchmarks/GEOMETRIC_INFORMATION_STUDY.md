@@ -11,7 +11,15 @@ $$A^\star = \arg\max_A \frac{\mathbb{E}[\Delta E_A]}{C_{\mathrm{incremental}}(A)
 
 and an oracle-free closed-loop controller [`acquire_to_accuracy`](../clifford_qc/subspace/information.py) that allocates finite shots between basis expansion and Neyman-optimal shot refinement against a physical error proxy without inspecting the exact ground energy.
 
-Every figure below comes directly from [`benchmarks/run_geometric_information_study.py`](../benchmarks/run_geometric_information_study.py) and its machine-readable output [`benchmarks/geometric_information_study.json`](../benchmarks/geometric_information_study.json) (total wall time 201.86 s).
+Every figure below comes directly from [`benchmarks/run_geometric_information_study.py`](../benchmarks/run_geometric_information_study.py) and its machine-readable output [`benchmarks/geometric_information_study.json`](../benchmarks/geometric_information_study.json) (total wall time 180.36 s).
+
+The record was regenerated after the review fixes to hierarchy closure, seed
+truncation, warm-start expansion, refinement allocation, threshold-first
+selection, sector certification, time-budget reporting and setting costs.
+Every reported value and simulated device time is unchanged: none of the
+study's scenarios reached the conditions those fixes address. Only the
+provenance changed. The record now comes from a clean checkout, and its
+implementation digests are those of the fixed sources.
 
 | Experiment | Main finding | Boundary / negative result |
 |---|---|---|
@@ -127,7 +135,7 @@ Notice how cleanly [`span_comparison`](../clifford_qc/subspace/selected_ci.py#L9
 
 ## 4. Resource-aware Pareto sweeps and myopia boundary (**Part B1**)
 
-[`estimate_incremental_cost`](../clifford_qc/subspace/information.py) prices every candidate by the incremental observables `ΔW`, genuinely new QWC settings `ΔG` (after first-fit compatibility checks against existing QWC bases), hardware circuit duration `ΔT` under a declared `DeviceCard` ([`superconducting-like.json`](../benchmarks/configs/device_cards/superconducting-like.json), [`ion-like.json`](../benchmarks/configs/device_cards/ion-like.json), [`logical-alltoall.json`](../benchmarks/configs/device_cards/logical-alltoall.json)), and classical Pauli pair products / terms (`classical_products`, `classical_terms`), populated regardless of cost weights.
+[`estimate_incremental_cost`](../clifford_qc/subspace/information.py) prices every candidate by the incremental observables `ΔW`, genuinely new QWC settings `ΔG` (a word an existing setting already reads is free; otherwise it widens the first compatible setting or opens a new one), hardware circuit duration `ΔT` under a declared `DeviceCard` ([`superconducting-like.json`](../benchmarks/configs/device_cards/superconducting-like.json), [`ion-like.json`](../benchmarks/configs/device_cards/ion-like.json), [`logical-alltoall.json`](../benchmarks/configs/device_cards/logical-alltoall.json)), and classical Pauli pair products / terms (`classical_products`, `classical_terms`), populated regardless of cost weights.
 
 | System | Arm | `M` | Final error (mHa) | `W` | `G` (QWC) | SC time (`µs`/shot) | Classical products | Selected sequence |
 |---|---|---:|---:|---:|---:|---:|---:|---|
@@ -183,7 +191,7 @@ Across five seeds (`11, 12, 13, 17, 23`, `max_total_shots = 60 000`, `max_steps 
 
 These results replace the pre-fix 19/20, 12/20, and 14/20 claims. Including the measured Ritz-vector response changes candidate gates, selected bases, and shot allocation. Acquisition often improves statistical precision relative to the full-registry baseline, while the final-basis-only baseline usually has lower statistical error because it pays no screening cost.
 
-`converged` records this candidate-family proxy, not a true-ground-error certificate. For example, `tfim4_sc_se` meets the 20 mHa proxy in all five runs but has median true error 22.36 mHa. Its returned interval is an asymptotic single-look diagnostic; this adaptive schedule has no claimed anytime coverage or finite-sample guarantee. The study is exploratory, and its JSON records the dirty-tree state and implementation SHA-256 digests alongside the base revision and runtime versions.
+`converged` records this candidate-family proxy, not a true-ground-error certificate. For example, `tfim4_sc_se` meets the 20 mHa proxy in all five runs but has median true error 22.36 mHa. Its returned interval is an asymptotic single-look diagnostic; this adaptive schedule has no claimed anytime coverage or finite-sample guarantee. The study is exploratory, and its JSON records the tree state and implementation SHA-256 digests alongside the base revision and runtime versions.
 
 ---
 
