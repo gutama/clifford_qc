@@ -639,7 +639,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4769 passed, 12 skipped (expected if green)
+pytest                                      # 4787 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -658,7 +658,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-4775      == 4769   + (12      -   6)
+4793      == 4787   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -5973,3 +5973,30 @@ retained equal-shot observations are described in
 refuses to overwrite it. Its independent replay and the paper's H4 occupation
 and Pauli-support audit run through the registered CI gates. Numerical replay
 is not a new campaign or a hardware measurement.
+
+## Adaptive geometric commutator subspaces and resource-aware information acquisition (numpy only)
+
+`clifford_qc/subspace/commutators.py` adds nested Lie-algebraic commutator
+hierarchies (`commutator_mv`, `commutator_apply`,
+`nested_commutator_hierarchy`, `hierarchy_span_diagnostics`) and demand-driven
+expansion (`CommutatorFrontier`, `run_dynamic_commutator_acase`) with relative
+zero thresholding prior to `MV` truncation and optional symmetry-aware support
+diagnostics. `clifford_qc/subspace/information.py` adds incremental QWC,
+`DeviceCard`, and classical product pricing (`IncrementalCostModel`,
+`estimate_incremental_cost`), 7D delta-method uncertainty propagation
+(`expected_lowering_estimate`, `score_information_candidate`,
+`run_resource_aware_acase`), and oracle-free closed-loop shot/basis
+acquisition (`acquire_to_accuracy`). Both modules use pure Python and NumPy and
+leave default A-CASE behavior and all frozen reference records unchanged.
+
+[benchmarks/GEOMETRIC_INFORMATION_STUDY.md](benchmarks/GEOMETRIC_INFORMATION_STUDY.md)
+summarizes the comparative evaluation against Krylov subspaces, excitation and
+Pauli pools, classical selected CI (`run_control`), and matched-shot open-loop
+uniform baselines across spin chains, Hubbard lattices, `H4`/`LiH`, and
+declared hardware device cards, backed by `benchmarks/geometric_information_study.json`:
+
+```bash
+python benchmarks/run_geometric_information_study.py --out benchmarks/geometric_information_study.json
+python -m unittest tests/test_commutator_hierarchy.py tests/test_information_selection.py
+```
+

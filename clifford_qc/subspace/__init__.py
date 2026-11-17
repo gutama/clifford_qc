@@ -122,6 +122,18 @@ from .folded import (
     FOLDED_ROOT_SCHEMA, VARIANCE_MINIMIZATION_SCHEMA, FoldedRoot, FoldedSpectrum,
     FoldedSpectrumResult, VarianceMinimization, folded_spectrum_roots, refined_ritz_root,
 )
+from .commutators import (
+    CommutatorFrontier, CommutatorHierarchy, CommutatorNode, DepthGrowthSummary,
+    commutator_apply, commutator_mv, hierarchy_span_diagnostics,
+    nested_commutator_hierarchy, run_dynamic_commutator_acase,
+)
+from .information import (
+    AcquisitionResult, AcquisitionStep, IncrementalCostBreakdown,
+    IncrementalCostModel, InformationScore, acquire_to_accuracy,
+    basis_dict_to_code, estimate_incremental_cost, expected_lowering_estimate,
+    qwc_bases_for_words, qwc_setting_resources, run_resource_aware_acase,
+    score_information_candidate, select_information_candidate,
+)
 
 __all__ = [
     "canonical_phase_tolerant", "deterministic_phase_pivot",
@@ -141,6 +153,14 @@ __all__ = [
     "FOLDED_ROOT_SCHEMA", "VARIANCE_MINIMIZATION_SCHEMA", "FoldedRoot", "FoldedSpectrum",
     "FoldedSpectrumResult", "VarianceMinimization", "folded_spectrum_roots",
     "refined_ritz_root",
+    "CommutatorFrontier", "CommutatorHierarchy", "CommutatorNode", "DepthGrowthSummary",
+    "commutator_apply", "commutator_mv", "hierarchy_span_diagnostics",
+    "nested_commutator_hierarchy", "run_dynamic_commutator_acase",
+    "AcquisitionResult", "AcquisitionStep", "IncrementalCostBreakdown",
+    "IncrementalCostModel", "InformationScore", "acquire_to_accuracy",
+    "basis_dict_to_code", "estimate_incremental_cost", "expected_lowering_estimate",
+    "qwc_bases_for_words", "qwc_setting_resources", "run_resource_aware_acase",
+    "score_information_candidate", "select_information_candidate",
     "FamilyReport", "HybridArm", "configuration_generators_from_words",
     "dressed_family", "family_projection_report", "run_hybrid",
     "ControlResult", "SpanComparison", "containment_residual",

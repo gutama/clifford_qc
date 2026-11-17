@@ -1,0 +1,200 @@
+# Geometric commutator subspaces and resource-aware information acquisition
+
+Two structural extensions to the A-CASE operator-response framework are
+implemented and stress-tested here against their strongest non-geometric
+comparators:
+
+1. **Hierarchical commutator subspaces** ([`clifford_qc/subspace/commutators.py`](../clifford_qc/subspace/commutators.py)): recursive Lie-algebraic hierarchies 𝒜₀ = {A₁, A₂, …}, 𝒜₁ = {[H, Aᵢ]}, 𝒜₂ = {[H, [H, Aᵢ]]}, … and demand-driven [`CommutatorFrontier`](../clifford_qc/subspace/commutators.py#L761-L936) expansion tested against global Krylov subspaces, explicit excitation/Pauli pools, and classical selected-CI controls.
+2. **Resource-aware information acquisition** ([`clifford_qc/subspace/information.py`](../clifford_qc/subspace/information.py)): candidate selection via
+
+$$A^\star = \arg\max_A \frac{\mathbb{E}[\Delta E_A]}{C_{\mathrm{incremental}}(A) + \epsilon}$$
+
+and an oracle-free closed-loop controller [`acquire_to_accuracy`](../clifford_qc/subspace/information.py#L1335-L1904) that allocates finite shots between basis expansion and Neyman-optimal shot refinement against a physical target precision without ever inspecting the exact ground energy.
+
+Every figure below comes directly from [`benchmarks/run_geometric_information_study.py`](../benchmarks/run_geometric_information_study.py) and its machine-readable output [`benchmarks/geometric_information_study.json`](../benchmarks/geometric_information_study.json) (total wall time 155.23 s).
+
+| Experiment | Main finding | Boundary / negative result |
+|---|---|---|
+| **A1–A2** Spin commutators (`tfim6`, `xxz6`) | Lazy dynamic expansion cuts commutators by 48–84% and QWC groups by up to 69% vs `Static_d<=3`; hits −0.00 mHa on correlated `xxz6` at depth 2 | Global `Krylov6` dominates on fixed-budget energy (0.24–0.26 mHa at `M = 7` vs 177–1 715 mHa for local orbit seeds at `M ≤ 8`) |
+| **A3** Hubbard & chemistry (`2×1`, `2×2`, `H₄`, `LiH`) | Demand-driven `[H, S]` heals Brillouin stalls on Hubbard `2×1` (0.000 mHa in 4 commutators) and `2×2` (1 274 → 1 057 mHa in 10 commutators) | Depth-1 singles commutators lie inside `span(S, D)` (residual ≤ 2.38 × 10⁻¹⁵), pay ~7 355–7 359 Pauli words on `H₄`/`LiH`, and lose to `SD_Pool`, `Krylov2`, and classical `IterSCI` |
+| **A1** Fermionic truncation | Exact commutators have 0.000 operator `(N, S_z)` leakage across depths 1–2 | Generic Pauli tail clipping breaks `(N, S_z)` symmetry immediately on `H₄` (`0.1388` at `l2_keep=0.90`; `0.2318` at `top_k=16`) |
+| **B1** Cost-ratio Pareto sweeps | `QWCCost` / `TimeCost` on `tfim5` cuts QWC groups 69 → 64 (`309 → 305` words, `213.1 → 197.6 µs/shot`) with identical 11.395 mHa error | Heavy `word_weight ≥ 0.2` or `Myopia_eps1e-3` starves Krylov directions early, degrading `tfim5` 4.7× (53.962 mHa) |
+| **B2** 7D delta-method MC (`25` seeds) | Predicted lowering SE matches finite-shot MC dispersion within 1.23–1.34× (`orth` SE within 1.11–1.35×) | Pure collinear eigenstate controls (`I + 0.05 X₀` on `|+⟩⊗⁴`) are identically deterministic (`0.0`); stochastic near-duplicates are exercised on `|0⟩⊗⁴` in unit tests |
+| **B3** Closed-loop `acquire_to_accuracy` | Converges on 19/20 runs; beats open-loop `UniformFullRegistry` on 12/20 and `UniformBasisOnly` on 14/20 (`tfim4_sc_ci`: median 37.98 vs 70.10 mHa `UB`) | Early candidate screening reduces margin vs post-hoc `UB` when stopping right below target; `tfim4_sc_se seed=23` hits the 80-step budget at 9.54 mHa because resolving `H³`'s `orth = 8.29e-3` faces a ~91k-shot Cramér–Rao floor |
+
+---
+
+## 1. Hierarchical commutator growth, closure, and symmetry (**Part A1**)
+
+`MV` prunes amplitudes with `|c| <= 1e-12` **absolutely** upon construction,
+so naive nested multiplication `H * A - A * H` corrupts or erases rescaled
+hierarchies. [`commutator_mv`](../clifford_qc/subspace/commutators.py#L251-L388) accumulates packed anticommuting Pauli products in raw dictionaries, checks zero relative to `relative_zero_tol * ||H||₂ ||A||₂`, applies Hermiticity-preserving phases (`phase_mode="hermitian"`), and normalizes before wrapping in `MV`.
+
+**Lie closure check.** On the 1-qubit 𝖘𝖑(2) instance `H = X + 0.5 Z` seeded by
+`𝒜₀ = {Z}`, [`nested_commutator_hierarchy`](../clifford_qc/subspace/commutators.py#L453-L713) retains one novel generator at depths `0, 1, 2` (max support `1 → 1 → 2`, dimensionless growth ratio `1.000 → 1.789 → 2.000`) and closes by collinear deduplication at `closure_depth = 3` (`closure_fraction = 1.0`).
+
+**Non-integrable spin chains grow explosively on `xxz6` and slowly on `tfim6`.**
+Starting from the Pauli terms of `H` (`11` seeds on `tfim6`, `E₀ = −7.296230 Ha`; `15` seeds on `xxz6`, `E₀ = −9.974309 Ha`), neither algebra closes by depth 3, yet their operator scrambling and subspace spans diverge sharply:
+
+| System | Depth `k` | Kept | Max `S_A` | Total `S_A` | Mean growth ratio | Det rank / Err (mHa) | Corr rank / Err (mHa) | `W` (`corr`) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `tfim6` | 0 | 11 | 1 | 11 | 1.000 | 6 / 296.23 | 12 / 168.65 | 232 |
+| `tfim6` | 1 | 11 | 2 | 20 | 0.807 | 6 / 296.23 | 15 / 164.01 | 688 |
+| `tfim6` | 2 | 11 | 6 | 58 | 1.387 | 10 / 180.76 | 16 / 163.85 | 1 069 |
+| `tfim6` | 3 | 11 | 8 | 70 | 1.629 | 10 / 180.76 | 16 / 163.85 | 1 285 |
+| `xxz6` | 0 | 15 | 1 | 15 | 1.000 | 6 / 1 770.95 | 16 / 1 567.26 | 376 |
+| `xxz6` | 1 | 15 | 4 | 48 | 0.912 | 10 / 1 770.95 | 29 / 201.12 | 952 |
+| `xxz6` | 2 | 15 | 23 | 243 | 1.715 | 16 / 1 140.63 | 32 / **−0.00** | 1 024 |
+| `xxz6` | 3 | 15 | 64 | 660 | 2.156 | 20 / 1 140.63 | 32 / **−0.00** | 1 024 |
+
+Two structural effects appear cleanly in [`hierarchy_span_diagnostics`](../clifford_qc/subspace/commutators.py#L716-L758):
+
+* **Even–odd parity on product states (`tfim6 det`).** From `|0⟩⊗⁶`, Hermitianized depth-1 commutators `[H, P]` are pure imaginary-signed single-qubit/two-qubit flips that leave the real reference subspace decoupled at depth 1 (rank stays `6`, gain `0.00 mHa`); even double commutators at depth 2 add four new directions and drop the error by `115.47 mHa`.
+* **Reference sensitivity on `xxz6`.** On a single Néel determinant (`010101`), even all `61` cumulative generators through depth 3 plateau at `1 140.63 mHa` (rank `20`), whereas on a shallow Trotter state (`Δt = 0.35`, `6` steps), depth-2 commutators saturate the `32`-state magnetization-and-parity block and recover the exact ground state (`error = −0.00 mHa`, `W = 1 024`).
+
+**Truncated commutator support vs symmetry preservation.** On `xxz(4)` (`E₀ = −6.464102 Ha`, `W = 64`), capping generator support from `15` down to `8` (`support_policy="truncate"`, `truncation_l2_keep=0.98`, minimum retained `ℓ₂` weight `0.8542`) keeps the full depth-2 span exact (`0.000 mHa`) on both references and keeps greedy A-CASE (`M = 6`) unchanged at `0.0095 mHa` on the correlated state (`33` QWC groups), while greedy A-CASE from the bare Néel determinant shifts from `0.000` to `15.473 mHa` because tail clipping reorders intermediate 2×2 lowering scores. On Jordan-Wigner fermionic systems, however, naive Pauli clipping cannot be used safely:
+
+| System | Mode | Nodes | Max support | Max operator leakage | Max ref leakage |
+|---|---|---:|---:|---:|---:|
+| `hubbard(2)_d1..2` | Exact | 6 | — | **0.0000** | — |
+| `h4_d1` | Exact | 8 | — | **0.0000** | — |
+| `h4_d1` | `truncation_l2_keep=0.90` | 8 | 49 | 0.1388 | 0.0025 |
+| `h4_d1` | `truncation_top_k=16` | 8 | 16 | 0.2318 | 0.0272 |
+| `lih_d1` | Exact | 16 | — | **0.0000** | — |
+
+Exact nested commutators preserve `(N, S_z)` identically by Jacobi identity (`sector_leakage = 0.0`), whereas dropping low-magnitude Pauli tails breaks electron-number and spin symmetry by up to `0.232` in Hilbert-Schmidt norm on `H₄` (`sector_leakage` vs `reference_sector_leakage` in [`clifford_qc/subspace/symmetry.py`](../clifford_qc/subspace/symmetry.py)).
+
+---
+
+## 2. Spin chains: lazy frontier vs static hierarchy vs Krylov (**Part A2**)
+
+At fixed basis budget `M = 8` (`1 + 7` added generators), [`run_dynamic_commutator_acase`](../clifford_qc/subspace/commutators.py#L939-L1335) starts from the depth-0 Pauli orbit and expands `[H, A]` lazily on demand, avoiding upfront materialization of `Static_d<=3`:
+
+| System (`ref`) | Arm | `M` | Error (mHa) | `W` | `G` (QWC) | Commutators eval'd | Max `S_A` | Depths used |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| `tfim6` (`det`) | `Orbit_d0` | 6 | 296.23 | 122 | 15 | 0 | 1 | `d0` |
+| `tfim6` (`det`) | `Static_d<=3` | 8 | 183.88 | 976 | 209 | 33 | 8 | static pool |
+| `tfim6` (`det`) | `Dyn_on_select_or_stall` | 8 | 218.07 | 370 | 65 | **17** | 6 | `{'0': 5, '2': 2}` |
+| `tfim6` (`det`) | `Krylov6` | 7 | **0.24** | 879 | 130 | 0 | 285 | fixed `H^k` |
+| `tfim6` (`corr`) | `Static_d<=3` | 8 | 203.29 | 462 | 89 | 33 | 8 | static pool |
+| `tfim6` (`corr`) | `Dyn_on_select_or_stall` | 8 | **177.31** | **180** | **29** | **7** | 1 | `{'0': 7}` |
+| `tfim6` (`corr`) | `Krylov6` | 7 | **0.25** | 879 | 130 | 0 | 285 | fixed `H^k` |
+| `xxz6` (`det`) | `Static_d<=3` | 8 | 1 184.10 | 1 024 | 333 | 45 | 23 | static pool |
+| `xxz6` (`det`) | `Dyn_on_select_or_stall` | 8 | 1 715.46 | 766 | 217 | **9** | 10 | `{'0': 5, '2': 2}` |
+| `xxz6` (`det`) | `Krylov6` | 7 | **0.26** | 544 | 183 | 0 | 544 | fixed `H^k` |
+| `xxz6` (`corr`) | `Static_d<=3` | 8 | 1 553.71 | 310 | 115 | 45 | 4 | static pool |
+| `xxz6` (`corr`) | `Dyn_on_select_or_stall` | 8 | **1 434.20** | **300** | **112** | **7** | 2 | `{'0': 5, '1': 2}` |
+| `xxz6` (`corr`) | `Krylov6` | 7 | **0.26** | 544 | 183 | 0 | 544 | fixed `H^k` |
+
+**What works.** Relative to enumerating the depth-3 static hierarchy, `Dyn_on_select_or_stall` cuts commutator evaluations by `48%–84%` (`33 → 17` on `tfim6 det`, `33 → 7` on `tfim6 corr`, `45 → 9` and `45 → 7` on `xxz6`) and shrinks the measurement universe (`W` down `61%–62%` and QWC settings down `67%–69%` on `tfim6`). On both correlated references, the lazy frontier even beats `Static_d<=3` on fixed-`M` energy (`177.31` vs `203.29 mHa` on `tfim6`; `1 434.20` vs `1 553.71 mHa` on `xxz6`), because exposing all 33–45 depth-2/3 operators up front induces greedy rank-1 steps toward high-support directions that underperform over a 7-step horizon.
+
+**Boundary / negative result against Krylov.** Global `Krylov6` reaches `0.24–0.26 mHa` in `M = 7` across all four cases (`W = 879`, `G = 130` on `tfim6`; `W = 544`, `G = 183` on `xxz6`). On translationally invariant spin chains, powers `H^k` form symmetry-adapted, globally connected multi-site superpositions in a single vector per order `k`, whereas one-bond Pauli-orbit seeds fracture those superpositions across `11`–`15` local bond operators that exhaust the `M = 8` basis budget before covering every link cleanly. Locally seeded commutator trees should therefore complement global Krylov directions rather than replace them when global translationally symmetric superpositions dominate and `M` is small.
+
+---
+
+## 3. Fermionic lattices and chemistry vs excitation pools and selected CI (**Part A3**)
+
+Here the question is sharper: when only rank-1 single excitations `S` are placed in the initial pool (`M ≤ 4` on `hubbard_2x1`, `M ≤ 9` on `hubbard_2x2`/`H₄`/`LiH`), can nested commutators `[H, S]` recover correlation that `Singles` miss by Brillouin's theorem without outgrowing `SD_Pool`, and do they step outside the determinant closure of `(S, D)` ([`span_comparison`](../clifford_qc/subspace/selected_ci.py#L993-L1023))?
+
+| System | Arm / Control | `M` (rank) | Error (mHa) | `W` / `nnz` | `G` (QWC) | Max `S_A` | Depth counts / work |
+|---|---|---:|---:|---:|---:|---:|---|
+| `hubbard_2x1` (`det`) | `Singles` | 3 (3) | 378.937 | 55 | 25 | 2 | pool exhausted |
+| `hubbard_2x1` (`det`) | `DynComm(S)_d2` | 4 (4) | **0.000** | 62 | 25 | 8 | `{'0': 2, '2': 1}`, 4 comms |
+| `hubbard_2x1` (`det`) | `SD_Pool` / `Krylov3` / `IterSCI` | 4 (3–4) | **0.000** | 60 / 24 / `10 nnz` | 25 / 13 / — | 8 / 24 / — | — |
+| `hubbard_2x2` (`det`) | `Singles` / `DynComm(S)_d1` | 5 (5) | 1 274.32 | 637 | 259 | 2 | stalled below `min_lowering` |
+| `hubbard_2x2` (`det`) | `DynComm(S)_d2_stall` | 9 (9) | **1 057.35** | 5 040 | 948 | 34 | `{'0': 7, '2': 1}`, 10 comms |
+| `hubbard_2x2` (`det`) | `SD_Pool` | 9 (9) | **863.31** | 5 537 | 1 406 | 8 | `d` pool explicit |
+| `hubbard_2x2` (`det`) | `Krylov3` | 4 (4) | **668.97** | 3 752 | 809 | 615 | `κ = 15 483` |
+| `hubbard_2x2` (`det`) | `IterSCI` | 8 | **908.77** | `26 nnz` | — | — | `224` scored, 4.6 ms |
+| `h4_sto3g_r0.9` | `Singles` (RHF) | 1 (1) | 56.057 | 185 | 68 | 1 | Brillouin stall |
+| `h4_sto3g_r0.9` | `DynComm(S)_d1` | 9 (9) | 55.329 | 7 359 | 869 | 116 | `{'0': 4, '1': 4}`, 4 comms |
+| `h4_sto3g_r0.9` | `SD_Pool` | 9 (9) | **3.019** | 7 371 | 913 | 8 | explicit doubles |
+| `h4_sto3g_r0.9` | `Krylov2` | 3 (3) | **1.722** | 4 224 | 441 | 1 775 | `κ = 4 735` |
+| `h4_sto3g_r0.9` | `IterSCI` | 8 | **4.953** | `58 nnz` | — | — | `224` scored, 4.4 ms |
+| `lih_cas4e4o` | `Singles` (RHF) | 1 (1) | 1.196 | 193 | 42 | 1 | Brillouin stall |
+| `lih_cas4e4o` | `DynComm(S)_d1` | 8 (8) | 0.547 | 7 355 | 917 | 128 | `{'0': 4, '1': 3}`, 8 comms |
+| `lih_cas4e4o` | `DynComm(S)_d2_top32` | 7 (7) | 0.849 | 7 091 | 917 | 32 | `top_k=32`, 12 comms |
+| `lih_cas4e4o` | `SD_Pool` | 9 (9) | **0.0005** | 7 697 | 961 | 8 | explicit doubles |
+| `lih_cas4e4o` | `Krylov2` | 3 (3) | **0.110** | 4 224 | 477 | 1 783 | `κ = 7.17 × 10⁶` |
+| `lih_cas4e4o` | `IterSCI` | 8 | **0.016** | `48 nnz` | — | — | `224` scored, 4.5 ms |
+
+Notice how cleanly [`span_comparison`](../clifford_qc/subspace/selected_ci.py#L993-L1023) explains both outcomes:
+
+1. **Where commutators help:** When only singles are given, depth-2 commutators exit the singles determinant manifold (`span_vs_S` `contained_in_closure = False`, `containment_residual = 1.000` on `hubbard_2x1`) and inject double-excitation support on demand — reaching exact ground energy (`0.000 mHa` in 4 commutators) on `hubbard_2x1`, and rescuing `hubbard_2x2` when given enough child budget (`max_children_total = 20`, dropping error by `216.97 mHa` at depth 2 with `10` commutators vs stopping completely at depth 1 under an `8`-child cap).
+2. **Where they lose cleanly to direct doubles, Krylov, and SCI:** Every single- and double-commutator basis here remains strictly inside the fixed `(S, D)` determinant closure (`containment_residual ≤ 4.35 × 10⁻¹⁶` on `hubbard_2x2`, `2.21 × 10⁻¹⁵` on `H₄`, `2.38 × 10⁻¹⁵` on `LiH`). Because `[H, Sᵢ]` superposes many weak two-body couplings into one dense multivector (`S_A = 116–128` on `H₄`/`LiH`), `DynComm(S)_d1` ends up paying nearly the entire `SD_Pool` Pauli measurement universe (`W = 7 355–7 359`, `G = 869–917`) while recovering far less correlation than selective rank-2 excitations (`3.019` / `0.0005 mHa`), `Krylov2` (`1.722` / `0.110 mHa`), or classical `IterSCI` (`4.953` / `0.016 mHa` in ~4.5 ms). Thus commutator generation does not beat explicit doubles or sparse selected CI on molecular ground states.
+
+---
+
+## 4. Resource-aware Pareto sweeps and myopia boundary (**Part B1**)
+
+[`estimate_incremental_cost`](../clifford_qc/subspace/information.py#L208-L305) prices every candidate by the incremental observables `ΔW`, genuinely new QWC settings `ΔG` (after first-fit compatibility checks against existing QWC bases), hardware circuit duration `ΔT` under a declared `DeviceCard` ([`superconducting-like.json`](../benchmarks/configs/device_cards/superconducting-like.json), [`ion-like.json`](../benchmarks/configs/device_cards/ion-like.json), [`logical-alltoall.json`](../benchmarks/configs/device_cards/logical-alltoall.json)), and classical Pauli pair products / terms (`classical_products`, `classical_terms`), populated regardless of cost weights.
+
+| System | Arm | `M` | Final error (mHa) | `W` | `G` (QWC) | SC time (`µs`/shot) | Classical products | Selected sequence |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| `tfim4` | `EnergyOnly` | 5 | 1.176 | 90 | 28 | 86.3 | 4 411 | `H^3, H^2, H^1, IZZI` |
+| `tfim4` | `QWCCost_SC_0.5` / `TimeCost_*` / `Classical` | 5 | 1.176 | 90 | 28 | 86.3 | **4 140** | `H^1, H^2, H^3, IZZI` |
+| `tfim4` | `Word_0.2` / `Word_1.0` / `Myopia_eps1e-3` | 6 | 1.176 | 120 | 38 | 117.3 | 3 261 | `ZZII, IZZI, IIZZ, H^2, H^3` |
+| `tfim5` | `EnergyOnly` | 6 | 11.395 | 309 | 69 | 213.1 | 18 667 | `H^3, H^1, H^2, ZZIII, IIIZZ` |
+| `tfim5` | `QWCCost_SC_0.5` / `2.0` / `TimeCost_*` | 6 | **11.395** | **305** | **64** | **197.6** | **17 399** | `H^1, H^2, H^3, IZZII, IIZZI` |
+| `tfim5` | `Word_0.2` / `Word_1.0` / `Myopia_eps1e-3` | 6 | 53.962 | 277 | 55 | 169.7 | 3 157 | `ZZIII, IZZII, …, H^2` |
+| `xxz4` | `EnergyOnly` / `Word_0.05` | 5 | 0.000 | **56** | **29** | **89.4** | 10 315 | `H^2, H^1, H^3, IXXI` |
+| `xxz4` | `QWCCost_SC_0.5` / `TimeCost_*` | 6 | 0.000 | 64 | 33 | 101.8 | **8 707** | `XXII, IIYY/IYYI, …, H^3, H^2` |
+| `hub1_corr` | All 11 arms | 3 | −0.000 | 24 | 13 | 40.1 | 1 151–1 179 | `H^2, H^1` (`H^1, H^2` on `Classical`) |
+
+Two practical lessons follow directly from the sweep:
+
+1. **Zero-accuracy-loss Pareto pruning (`tfim5`).** Moderate QWC or hardware-time weights (`QWCCost_SC_0.5`, `QWCCost_SC_2.0`, `TimeCost_SC`, `TimeCost_Ion`, `TimeCost_Logical`) match `EnergyOnly`'s exact `11.395 mHa` energy while swapping out boundary bond operators for QWC-compatible interior bonds (`IZZII, IIZZI`), reducing QWC settings from `69` to `64` (`−7.2%`), words from `309` to `305`, SC shot-round time from `213.1` to `197.6 µs`, and classical pair products from `18 667` to `17 399`.
+2. **Small-`ϵ` / heavy-`ΔW` myopia (`tfim5`, `tfim4`).** When `word_weight >= 0.2` or `epsilon = 1e-3` (`Myopia_eps1e-3`), dividing by `C_incremental + ϵ` prioritizes cheap single-Pauli words (`ZZIII`, `IZZII`) at step 1 instead of global `H^k` directions, costing an extra basis slot on `tfim4` (`W = 120` vs `90`) and increasing final error on `tfim5` by `4.7×` (`53.962` vs `11.395 mHa`). Normalization `ϵ` should stay comparable to the Hamiltonian lowering scale (e.g., `epsilon = 1.0`).
+
+---
+
+## 5. Seven-dimensional delta-method uncertainty validation (**Part B2**)
+
+In finite-shot acquisition, plugging noisy matrix elements directly into the
+nonlinear 2×2 generalized eigenvalue ratio amplifies shot variance on near-linearly dependent directions. [`expected_lowering_estimate`](../clifford_qc/subspace/information.py#L527-L546) (via [`_expected_lowering_details`](../clifford_qc/subspace/information.py#L377-L524)) propagates the joint grouped covariance from [`GroupedWordCache`](../clifford_qc/measurement/cache.py) through one scalarized `WordFunctional` over `(Re s_a, Im s_a, Re h_a, Im h_a, s_aa, h_aa, E_m)` for `σ_{ΔE}`, alongside linearized functionals for full-subspace orthogonal fraction `orth_f` and residual coupling `coup_f`. Across `25` independent [`FiniteShotBackend`](../clifford_qc/backends/finite_shot.py) seeds at `3 000` shots/group on `tfim4` (`|++++⟩` reference):
+
+| Candidate | Exact `ΔE` (mHa) | MC `σ_{ΔE}` (mHa) | Predicted median `σ̂_{ΔE}` (IQR, mHa) | Ratio (`σ̂/σ`) | MC `σ_{orth}` | Predicted `σ̂_{orth}` (ratio) | Zeroed / Accepted |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `H^2` | 710.63 | 20.42 | 25.04 (`[24.82, 25.14]`) | 1.23× | 0.0049 | 0.0066 (1.35×) | 0.00 / 1.00 |
+| `H` | 645.75 | 15.12 | 20.24 (`[19.03, 21.46]`) | 1.34× | 0.0060 | 0.0067 (1.11×) | 0.00 / 1.00 |
+| `I + 0.05 X₀` | 0.00 | 0.00 | 0.00 (`[0.00, 0.00]`) | — | 0.0000 | 0.0000 (—) | **1.00 / 0.00** |
+
+The analytical delta-method standard errors are mildly conservative by `1.11–1.35×` across both lowering and orthogonality with tight IQRs (`±0.2` to `±1.2 mHa`). On `tfim(4)`'s reference `|+⟩⊗⁴`, `X₀|+⟩ = +|+⟩`, so `I + 0.05 X₀` is an exact collinear deterministic control (`orth = 0`, deterministic `X` measurement variance `0`, zeroed in 25/25 runs); non-deterministic stochastic near-duplicates such as `I + 0.01 X₀` on `|0000⟩` and `X₀ + 0.08 Z₁` on a Trotterized state are verified in [`tests/test_information_selection.py`](../tests/test_information_selection.py).
+
+---
+
+## 6. Closed-loop acquisition to target physical accuracy (**Part B3**)
+
+[`acquire_to_accuracy`](../clifford_qc/subspace/information.py#L1335-L1904) inspects no exact oracle ground energy (`exact_ground_energy` and `target_error` are explicitly absent from its parameter signature). Using cumulative QWC groups in a monotone [`_IncrementalGroupRegistry`](../clifford_qc/subspace/information.py#L1184-L1296), each iteration computes both marginal RMSE reduction rates:
+
+* **Expand:** add `A⋆` when its corroborated expected lowering cuts estimated remaining bias, priced on at least one effective pilot group (`max(1, incremental_groups) * pilot_shots` or mean effective `DeviceCard` group duration).
+* **Refine shots:** route `refine_batch_shots = 600` via [`variance_optimal_group_plan`](../clifford_qc/measurement/allocation.py) over `[ritz_f]` plus actual `(orth_f, low_f)` functionals of the top unresolved/ambiguous blocker candidates (when `predicted_lowering + 1·lowering_std >= max(min_lowering, 0.5 * target_accuracy)`), weighted by empirical group variances and `DeviceCard` durations.
+
+Across five seeds (`11, 12, 13, 17, 23`, `max_total_shots = 60 000`, `max_steps = 80`), closed-loop acquisition is compared at **matched exact total physical shots** against two open-loop uniform baselines run on the discovered final basis: `UniformFullRegistry` (`UF`, equal shots over the exact full discovered QWC registry `g_full`) and `UniformBasisOnly` (`UB`, equal shots over the final basis QWC settings `g_bas`, an optimistic comparator that pays zero screening shots):
+
+| Scenario (`device`, metric) | Target (mHa) | Conv | Med shots (`time`) | Med `acq` stat / true (mHa) | Med `UF` stat / true (mHa) | Med `UB` stat / true (mHa) | Wins vs `UF` / `UB` (stat) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `tfim4_sc_se` (`superconducting`, `std_error`) | 20.0 | **4/5** | 17 940 (`55.12 ms`) | **9.54** / **4.57** | 10.65 / 4.74 | 8.19 / 3.14 | **4/5** / **4/5** |
+| `tfim4_ion_se` (`ion-like`, `std_error`) | 20.0 | **5/5** | 11 940 (`2.56 s`) | 14.35 / **3.14** | 5.91 / 6.05 | 9.21 / 2.89 | 2/5 / 3/5 |
+| `tfim4_sc_ci` (`superconducting`, `ci_halfwidth`) | 40.0 | **5/5** | 9 660 (`29.57 ms`) | 37.98 / 15.47 | 28.13 / 4.72 | 70.10 / 8.32 | **3/5** / **4/5** |
+| `xxz4_sc_se` (`superconducting`, `std_error`) | 20.0 | **5/5** | 4 380 (`13.51 ms`) | 7.45 / **3.96** | 6.21 / 7.48 | 6.77 / 5.91 | **3/5** / **3/5** |
+| **Total (20 runs)** | — | **19/20** | — | — | — | — | **12/20** / **14/20** |
+
+Two critical nuances explain both the strength and the trade-offs of closed-loop acquisition:
+
+1. **Variance-tail immunity (`tfim4_sc_ci`, `xxz4_sc_se`).** Equal shot splitting starves high-variance Ritz QWC groups whenever a basis grows asymmetrically: on `tfim4_sc_ci` `seed=12` (`3 540` shots), uniform allocation suffers CI half-widths of `164.10 mHa` (`UF`) and `406.86 mHa` (`UB`), and on `seed=17` `89.16 mHa` (`UF`) and `129.45 mHa` (`UB`), whereas Neyman-guided acquisition hits `38.73` and `39.90 mHa` smoothly (`median UB = 70.10` vs `37.98 mHa`). Similarly on `xxz4_sc_se`, median true ground-state error drops to `3.96 mHa` vs `7.48` (`UF`) and `5.91 mHa` (`UB`).
+2. **Honest accounting of screening tax and the Cramér–Rao floor (`tfim4_ion_se`, `tfim4_sc_se seed=23`).**
+   * Because [`acquire_to_accuracy`](../clifford_qc/subspace/information.py#L1335-L1904) starts from `[I]` with no prior knowledge of which candidates matter and must sample candidate groups (`39` vs `28–38` settings) to certify orthogonality and lowering, then stops *immediately* once `stat_now <= target_accuracy`, an open-loop baseline that receives the winning basis gratis at the end (`UB`, or `UF` when target precision is met quickly on slow `ion-like` runs like `seed=11, 12, 17`) can post a lower post-hoc `σ_stat` at equal shot count (`tfim4_ion_se` `2/5` vs `UF`, median `14.35` vs `5.91 mHa`, while `acq`'s actual energy error median is half of `UF`'s: `3.14` vs `6.05 mHa`).
+   * On `tfim4_sc_se seed=23`, `acq` reaches `M = 5`, `48 060` shots (`146.73 ms`), and `std_error = 9.54 mHa` (`≤ 20.0 mHa`, true error `19.61 mHa`), yet stops at `max_steps = 80` with `converged = False` rather than fabricating a convergence certificate. The reason is physical: the remaining pool member `H^3` has exact `orth = 8.29 × 10⁻³` (`exact ΔE = 11.28 mHa`), whose Cramér–Rao / Neyman variance floor `orth >= 2 σ_orth` requires ~`91 000` shots on `orth_f` alone — beyond both the 48k shots spent and the `60 000`-shot cap. Refusing to converge until either `orth_f` is resolved (`z = 2` or corroborated lowering + coupling) or its harm bound falls below threshold prevents silent false convergence.
+
+---
+
+## 7. Reproducing and verifying
+
+All implementations rely strictly on pure Python (`>= 3.10`) and NumPy. Frozen project baselines (`PHASE_STATUS.json`, `benchmarks/reference_results/*`, `benchmarks/provenance/*`, `benchmarks/data/*`, `docs/restart/*`) remain untouched.
+
+```bash
+python3 -u benchmarks/run_geometric_information_study.py
+python3 -m unittest tests/test_commutator_hierarchy.py tests/test_information_selection.py
+python3 -m clifford_qc.verify
+```
