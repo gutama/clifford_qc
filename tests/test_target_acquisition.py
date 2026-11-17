@@ -317,6 +317,16 @@ def test_a_faithful_record_passes_structure_and_replay(declaration, record):
     assert problems == [] and compared == len(record["rows"])
 
 
+def test_summary_roundoff_is_allowed_but_material_changes_are_rejected(declaration, record):
+    interval = record["summaries"][0]["comparison"]["matched_budget"]["interval"]
+    # Supported NumPy versions differ in the last bits of this recomputation.
+    interval[1] *= 1.0 + 5e-12
+    assert checker.structural_problems(record, declaration) == []
+    interval[1] += 1e-6
+    assert any("comparison.matched_budget.interval[1]" in problem
+               for problem in checker.structural_problems(record, declaration))
+
+
 def _stopped_early(record):
     """A stopped run that ended before the last look, and its row."""
     for row in record["rows"]:

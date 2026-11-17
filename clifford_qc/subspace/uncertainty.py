@@ -90,7 +90,8 @@ def bootstrap_ritz_samples(shared: SharedMeasurement, cache: GroupedWordCache, *
     Each group's outcome histogram is resampled multinomially at its own shot
     count, then the whole pipeline is rerun under the policy :func:`bootstrap_ritz`
     describes. A caller that needs several intervals, or more than one interval
-    construction, from one set of draws starts here. A failed replica raises.
+    construction, from one set of draws starts here. A failed replica raises,
+    including ``ValueError`` if it no longer retains the requested root.
     """
     if replicates < 2:
         raise ValueError("replicates must be at least two")
@@ -122,7 +123,11 @@ def bootstrap_ritz_samples(shared: SharedMeasurement, cache: GroupedWordCache, *
         replica.add_batch(MeasurementBatch(n=shared.n, shots={}, plus_counts={},
                                            circuits=len(groups), groups=tuple(groups),
                                            state_key=cache.state_key))
-        samples.append(shared.solve(replica, **kwargs).energies[root])
+        energies = shared.solve(replica, **kwargs).energies
+        if not -len(energies) <= root < len(energies):
+            raise ValueError(f"bootstrap replica {len(samples)} retained {len(energies)} "
+                             f"root(s); root {root} is unavailable")
+        samples.append(energies[root])
     return np.array(samples)
 
 

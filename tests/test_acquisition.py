@@ -7,10 +7,10 @@ run could have stopped.
 """
 
 import math
+from statistics import NormalDist
 
 import numpy as np
 import pytest
-from scipy.stats import norm
 
 from benchmarks import run_interval_coverage as coverage_producer
 from clifford_qc.backends.finite_shot import FiniteShotBackend
@@ -239,8 +239,9 @@ def test_without_a_stopping_rule_the_interval_is_the_single_look_interval(system
     # The radius uses each group's sample variance and the reported standard
     # error its population variance, so they agree to a factor near N/(N-1).
     radius = (result.interval.upper - result.interval.lower) / 2
-    assert radius == pytest.approx(norm.ppf(1 - 0.05 / 2) * result.std_error, rel=0.02)
-    assert radius > norm.ppf(1 - 0.05 / 2) * result.std_error
+    assert radius == pytest.approx(NormalDist().inv_cdf(1 - 0.05 / 2) * result.std_error,
+                                   rel=0.02)
+    assert radius > NormalDist().inv_cdf(1 - 0.05 / 2) * result.std_error
 
 
 def test_both_allocations_read_the_same_pilot(system):
@@ -296,7 +297,8 @@ def test_the_stopped_interval_pays_for_every_look_it_could_have_stopped_at(syste
     naive = (stopped.naive_interval.upper - stopped.naive_interval.lower) / 2
     valid = (stopped.interval.upper - stopped.interval.lower) / 2
     assert valid / naive == pytest.approx(
-        norm.ppf(1 - 0.05 / (2 * looks)) / norm.ppf(1 - 0.05 / 2), rel=1e-9)
+        NormalDist().inv_cdf(1 - 0.05 / (2 * looks)) / NormalDist().inv_cdf(1 - 0.05 / 2),
+        rel=1e-9)
     assert valid > naive
     assert stopped.interval.estimate == stopped.naive_interval.estimate
     assert not stopped.interval.certified

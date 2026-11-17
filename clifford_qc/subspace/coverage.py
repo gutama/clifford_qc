@@ -125,10 +125,13 @@ def interval_replica(shared: SharedMeasurement, cache: GroupedWordCache, *,
     }
     try:
         point = shared.solve(cache, **kwargs)
+        if not -len(point.energies) <= root < len(point.energies):
+            raise ValueError(f"point solve retained {len(point.energies)} root(s); "
+                             f"root {root} is unavailable")
+        estimate = float(point.energies[root])
     except _EXPECTED_FAILURES as error:
         row.update({"outcome": "solve_failed", "solve_error": _message(error)})
         return row
-    estimate = float(point.energies[root])
     retained = point.resources.get("smallest_retained_overlap_eigenvalue")
     source = "smallest_retained_overlap_eigenvalue"
     if retained is None:

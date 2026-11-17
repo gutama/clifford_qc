@@ -31,6 +31,18 @@ def system():
     return producer.build_system(ORTHOGONAL)
 
 
+@pytest.fixture(scope="module")
+def excited_measurement():
+    spec = {"key": "tfim4_mixed", "role": "development",
+            "model": {"family": "tfim", "n": 4, "J": 1.0, "h": 1.0},
+            "pool_words": 6, "krylov_powers": 2}
+    shared, _ = producer.build_system(spec)
+    cache = shared.measure(FiniteShotBackend(seed=1), 10)
+    point = shared.solve(cache, calibrate_overlap=True)
+    assert len(point.energies) > 4
+    return shared, cache, point
+
+
 @pytest.fixture
 def declaration(tmp_path):
     content = {
@@ -88,6 +100,50 @@ def test_bootstrap_samples_are_the_draws_behind_the_bootstrap_interval(system):
     assert samples.shape == (25,)
     with pytest.raises(ValueError, match="at least two"):
         bootstrap_ritz_samples(shared, cache, result=point, replicates=1)
+
+
+@pytest.mark.parametrize("bootstrap", [bootstrap_ritz_samples, bootstrap_ritz])
+def test_bootstrap_reports_a_replica_that_loses_the_requested_root(excited_measurement,
+                                                                 bootstrap):
+    shared, cache, point = excited_measurement
+    with pytest.raises(ValueError, match="bootstrap replica .*root 4 is unavailable"):
+        bootstrap(shared, cache, result=point, root=4, replicates=10, seed=5)
+
+
+def test_bootstrap_root_loss_keeps_the_measurement_in_the_coverage_denominator(
+        excited_measurement):
+    shared, cache, point = excited_measurement
+    row = interval_replica(shared, cache, target=shared.bank.solve().energies[4],
+                           solver_kwargs={"calibrate_overlap": True}, root=4,
+                           bootstrap_replicates=10, bootstrap_seed=5)
+    assert row["outcome"] == "ok" and row["estimate"] == point.energies[4]
+    assert row["shots"] == cache.total_shots
+    assert row["intervals"]["delta_normal"]["status"] == "ok"
+    summary = summarize_coverage([row])
+    for method in ("bootstrap_percentile", "bootstrap_basic"):
+        interval = row["intervals"][method]
+        assert interval["status"] == "failed"
+        assert "root 4 is unavailable" in interval["error"]
+        assert interval["levels"] == {} and interval["std_error"] is None
+        found = summary["methods"][method]
+        assert found["interval_failures"] == 1
+        for level in found["levels"].values():
+            assert level["all_replicas"]["n"] == 1
+            assert level["all_replicas"]["covered"] == 0
+            assert level["successful_intervals"]["n"] == 0
+
+
+def test_a_root_missing_from_the_point_solve_is_a_failed_replica(excited_measurement):
+    shared, cache, point = excited_measurement
+    root = len(point.energies)
+    row = interval_replica(shared, cache, target=shared.bank.solve().energies[root],
+                           solver_kwargs={"calibrate_overlap": True}, root=root)
+    assert row["outcome"] == "solve_failed"
+    assert f"root {root} is unavailable" in row["solve_error"]
+    assert row["estimate"] is None and row["intervals"] == {}
+    assert row["shots"] == cache.total_shots
+    summary = summarize_coverage([row])
+    assert summary["replicas"] == summary["solve_failures"] == 1
 
 
 def test_one_replica_reports_every_interval_against_the_target(system):

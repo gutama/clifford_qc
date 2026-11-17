@@ -52,7 +52,11 @@ REPLAY_TOLERANCE = 1e-7
 # rounding too much to compare its floats. In an adaptive schedule it also
 # decides the next round's shots, so nothing after it is comparable either.
 ILL_CONDITIONED = 1e-6
-SUMMARY_TOLERANCE = 1e-12
+# Structural checks also run on supported stacks other than the record's.
+# NumPy 2.2.6 and 2.5.2 recompute a paired-bootstrap endpoint about 3e-12
+# apart from the same stored rows. Allow that summation/quantile roundoff;
+# integer counts and labels are still compared exactly.
+SUMMARY_TOLERANCE = 1e-10
 # A stopped run and the full schedule are the same seeded computation up to
 # the stopping look, so they agree to rounding, not merely to tolerance.
 PREFIX_TOLERANCE = 1e-12
