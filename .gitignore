@@ -237,3 +237,7 @@ constraints.txt
 molecular/runs/
 molecular/results/cache/
 molecular/results/.run.lock
+
+# Scratch outputs of documented local audits and replays (docs use work/...).
+# Ignored so a first run cannot mark the next run's Git provenance dirty.
+/work/
