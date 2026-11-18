@@ -639,12 +639,12 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 5015 passed, 12 skipped (expected if green)
+pytest                                      # 5020 passed, 13 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
-and SciPy through `check_record_environment.py`. Six optional test modules are
-dropped without OpenFermion, PennyLane, pytket and PyZX; six individual tests
+and SciPy through `check_record_environment.py`. Seven optional test modules are
+dropped without OpenFermion, PennyLane, pytket, PyZX and PySCF; six individual tests
 also skip -- three on OpenFermion (including the shared-pool import check) and three on PySCF. Chemistry builders remain
 optional: install `.[chemistry]` when running those workflows, which changes
 collection totals.
@@ -653,12 +653,12 @@ The counts above are expected accounting for a successful suite in this
 dependency set, derived from collection; they are not a claim that the full
 suite ran for each change. `check_docs.py` enforces the pair through the
 identity relating them. Each of
-the six dropped files contributes exactly one skip and no collected tests, so
-the remaining `12 - 6 = 6` skips are per-test and *are* collected:
+the seven dropped files contributes exactly one skip and no collected tests, so
+the remaining `13 - 7 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-5021      == 5015   + (12      -   6)
+5026      == 5020   + (13      -   7)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -6046,4 +6046,23 @@ declared hardware device cards, backed by `benchmarks/geometric_information_stud
 ```bash
 python benchmarks/run_geometric_information_study.py --out benchmarks/geometric_information_study.json
 python -m unittest tests/test_commutator_hierarchy.py tests/test_information_selection.py
+```
+
+## Finite-shot commutator subspaces against Krylov at matched shot budgets (PySCF)
+
+`benchmarks/run_matched_shot_commutator_krylov.py` compares real-time and
+power Krylov with three A-CASE pools (excitations, commutators of the
+Hamiltonian with them, and both) on stretched water, hydrogen chains and N2
+at 6, 8, 12 and 16 qubits. All subspaces are exact. Shots enter through a
+declared element-level model, and every arm splits the same total budget.
+The study is exploratory; a stricter overlap floor is its post hoc
+sensitivity variant. The results, the shot model and what it credits are in
+[benchmarks/MATCHED_SHOT_COMMUTATOR_KRYLOV.md](benchmarks/MATCHED_SHOT_COMMUTATOR_KRYLOV.md).
+Running it needs the `molecular` extra; printing the report does not:
+
+```bash
+python benchmarks/run_matched_shot_commutator_krylov.py --out benchmarks/matched_shot_commutator_krylov.json
+python benchmarks/run_matched_shot_commutator_krylov.py --floor-multiplier 20 --out benchmarks/matched_shot_commutator_krylov_floor20.json
+python benchmarks/run_matched_shot_commutator_krylov.py --report --out benchmarks/matched_shot_commutator_krylov.json --sensitivity benchmarks/matched_shot_commutator_krylov_floor20.json
+python -m pytest tests/test_matched_shot_commutator_krylov.py tests/test_matched_shot_commutator_krylov_report.py
 ```
