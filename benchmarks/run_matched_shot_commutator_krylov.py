@@ -429,14 +429,18 @@ def sample_pencil(arm: str, S: np.ndarray, Hp: np.ndarray, shots: int, scale: fl
     return S_out, H_out
 
 
-def overlap_floor(size: int, shots: int) -> float:
-    """Declared truncation floor: about twice the spectral norm of S noise.
+FLOOR_MULTIPLIER = 2.0
 
-    Off-diagonal overlap elements have complex variance at most ``2/n``; a
+
+def overlap_floor(size: int, shots: int, multiplier: float = FLOOR_MULTIPLIER) -> float:
+    """Truncation floor on the normalized overlap's eigenvalues.
+
+    Off-diagonal overlap elements have complex variance at most ``2/n``, and a
     Hermitian noise matrix with that entry variance has spectral norm near
-    ``2 sqrt(2 size / n)``.
+    ``2 sqrt(2 size / n)``. The declared floor is that norm (``multiplier``
+    2); a larger multiplier is the sensitivity variant.
     """
-    return 2.0 * math.sqrt(2.0 * size / shots)
+    return multiplier * math.sqrt(2.0 * size / shots)
 
 
 def summarize(errors: list[float], failures: int, exact_error: float) -> dict[str, Any]:
@@ -478,7 +482,8 @@ def target_state(sector: Sector) -> tuple[float, int]:
 
 
 def run_system(index: int, spec: dict[str, Any], *, replicas: int,
-               sizes=BASIS_SIZES, budgets=BUDGETS) -> dict[str, Any]:
+               sizes=BASIS_SIZES, budgets=BUDGETS,
+               floor_multiplier: float = FLOOR_MULTIPLIER) -> dict[str, Any]:
     started = time.perf_counter()
     sector = build_sector(spec)
     qubit = qubit_hamiltonian(sector)
@@ -548,7 +553,7 @@ def run_system(index: int, spec: dict[str, Any], *, replicas: int,
                 rng = np.random.default_rng(np.random.SeedSequence(
                     [SEED_ROOT, index, arm_index, size, budget_index]))
                 S_draws, H_draws = sample_pencil(arm, S, Hp, shots, scale, rng, replicas)
-                floor = overlap_floor(size, shots)
+                floor = overlap_floor(size, shots, floor_multiplier)
                 errors, failures, ranks = [], 0, []
                 for S_hat, H_hat in zip(S_draws, H_draws):
                     try:
@@ -638,12 +643,17 @@ def main(argv=None) -> int:
     parser.add_argument("--systems", nargs="*", default=None,
                         help="keys of the systems to run (default: all)")
     parser.add_argument("--replicas", type=int, default=REPLICAS)
+    parser.add_argument("--floor-multiplier", type=float, default=FLOOR_MULTIPLIER,
+                        help="multiple of sqrt(2M/n) used as the overlap floor "
+                             "(declared: 2; larger values are the sensitivity variant)")
     args = parser.parse_args(argv)
     if args.report:
         print(report(json.loads(args.out.read_text(encoding="utf-8"))), end="")
         return 0
     if args.replicas < 1:
         parser.error("--replicas must be positive")
+    if not args.floor_multiplier > 0.0:
+        parser.error("--floor-multiplier must be positive")
     chosen = [s for s in SYSTEMS if args.systems is None or s["key"] in args.systems]
     if not chosen:
         parser.error("no known system selected")
@@ -656,13 +666,15 @@ def main(argv=None) -> int:
                      "utc": provenance["utc"]},
         "design": {"seed_root": SEED_ROOT, "basis_sizes": list(BASIS_SIZES),
                    "budgets": list(BUDGETS), "replicas": args.replicas, "arms": list(ARMS),
-                   "chemical_accuracy": CHEMICAL_ACCURACY},
+                   "chemical_accuracy": CHEMICAL_ACCURACY,
+                   "floor_multiplier": args.floor_multiplier},
         "systems": [],
     }
     for spec in chosen:
         index = SYSTEMS.index(spec)
         print(f"{spec['key']} ...", flush=True)
-        system = run_system(index, spec, replicas=args.replicas)
+        system = run_system(index, spec, replicas=args.replicas,
+                            floor_multiplier=args.floor_multiplier)
         record["systems"].append(system)
         print(f"  {system['qubits']} qubits, dim {system['sector_dimension']}, "
               f"HF error {1e3 * system['hf_error']:.1f} mHa, "

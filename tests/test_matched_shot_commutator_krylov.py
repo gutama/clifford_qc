@@ -174,6 +174,7 @@ def test_the_measured_quantity_counts_and_floor_follow_the_declaration():
     assert [study.quantities("power_krylov", m) for m in (4, 8)] == [28, 120]
     assert study.overlap_floor(8, 100) == pytest.approx(2 * math.sqrt(16 / 100))
     assert study.overlap_floor(8, 10 ** 6) < study.overlap_floor(8, 10 ** 4)
+    assert study.overlap_floor(8, 100, 20.0) == pytest.approx(10 * study.overlap_floor(8, 100))
 
 
 def test_summaries_count_failures_and_separate_shot_noise_from_subspace_error():
