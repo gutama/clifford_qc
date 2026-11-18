@@ -14,6 +14,24 @@ Benchmark campaigns, their declarations and their outcomes are recorded in
 
 ### Added
 
+- **Hierarchical commutator subspaces and resource-aware information acquisition**
+  ([benchmarks/GEOMETRIC_INFORMATION_STUDY.md](benchmarks/GEOMETRIC_INFORMATION_STUDY.md)).
+  `clifford_qc.subspace` adds two pure-NumPy research modules (re-exported in
+  `clifford_qc.subspace.__all__`):
+  - `clifford_qc.subspace.commutators`: relative-tolerance commutator builders
+    (`commutator_mv`, `commutator_apply`), hierarchical Lie-algebraic closure
+    and span diagnostics (`nested_commutator_hierarchy`,
+    `hierarchy_span_diagnostics`), and demand-driven expansion
+    (`CommutatorFrontier`, `run_dynamic_commutator_acase`);
+  - `clifford_qc.subspace.information`: incremental QWC, `DeviceCard`, and
+    classical cost accounting (`IncrementalCostModel`,
+    `estimate_incremental_cost`), 7D finite-shot delta-method lowering
+    propagation and cost-ratio selection (`expected_lowering_estimate`,
+    `score_information_candidate`, `select_information_candidate`,
+    `run_resource_aware_acase`), and oracle-free closed-loop acquisition to a
+    target precision (`acquire_to_accuracy`).
+  Defaults for existing solvers and all frozen baselines remain unchanged.
+
 - **Opt-in estimators for measured projected pencils**
   ([docs/restart/PENCIL_ESTIMATORS.md](docs/restart/PENCIL_ESTIMATORS.md)).
   `SharedMeasurement.solve` gains three opt-in alternatives to plain
@@ -46,6 +64,19 @@ Benchmark campaigns, their declarations and their outcomes are recorded in
 
 ### Fixed
 
+- Information acquisition now includes the measured Ritz-vector response in
+  candidate uncertainties, refreshes the solve after screening measurements,
+  preserves unresolved remaining bias at basis limits, and checks shot and
+  execution-time budgets before every batch. Commutator hierarchies no longer
+  report Lie closure when caps or filters leave branches uncomputed.
+  Review follow-ups: a commutator erased only by `MV`'s absolute cutoff is
+  reported as `"underflow"` and never counts toward closure; truncation caps
+  seed support too; seeds already in the basis stay expandable; refinement
+  allocates to every word a setting reads; the lowering threshold applies
+  before the cost-ratio argmax; both resource-aware runners end with the
+  retained-subspace sector certificate (`retained_sector_certificate`); a
+  run stopped by hardware time says so; and a word an existing setting
+  already reads adds no setting cost.
 - The constrained-ratio single-live-generator shortcut now rejects an
   unattainable error budget or denominator-CV gate. Deterministic phase-mixed
   starts also prevent the reviewed stationary two-direction maximum from
