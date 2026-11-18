@@ -639,7 +639,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 5018 passed, 13 skipped (expected if green)
+pytest                                      # 5020 passed, 13 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -658,7 +658,7 @@ the remaining `13 - 7 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-5024      == 5018   + (13      -   7)
+5026      == 5020   + (13      -   7)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number

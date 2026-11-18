@@ -29,6 +29,36 @@ def test_the_document_embeds_exactly_the_generated_tables(records):
     assert embedded == study.report(*records)
 
 
+def test_winners_require_a_result_from_both_families():
+    values = {"rt_krylov": [2.0, 2.0, None],
+              "power_krylov": [1.0, 1.0, None],
+              "excitation_acase": [None, 3.0, 2.0],
+              "commutator_acase": [None, None, 1.0]}
+    record = {"design": {"arms": list(values), "basis_sizes": [4],
+                         "budgets": [10, 20, 30]}}
+    system = {"arms": {
+        arm: {"sizes": {"4": {"available": True, "budgets": {
+            str(budget): {"median_abs_error": error}
+            for budget, error in zip((10, 20, 30), errors)}}}}
+        for arm, errors in values.items()}}
+    wins, better, compared = study._winners(record, system)
+    assert wins == dict.fromkeys(values, 0) | {"power_krylov": 1}
+    assert better == compared == 1
+
+
+def test_committed_win_totals_use_the_cross_family_denominator(records):
+    for record, expected in zip(records, ((194, 46, 261), (156, 57, 236))):
+        totals = dict.fromkeys(study.ARMS, 0)
+        comparisons = 0
+        for system in record["systems"]:
+            wins, _, compared = study._winners(record, system)
+            assert sum(wins.values()) == compared
+            comparisons += compared
+            for arm in totals:
+                totals[arm] += wins[arm]
+        assert (totals["power_krylov"], totals["rt_krylov"], comparisons) == expected
+
+
 def test_the_records_come_from_one_clean_commit_and_differ_only_in_the_floor(records):
     primary, sensitivity = records
     for record in records:

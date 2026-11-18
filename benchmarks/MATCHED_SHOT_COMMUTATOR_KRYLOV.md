@@ -96,7 +96,8 @@ Each arm divides the same total budget N equally among its quantities, so it
 gets n = ⌊N/Q⌋ shots per quantity. Budgets run from 10^4 to 10^12 total shots
 in powers of ten, with 200 replicas per (system, arm, M, budget) cell. Seeds
 come from `SeedSequence([20261118, system, arm, M, budget index])`. A run
-reproduces bit for bit, because the script pins BLAS and OpenMP to one thread.
+reproduces bit for bit, because the script pins BLAS and OpenMP to one thread
+before importing NumPy or PySCF, overriding inherited parallel thread settings.
 
 The noisy pencil is solved with the library's `solve_projected`. Directions of
 the normalized overlap whose eigenvalue is below the floor
@@ -167,8 +168,10 @@ the target at M = 12, where Krylov is within 2.2.
 
 Take each matched cell: one system, basis size and total budget. The better
 Krylov arm beats every A-CASE arm in 240 of the 261 cells where both families
-return energies. Power Krylov has the smallest median error in 214 cells,
-real-time Krylov in 53, and the three A-CASE arms in 21 between them.
+return energies. Within those same 261 cells, power Krylov has the smallest
+median error in 194 cells, real-time Krylov in 46, and the three A-CASE arms
+in 21 between them. Cells with results from only one family are excluded from
+every win count and its denominator.
 
 Choosing the best basis size for each family in hindsight gives the same
 picture. At 10^8, 10^10 and 10^12 total shots the better Krylov arm is ahead
@@ -235,7 +238,7 @@ the stricter floor removes the whole space in 108 cells, which then return no
 energy.
 
 The comparison stands: the better Krylov arm beats every A-CASE arm in 213 of
-the 236 cells compared, and power Krylov wins 197 of them.
+the 236 cells compared, and power Krylov wins 156 of them.
 
 ## History
 
@@ -244,13 +247,17 @@ a record) charged power Krylov and the A-CASE arms for measuring the imaginary
 parts of their real pencils, and added noise there. That cost them about a
 factor of four in effective shots against real-time Krylov. The model was
 corrected (commit `0d634c7`) before the records reported here were produced.
-Later commits change only the code that prints the report.
+Later commits correct the report's cross-family win accounting and enforce
+single-thread execution even when inherited settings request more threads.
+The committed measurement records are unchanged.
 
 The correction moved numbers but no conclusion:
 
 - the better Krylov arm beat every A-CASE arm in 239 of 261 cells before and
   in 240 after;
-- power Krylov's cell wins rose from 198 to 214;
+- power Krylov's overall cell wins rose from 198 to 214 (these historical
+  totals include cells with no A-CASE result; the matched-family count in the
+  corrected report is 194);
 - no arm reached chemical accuracy on a 16-qubit system in either run.
 
 The stricter-floor variant was chosen after that first run had shown
@@ -370,11 +377,11 @@ Smallest total shot budget at which at least half of the 200 replicas are within
 | `h8_r2.0` | 16 | never | never | never | never | never |
 | `n2_r2.0_cas10e8o` | 16 | never | never | never | never | never |
 
-Matched cells won: for every basis size and budget at which at least two arms return an energy, the arm with the smallest median absolute error wins the cell. The last column counts the cells where the better Krylov arm beats every A-CASE arm present:
+Matched cells won: for every basis size and budget at which at least one Krylov and one A-CASE arm return an energy, the arm with the smallest median absolute error wins the cell. The last column counts the cells where the better Krylov arm beats every A-CASE arm present:
 
 | System | Qubits | Real-time Krylov | Power Krylov | A-CASE, excitations + commutators | A-CASE, commutators only | A-CASE, excitations only | Krylov beats A-CASE |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `h2o_2x_cas4e3o` | 6 | 9 | 25 | 0 | 1 | 1 | 7/9 |
+| `h2o_2x_cas4e3o` | 6 | 2 | 5 | 0 | 1 | 1 | 7/9 |
 | `h4_r2.0` | 8 | 3 | 33 | 0 | 0 | 0 | 36/36 |
 | `h2o_2x_cas8e6o` | 12 | 17 | 16 | 2 | 0 | 1 | 33/36 |
 | `h6_r2.0` | 12 | 0 | 36 | 0 | 0 | 0 | 36/36 |
@@ -382,7 +389,7 @@ Matched cells won: for every basis size and budget at which at least two arms re
 | `h2o_2x_631g_cas8e8o` | 16 | 1 | 29 | 3 | 0 | 3 | 30/36 |
 | `h8_r2.0` | 16 | 2 | 31 | 1 | 0 | 2 | 33/36 |
 | `n2_r2.0_cas10e8o` | 16 | 6 | 27 | 0 | 2 | 1 | 33/36 |
-| All | | 53 | 214 | 6 | 4 | 11 | 240/261 |
+| All | | 46 | 194 | 6 | 4 | 11 | 240/261 |
 
 Best median absolute error (mHa) over the basis sizes, for the better Krylov arm and the better A-CASE arm, by total shots. The basis size is chosen with knowledge of the target, for both families alike, so this is an optimistic summary, not a procedure:
 
@@ -651,13 +658,13 @@ Matched cells won with the floor at 20 times sqrt(vM/n):
 
 | System | Qubits | Real-time Krylov | Power Krylov | A-CASE, excitations + commutators | A-CASE, commutators only | A-CASE, excitations only | Krylov beats A-CASE |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `h2o_2x_cas4e3o` | 6 | 12 | 23 | 0 | 0 | 1 | 8/9 |
-| `h4_r2.0` | 8 | 3 | 33 | 0 | 0 | 0 | 34/34 |
-| `h2o_2x_cas8e6o` | 12 | 26 | 9 | 0 | 0 | 1 | 31/32 |
-| `h6_r2.0` | 12 | 0 | 35 | 0 | 0 | 0 | 31/31 |
-| `n2_r2.0_cas6e6o` | 12 | 16 | 14 | 2 | 3 | 1 | 27/33 |
-| `h2o_2x_631g_cas8e8o` | 16 | 0 | 29 | 3 | 0 | 4 | 25/32 |
-| `h8_r2.0` | 16 | 0 | 34 | 0 | 0 | 1 | 31/32 |
-| `n2_r2.0_cas10e8o` | 16 | 9 | 20 | 4 | 2 | 1 | 26/33 |
-| All | | 66 | 197 | 9 | 5 | 9 | 213/236 |
+| `h2o_2x_cas4e3o` | 6 | 6 | 2 | 0 | 0 | 1 | 8/9 |
+| `h4_r2.0` | 8 | 3 | 31 | 0 | 0 | 0 | 34/34 |
+| `h2o_2x_cas8e6o` | 12 | 26 | 5 | 0 | 0 | 1 | 31/32 |
+| `h6_r2.0` | 12 | 0 | 31 | 0 | 0 | 0 | 31/31 |
+| `n2_r2.0_cas6e6o` | 12 | 13 | 14 | 2 | 3 | 1 | 27/33 |
+| `h2o_2x_631g_cas8e8o` | 16 | 0 | 25 | 3 | 0 | 4 | 25/32 |
+| `h8_r2.0` | 16 | 0 | 31 | 0 | 0 | 1 | 31/32 |
+| `n2_r2.0_cas10e8o` | 16 | 9 | 17 | 4 | 2 | 1 | 26/33 |
+| All | | 57 | 156 | 9 | 5 | 9 | 213/236 |
 <!-- end of generated tables -->

@@ -229,3 +229,20 @@ def test_a_small_run_is_complete_and_reproducible(tmp_path):
     assert row["budgets"]["10000"]["shots_per_quantity"] == 10000 // 13
     text = study.report(a)
     assert "`h2o_2x_cas4e3o`" in text and "Real-time Krylov" in text
+
+
+def test_import_enforces_one_thread_despite_inherited_parallel_settings():
+    import json
+    import os
+    import subprocess
+    import sys
+
+    variables = ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS")
+    env = dict(os.environ, **dict.fromkeys(variables, "2"))
+    code = ("import json, os; "
+            "from benchmarks import run_matched_shot_commutator_krylov; "
+            "from pyscf import lib; "
+            f"print(json.dumps([lib.num_threads(), [os.environ[k] for k in {variables!r}]]))")
+    completed = subprocess.run([sys.executable, "-c", code], cwd=study.ROOT,
+                               env=env, check=True, capture_output=True, text=True)
+    assert json.loads(completed.stdout) == [1, ["1", "1", "1"]]

@@ -42,9 +42,10 @@ import time
 
 # Threaded BLAS and OpenMP reductions reorder floating-point sums, so the same
 # run differs from itself in the last bits, and near-tied selections can flip.
-# One thread makes a run reproducible bit for bit, as the molecular runner does.
+# Enforce one thread even when the parent requested parallel execution. This
+# must happen before NumPy or PySCF loads their native thread pools.
 for _variable in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
-    os.environ.setdefault(_variable, "1")
+    os.environ[_variable] = "1"
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -674,8 +675,8 @@ def report(record: dict[str, Any], sensitivity: dict[str, Any] | None = None) ->
             found = _first_chemical_budget(record, system, arm)
             cells.append("never" if found is None else f"{found[0]:.0e} (M = {found[1]})")
         lines.append(f"| `{system['key']}` | {system['qubits']} | " + " | ".join(cells) + " |")
-    lines += ["", "Matched cells won: for every basis size and budget at which at least two "
-                  "arms return an energy, the arm with the smallest median absolute error "
+    lines += ["", "Matched cells won: for every basis size and budget at which at least one "
+                  "Krylov and one A-CASE arm return an energy, the arm with the smallest median absolute error "
                   "wins the cell. The last column counts the cells where the better Krylov "
                   "arm beats every A-CASE arm present:", ""]
     lines += _winner_table(record)
@@ -778,7 +779,7 @@ def _first_chemical_budget(record: dict[str, Any], system: dict[str, Any],
 
 
 def _winners(record: dict[str, Any], system: dict[str, Any]) -> tuple[dict[str, int], int, int]:
-    """Cells won per arm, and (cells the better Krylov arm wins, cells compared)."""
+    """Cross-family cells won per arm, and (Krylov-family wins, cells compared)."""
     arms = record["design"]["arms"]
     wins = dict.fromkeys(arms, 0)
     krylov_better = compared = 0
@@ -786,14 +787,13 @@ def _winners(record: dict[str, Any], system: dict[str, Any]) -> tuple[dict[str, 
         for budget in record["design"]["budgets"]:
             cells = {arm: _cell(system, arm, size, budget) for arm in arms}
             errors = {arm: c["median_abs_error"] for arm, c in cells.items() if c is not None}
-            if len(errors) < 2:
-                continue
-            wins[min(errors, key=errors.__getitem__)] += 1
             krylov = [errors[a] for a in ("rt_krylov", "power_krylov") if a in errors]
             acase = [value for arm, value in errors.items() if arm.endswith("acase")]
-            if krylov and acase:
-                compared += 1
-                krylov_better += min(krylov) < min(acase)
+            if not krylov or not acase:
+                continue
+            wins[min(errors, key=errors.__getitem__)] += 1
+            compared += 1
+            krylov_better += min(krylov) < min(acase)
     return wins, krylov_better, compared
 
 
