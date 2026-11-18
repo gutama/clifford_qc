@@ -623,8 +623,8 @@ def report(record: dict[str, Any], sensitivity: dict[str, Any] | None = None) ->
     ``sensitivity``, a record of the same design run under another overlap
     floor, adds a comparison of the Krylov arms and of the cell winners.
     """
-    lines = ["| System | Qubits | Sector dim. | HF error (mHa) | Overlap of HF with target "
-             "| Pauli terms | lambda (Ha) | QWC settings of H |",
+    lines = ["| System | Qubits | Sector dim. | HF error (mHa) | \\|⟨HF\\|target⟩\\|² "
+             "| Pauli terms | λ (Ha) | QWC settings of H |",
              "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"]
     for system in record["systems"]:
         lines.append(
@@ -679,6 +679,25 @@ def report(record: dict[str, Any], sensitivity: dict[str, Any] | None = None) ->
                   "wins the cell. The last column counts the cells where the better Krylov "
                   "arm beats every A-CASE arm present:", ""]
     lines += _winner_table(record)
+    lines += ["", "Best median absolute error (mHa) over the basis sizes, for the better "
+                  "Krylov arm and the better A-CASE arm, by total shots. The basis size is "
+                  "chosen with knowledge of the target, for both families alike, so this is "
+                  "an optimistic summary, not a procedure:", "",
+              "| System | Qubits | " + " | ".join(f"{int(b):.0e}: Krylov / A-CASE"
+                                                 for b in REPORT_BUDGETS) + " |",
+              "| --- | ---: | " + " | ".join("---:" for _ in REPORT_BUDGETS) + " |"]
+    for system in record["systems"]:
+        cells = []
+        for budget in REPORT_BUDGETS:
+            best = []
+            for family in (("rt_krylov", "power_krylov"),
+                           tuple(a for a in record["design"]["arms"] if a.endswith("acase"))):
+                found = [c["median_abs_error"] for arm in family
+                         for size in sizes for c in [_cell(system, arm, size, int(budget))]
+                         if c is not None]
+                best.append(_mha(min(found)) if found else "n/a")
+            cells.append(" / ".join(best))
+        lines.append(f"| `{system['key']}` | {system['qubits']} | " + " | ".join(cells) + " |")
     lines += ["", "Bias at M = 8: median signed error against the target (mHa) and, in "
                   "brackets, the fraction of replicas more than "
                   f"{1e3 * record['design']['chemical_accuracy']:.1f} mHa below it, by total "
@@ -804,7 +823,7 @@ def _sensitivity_tables(record: dict[str, Any], other: dict[str, Any]) -> list[s
     varied = other["design"]["floor_multiplier"]
     by_key = {system["key"]: system for system in other["systems"]}
     lines = ["", f"Overlap-floor sensitivity: median absolute error (mHa) of the Krylov arms "
-                 f"with the floor at {base:g} and at {varied:g} times sqrt(2M/n), shown as "
+                 f"with the floor at {base:g} and at {varied:g} times sqrt(vM/n), shown as "
                  f"{base:g}× / {varied:g}×, by total shots:", "",
              "| System | Arm | M | " + " | ".join(f"{int(b):.0e} shots" for b in REPORT_BUDGETS)
              + " |",
@@ -820,7 +839,7 @@ def _sensitivity_tables(record: dict[str, Any], other: dict[str, Any]) -> list[s
                                  f"{_mha(a['median_abs_error'])} / {_mha(b['median_abs_error'])}")
                 lines.append(f"| `{system['key']}` | {ARM_NAMES[arm]} | {size} | "
                              + " | ".join(cells) + " |")
-    lines += ["", f"Matched cells won with the floor at {varied:g} times sqrt(2M/n):", ""]
+    lines += ["", f"Matched cells won with the floor at {varied:g} times sqrt(vM/n):", ""]
     lines += _winner_table(other)
     return lines
 

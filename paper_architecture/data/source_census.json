@@ -106,8 +106,8 @@
     ],
     "gates": 81,
     "named_in_workflow": 74,
-    "producers": 79,
-    "producers_without_gate": 25,
+    "producers": 80,
+    "producers_without_gate": 26,
     "run_on_every_pull_request": 63,
     "same_stem_pairs": 54
   },
@@ -259,7 +259,7 @@
     },
     "package_lines": 39639,
     "package_modules": 131,
-    "test_lines": 49346,
-    "test_modules": 199
+    "test_lines": 49657,
+    "test_modules": 201
   }
 }
