@@ -143,18 +143,13 @@ def test_real_time_krylov_is_toeplitz_and_power_krylov_spans_the_krylov_space(ch
 def test_the_shot_model_is_unbiased_with_the_declared_variance(arm):
     rng = np.random.default_rng(3)
     size = 3
-    phases = np.exp(1j * rng.uniform(0, 2 * np.pi, size))
-    vectors = rng.standard_normal((6, size)) + 1j * rng.standard_normal((6, size))
+    vectors = rng.standard_normal((6, size))
     vectors /= np.linalg.norm(vectors, axis=0)
+    operator = np.diag(rng.uniform(-1, 1, 6))
     if arm == "rt_krylov":
-        # A Toeplitz pencil from unitary powers of a diagonal operator.
-        w = rng.uniform(-1, 1, 6)
-        psi = vectors[:, 0]
-        vectors = np.column_stack([np.exp(-1j * w * k) * psi for k in range(size)])
-        operator = np.diag(w)
-    else:
-        operator = np.diag(rng.uniform(-1, 1, 6))
-    del phases
+        # A complex Toeplitz pencil from unitary powers of a diagonal operator.
+        w = np.diagonal(operator)
+        vectors = np.column_stack([np.exp(-1j * w * k) * vectors[:, 0] for k in range(size)])
     S, Hp = study.pencil(vectors, operator)
     scale, shots, draws = 2.0, 400, 20000
     S_hat, H_hat = study.sample_pencil(arm, S, Hp, shots, scale, rng, draws)
@@ -165,14 +160,30 @@ def test_the_shot_model_is_unbiased_with_the_declared_variance(arm):
     assert np.allclose(H_hat.mean(axis=0), Hp, atol=0.02)
     observed = H_hat[:, 0, 1].real.var()
     assert observed == pytest.approx((scale ** 2 - Hp[0, 1].real ** 2) / shots, rel=0.05)
-    observed = S_hat[:, 0, 1].imag.var()
-    assert observed == pytest.approx((1.0 - S[0, 1].imag ** 2) / shots, rel=0.05)
+    observed = S_hat[:, 0, 1].real.var()
+    assert observed == pytest.approx((1.0 - S[0, 1].real ** 2) / shots, rel=0.05)
+    if arm == "rt_krylov":
+        observed = S_hat[:, 0, 1].imag.var()
+        assert observed == pytest.approx((1.0 - S[0, 1].imag ** 2) / shots, rel=0.05)
+    else:
+        # A real pencil's imaginary parts vanish and are not measured.
+        assert not np.iscomplexobj(S_hat) and not np.iscomplexobj(H_hat)
+
+
+def test_a_real_arm_refuses_a_complex_pencil():
+    S = np.array([[1.0, 0.5j], [-0.5j, 1.0]])
+    with pytest.raises(ValueError, match="complex"):
+        study.sample_pencil("power_krylov", S, S, 10, 1.0, np.random.default_rng(0), 2)
 
 
 def test_the_measured_quantity_counts_and_floor_follow_the_declaration():
     assert [study.quantities("rt_krylov", m) for m in (4, 8)] == [13, 29]
-    assert [study.quantities("power_krylov", m) for m in (4, 8)] == [28, 120]
+    # A real symmetric pencil: M(M-1)/2 overlaps and M(M+1)/2 Hamiltonian elements.
+    assert [study.quantities("power_krylov", m) for m in (4, 8)] == [16, 64]
+    assert study.quantities("commutator_acase", 12) == 144
     assert study.overlap_floor(8, 100) == pytest.approx(2 * math.sqrt(16 / 100))
+    assert study.overlap_floor(8, 100, complex_entries=False) == pytest.approx(
+        2 * math.sqrt(8 / 100))
     assert study.overlap_floor(8, 10 ** 6) < study.overlap_floor(8, 10 ** 4)
     assert study.overlap_floor(8, 100, 20.0) == pytest.approx(10 * study.overlap_floor(8, 100))
 

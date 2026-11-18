@@ -15,14 +15,20 @@ each real quantity of the normalized pencil is estimated by a two-outcome
 (Hadamard-test style) measurement, ``+-1`` for overlaps and ``+-lambda`` for
 Hamiltonian elements, where ``lambda`` is the Pauli 1-norm of the
 Jordan-Wigner Hamiltonian without its identity term. Each arm divides the same
-total budget equally among the real quantities it must measure.
+total budget equally among the real quantities it must measure. Real-time
+Krylov's pencil is complex. The other arms' vectors are real (a real
+Hamiltonian in real orbitals, real excitation generators), so the imaginary
+parts of their pencils vanish and are not measured.
 
     python benchmarks/run_matched_shot_commutator_krylov.py
     python benchmarks/run_matched_shot_commutator_krylov.py --systems h4_r2.0 --replicas 20
-    python benchmarks/run_matched_shot_commutator_krylov.py --report
+    python benchmarks/run_matched_shot_commutator_krylov.py --report \
+        --sensitivity benchmarks/matched_shot_commutator_krylov_floor20.json
 
 ``--report`` prints the Markdown tables the study document embeds, read from
-the record. Running the study requires PySCF (the ``molecular`` extra).
+the record; ``--sensitivity`` adds the comparison with a record run under a
+different overlap floor. Running the study requires PySCF (the ``molecular``
+extra); printing the report does not.
 """
 
 from __future__ import annotations
@@ -239,7 +245,7 @@ def excitations(sector: Sector) -> list[tuple[str, tuple, tuple]]:
     """
     occupied = range(sector.nelec[0])
     virtual = range(sector.nelec[0], sector.norb)
-    out = []
+    out: list[tuple[str, tuple, tuple]] = []
     for spin in (0, 1):
         for i in occupied:
             for a in virtual:
@@ -375,12 +381,19 @@ def krylov_bases(sector: Sector, size: int, identity: float
 
 # --------------------------------------------------------------- shot model
 
+# Arms whose basis vectors are complex. Every other arm's vectors are real, so
+# its pencil is real symmetric and only real parts are measured.
+COMPLEX_ARMS = ("rt_krylov",)
+
+
 def quantities(arm: str, size: int) -> int:
     """Real quantities an arm measures for a ``size`` x ``size`` pencil."""
     if arm == "rt_krylov":
         # Toeplitz: s_d for d >= 1 (complex), h_0 (real), h_d for d >= 1 (complex).
         return 4 * size - 3
-    return 2 * size * (size - 1) + size
+    # Real symmetric: the overlap above its unit diagonal, and the Hamiltonian's
+    # upper triangle with its diagonal.
+    return size * (size - 1) // 2 + size * (size + 1) // 2
 
 
 def sample_pencil(arm: str, S: np.ndarray, Hp: np.ndarray, shots: int, scale: float,
@@ -390,7 +403,8 @@ def sample_pencil(arm: str, S: np.ndarray, Hp: np.ndarray, shots: int, scale: fl
     A real quantity ``x`` with per-shot outcomes ``+-b`` is estimated by
     ``b (2k/n - 1)`` with ``k ~ Binomial(n, (1 + x/b)/2)``: ``b = 1`` for
     overlaps and ``b = scale`` for Hamiltonian elements. The diagonal of the
-    normalized overlap is exactly one and is not measured.
+    normalized overlap is exactly one and is not measured. Arms outside
+    ``COMPLEX_ARMS`` have real pencils and measure real parts only.
     """
     size = S.shape[0]
 
@@ -415,32 +429,36 @@ def sample_pencil(arm: str, S: np.ndarray, Hp: np.ndarray, shots: int, scale: fl
                 H_out[:, j, k] = h_hat[:, k - j]
                 H_out[:, k, j] = np.conj(h_hat[:, k - j])
         return S_out, H_out
+    if max(np.abs(S.imag).max(), np.abs(Hp.imag).max()) > 0.0:
+        raise ValueError(f"{arm} is measured as a real pencil, but this one is complex")
+    S_out, H_out = S_out.real.copy(), H_out.real.copy()
     upper = np.triu_indices(size, 1)
-    s = S[upper]
-    S_hat = estimate(s.real, 1.0) + 1j * estimate(s.imag, 1.0)
+    S_hat = estimate(S.real[upper], 1.0)
     S_out[:, upper[0], upper[1]] = S_hat
-    S_out[:, upper[1], upper[0]] = np.conj(S_hat)
+    S_out[:, upper[1], upper[0]] = S_hat
     diagonal = np.arange(size)
-    H_out[:, diagonal, diagonal] = estimate(Hp[diagonal, diagonal].real, scale)
-    h = Hp[upper]
-    H_hat = estimate(h.real, scale) + 1j * estimate(h.imag, scale)
+    H_out[:, diagonal, diagonal] = estimate(Hp.real[diagonal, diagonal], scale)
+    H_hat = estimate(Hp.real[upper], scale)
     H_out[:, upper[0], upper[1]] = H_hat
-    H_out[:, upper[1], upper[0]] = np.conj(H_hat)
+    H_out[:, upper[1], upper[0]] = H_hat
     return S_out, H_out
 
 
 FLOOR_MULTIPLIER = 2.0
 
 
-def overlap_floor(size: int, shots: int, multiplier: float = FLOOR_MULTIPLIER) -> float:
+def overlap_floor(size: int, shots: int, multiplier: float = FLOOR_MULTIPLIER, *,
+                  complex_entries: bool = True) -> float:
     """Truncation floor on the normalized overlap's eigenvalues.
 
-    Off-diagonal overlap elements have complex variance at most ``2/n``, and a
-    Hermitian noise matrix with that entry variance has spectral norm near
-    ``2 sqrt(2 size / n)``. The declared floor is that norm (``multiplier``
-    2); a larger multiplier is the sensitivity variant.
+    Off-diagonal overlap elements have variance at most ``v/n``: ``v = 2`` for
+    a complex element (real and imaginary parts each measured) and ``v = 1``
+    for a real one. A symmetric noise matrix with that entry variance has
+    spectral norm near ``2 sqrt(v size / n)``. The declared floor is that norm
+    (``multiplier`` 2); a larger multiplier is the sensitivity variant.
     """
-    return multiplier * math.sqrt(2.0 * size / shots)
+    variance = 2.0 if complex_entries else 1.0
+    return multiplier * math.sqrt(variance * size / shots)
 
 
 def summarize(errors: list[float], failures: int, exact_error: float) -> dict[str, Any]:
@@ -533,6 +551,10 @@ def run_system(index: int, spec: dict[str, Any], *, replicas: int,
                                        "exhausted_at": int(full_basis.shape[1])}
                 continue
             B = full_basis[:, :size]
+            if arm not in COMPLEX_ARMS:
+                if np.any(B.imag):
+                    raise RuntimeError(f"{arm} on {spec['key']}: a real arm has complex vectors")
+                B = B.real
             S, Hm = pencil(B, H)
             Hp = Hm - identity * S
             exact = solve_exact(S, Hm)
@@ -553,7 +575,8 @@ def run_system(index: int, spec: dict[str, Any], *, replicas: int,
                 rng = np.random.default_rng(np.random.SeedSequence(
                     [SEED_ROOT, index, arm_index, size, budget_index]))
                 S_draws, H_draws = sample_pencil(arm, S, Hp, shots, scale, rng, replicas)
-                floor = overlap_floor(size, shots, floor_multiplier)
+                floor = overlap_floor(size, shots, floor_multiplier,
+                                      complex_entries=arm in COMPLEX_ARMS)
                 errors, failures, ranks = [], 0, []
                 for S_hat, H_hat in zip(S_draws, H_draws):
                     try:
@@ -583,11 +606,23 @@ REPORT_BUDGETS = ("1000000", "100000000", "10000000000", "1000000000000")
 
 
 def _mha(value) -> str:
-    return "n/a" if value is None else f"{1e3 * value:,.1f}"
+    if value is None:
+        return "n/a"
+    text = f"{1e3 * value:,.1f}"
+    return "0.0" if text == "-0.0" else text
 
 
-def report(record: dict[str, Any]) -> str:
-    """The study document's tables, generated from the record."""
+def _condition(value: float) -> str:
+    # A smallest overlap eigenvalue at or below zero is stored as 1e-300.
+    return "singular" if value >= 1e290 else f"κ {value:.0e}"
+
+
+def report(record: dict[str, Any], sensitivity: dict[str, Any] | None = None) -> str:
+    """The study document's tables, generated from the record.
+
+    ``sensitivity``, a record of the same design run under another overlap
+    floor, adds a comparison of the Krylov arms and of the cell winners.
+    """
     lines = ["| System | Qubits | Sector dim. | HF error (mHa) | Overlap of HF with target "
              "| Pauli terms | lambda (Ha) | QWC settings of H |",
              "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"]
@@ -608,7 +643,61 @@ def report(record: dict[str, Any]) -> str:
             for m in sizes:
                 row = system["arms"][arm]["sizes"][str(m)]
                 cells.append(f"exhausted at {row['exhausted_at']}" if not row["available"]
-                             else f"{_mha(row['exact_error'])} (κ {row['overlap_condition']:.0e})")
+                             else f"{_mha(row['exact_error'])} "
+                             f"({_condition(row['overlap_condition'])})")
+            lines.append(f"| `{system['key']}` | {ARM_NAMES[arm]} | " + " | ".join(cells) + " |")
+    largest = max(sizes)
+    lines += ["", f"Directions the A-CASE arms selected after the reference, among their "
+                  f"first {largest} basis vectors, out of the candidate pool:", "",
+              "| System | Pool: excitations τ / commutators [H, τ] and [H, [H, τ]] "
+              "| Excitations + commutators arm: τ / [H, τ] / [H, [H, τ]] "
+              "| Commutators-only arm: τ / [H, τ] / [H, [H, τ]] |",
+              "| --- | ---: | ---: | ---: |"]
+    for system in record["systems"]:
+        pool = system["pool"]
+        cells = []
+        for arm in ("commutator_acase", "pure_commutator_acase"):
+            picked = _direction_counts(system["arms"][arm]["labels"][1:largest])
+            cells.append(" / ".join(str(n) for n in picked))
+        lines.append(f"| `{system['key']}` | {pool['excitations']} / {pool['commutators']} | "
+                     + " | ".join(cells) + " |")
+    lines += ["", f"Smallest total shot budget at which at least half of the "
+                  f"{record['design']['replicas']} replicas are within "
+                  f"{1e3 * record['design']['chemical_accuracy']:.1f} mHa of the target, "
+                  "over all basis sizes (basis size in brackets):", "",
+              "| System | Qubits | " + " | ".join(ARM_NAMES[a] for a in record["design"]["arms"])
+              + " |",
+              "| --- | ---: | " + " | ".join("---:" for _ in record["design"]["arms"]) + " |"]
+    for system in record["systems"]:
+        cells = []
+        for arm in record["design"]["arms"]:
+            found = _first_chemical_budget(record, system, arm)
+            cells.append("never" if found is None else f"{found[0]:.0e} (M = {found[1]})")
+        lines.append(f"| `{system['key']}` | {system['qubits']} | " + " | ".join(cells) + " |")
+    lines += ["", "Matched cells won: for every basis size and budget at which at least two "
+                  "arms return an energy, the arm with the smallest median absolute error "
+                  "wins the cell. The last column counts the cells where the better Krylov "
+                  "arm beats every A-CASE arm present:", ""]
+    lines += _winner_table(record)
+    lines += ["", "Bias at M = 8: median signed error against the target (mHa) and, in "
+                  "brackets, the fraction of replicas more than "
+                  f"{1e3 * record['design']['chemical_accuracy']:.1f} mHa below it, by total "
+                  "shots. An energy below the target is not variational: it is shot "
+                  "noise, not a better subspace:", "",
+              "| System | Arm | " + " | ".join(f"{int(b):.0e} shots" for b in REPORT_BUDGETS)
+              + " |",
+              "| --- | --- | " + " | ".join("---:" for _ in REPORT_BUDGETS) + " |"]
+    for system in record["systems"]:
+        for arm in record["design"]["arms"]:
+            row = system["arms"][arm]["sizes"]["8"]
+            if not row["available"]:
+                continue
+            cells = []
+            for budget in REPORT_BUDGETS:
+                found = row["budgets"][budget]
+                cells.append("under 1 shot each" if found.get("skipped") else
+                             f"{_mha(found['median_error'])} "
+                             f"({found['below_target_beyond_chemical']:.2f})")
             lines.append(f"| `{system['key']}` | {ARM_NAMES[arm]} | " + " | ".join(cells) + " |")
     for m in sizes:
         lines += ["", f"Median absolute error against the target (mHa) at M = {m}, by total "
@@ -632,7 +721,108 @@ def report(record: dict[str, Any]) -> str:
                                      f"[{_mha(found['median_abs_shot_deviation'])}]")
                 lines.append(f"| `{system['key']}` | {ARM_NAMES[arm]} | "
                              + " | ".join(cells) + " |")
+    if sensitivity is not None:
+        lines += _sensitivity_tables(record, sensitivity)
     return "\n".join(lines) + "\n"
+
+
+def _direction_counts(labels: list[str]) -> tuple[int, int, int]:
+    """(excitations, single commutators, double commutators) among labels."""
+    double = sum(label.startswith("[H,[H,") for label in labels)
+    single = sum(label.startswith("[H,") for label in labels) - double
+    return len(labels) - single - double, single, double
+
+
+def _cell(system: dict[str, Any], arm: str, size: int, budget: int) -> dict[str, Any] | None:
+    """One (arm, basis size, budget) summary, or None where nothing was estimated."""
+    row = system["arms"][arm]["sizes"][str(size)]
+    if not row["available"]:
+        return None
+    found = row["budgets"][str(budget)]
+    if found.get("skipped") or found["median_abs_error"] is None:
+        return None
+    return found
+
+
+def _first_chemical_budget(record: dict[str, Any], system: dict[str, Any],
+                           arm: str) -> tuple[int, int] | None:
+    """(budget, basis size) of the smallest budget with half the replicas in tolerance."""
+    best: tuple[int, int] | None = None
+    for size in record["design"]["basis_sizes"]:
+        for budget in record["design"]["budgets"]:
+            found = _cell(system, arm, size, budget)
+            if found is not None and found["within_chemical"] >= 0.5:
+                if best is None or budget < best[0]:
+                    best = (budget, size)
+                break
+    return best
+
+
+def _winners(record: dict[str, Any], system: dict[str, Any]) -> tuple[dict[str, int], int, int]:
+    """Cells won per arm, and (cells the better Krylov arm wins, cells compared)."""
+    arms = record["design"]["arms"]
+    wins = dict.fromkeys(arms, 0)
+    krylov_better = compared = 0
+    for size in record["design"]["basis_sizes"]:
+        for budget in record["design"]["budgets"]:
+            cells = {arm: _cell(system, arm, size, budget) for arm in arms}
+            errors = {arm: c["median_abs_error"] for arm, c in cells.items() if c is not None}
+            if len(errors) < 2:
+                continue
+            wins[min(errors, key=errors.__getitem__)] += 1
+            krylov = [errors[a] for a in ("rt_krylov", "power_krylov") if a in errors]
+            acase = [value for arm, value in errors.items() if arm.endswith("acase")]
+            if krylov and acase:
+                compared += 1
+                krylov_better += min(krylov) < min(acase)
+    return wins, krylov_better, compared
+
+
+def _winner_table(record: dict[str, Any]) -> list[str]:
+    arms = record["design"]["arms"]
+    lines = ["| System | Qubits | " + " | ".join(ARM_NAMES[a] for a in arms)
+             + " | Krylov beats A-CASE |",
+             "| --- | ---: | " + " | ".join("---:" for _ in arms) + " | ---: |"]
+    totals = dict.fromkeys(arms, 0)
+    better_total = compared_total = 0
+    for system in record["systems"]:
+        wins, better, compared = _winners(record, system)
+        for arm in arms:
+            totals[arm] += wins[arm]
+        better_total += better
+        compared_total += compared
+        lines.append(f"| `{system['key']}` | {system['qubits']} | "
+                     + " | ".join(str(wins[a]) for a in arms) + f" | {better}/{compared} |")
+    lines.append("| All | | " + " | ".join(str(totals[a]) for a in arms)
+                 + f" | {better_total}/{compared_total} |")
+    return lines
+
+
+def _sensitivity_tables(record: dict[str, Any], other: dict[str, Any]) -> list[str]:
+    """The Krylov arms and the cell winners under a second overlap floor."""
+    base = record["design"].get("floor_multiplier", FLOOR_MULTIPLIER)
+    varied = other["design"]["floor_multiplier"]
+    by_key = {system["key"]: system for system in other["systems"]}
+    lines = ["", f"Overlap-floor sensitivity: median absolute error (mHa) of the Krylov arms "
+                 f"with the floor at {base:g} and at {varied:g} times sqrt(2M/n), shown as "
+                 f"{base:g}× / {varied:g}×, by total shots:", "",
+             "| System | Arm | M | " + " | ".join(f"{int(b):.0e} shots" for b in REPORT_BUDGETS)
+             + " |",
+             "| --- | --- | ---: | " + " | ".join("---:" for _ in REPORT_BUDGETS) + " |"]
+    for system in record["systems"]:
+        for arm in ("rt_krylov", "power_krylov"):
+            for size in (8, 12):
+                cells = []
+                for budget in REPORT_BUDGETS:
+                    a = _cell(system, arm, size, int(budget))
+                    b = _cell(by_key[system["key"]], arm, size, int(budget))
+                    cells.append("n/a" if a is None or b is None else
+                                 f"{_mha(a['median_abs_error'])} / {_mha(b['median_abs_error'])}")
+                lines.append(f"| `{system['key']}` | {ARM_NAMES[arm]} | {size} | "
+                             + " | ".join(cells) + " |")
+    lines += ["", f"Matched cells won with the floor at {varied:g} times sqrt(2M/n):", ""]
+    lines += _winner_table(other)
+    return lines
 
 
 def main(argv=None) -> int:
@@ -640,6 +830,9 @@ def main(argv=None) -> int:
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--report", action="store_true",
                         help="print the record's tables as Markdown and exit")
+    parser.add_argument("--sensitivity", type=Path, default=None,
+                        help="with --report: a record run under another overlap floor "
+                             "to compare with")
     parser.add_argument("--systems", nargs="*", default=None,
                         help="keys of the systems to run (default: all)")
     parser.add_argument("--replicas", type=int, default=REPLICAS)
@@ -647,8 +840,12 @@ def main(argv=None) -> int:
                         help="multiple of sqrt(2M/n) used as the overlap floor "
                              "(declared: 2; larger values are the sensitivity variant)")
     args = parser.parse_args(argv)
+    if args.sensitivity is not None and not args.report:
+        parser.error("--sensitivity is used with --report")
     if args.report:
-        print(report(json.loads(args.out.read_text(encoding="utf-8"))), end="")
+        other = (None if args.sensitivity is None
+                 else json.loads(args.sensitivity.read_text(encoding="utf-8")))
+        print(report(json.loads(args.out.read_text(encoding="utf-8")), other), end="")
         return 0
     if args.replicas < 1:
         parser.error("--replicas must be positive")
@@ -667,6 +864,7 @@ def main(argv=None) -> int:
         "design": {"seed_root": SEED_ROOT, "basis_sizes": list(BASIS_SIZES),
                    "budgets": list(BUDGETS), "replicas": args.replicas, "arms": list(ARMS),
                    "chemical_accuracy": CHEMICAL_ACCURACY,
+                   "complex_arms": list(COMPLEX_ARMS),
                    "floor_multiplier": args.floor_multiplier},
         "systems": [],
     }
