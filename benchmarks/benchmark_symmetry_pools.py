@@ -33,6 +33,18 @@ from clifford_qc.subspace.symmetry_pools import point_group_filter, spin_adapted
 
 SOLVER_POLICY = {"tau_s": DEFAULT_TAU_S, "rel_tau": 0.0,
                  "max_condition": DEFAULT_MAX_CONDITION, "norm_floor": DEFAULT_NORM_FLOOR}
+NAMED_SOURCES = (
+    "benchmarks/benchmark_symmetry_pools.py", "clifford_qc/subspace/symmetry_pools.py",
+    "clifford_qc/subspace/fermionic_generators.py", "clifford_qc/subspace/projection.py",
+    "clifford_qc/subspace/linalg.py", "clifford_qc/reference_states.py", "clifford_qc/fermion.py",
+    "clifford_qc/multivector.py", "clifford_qc/pauli_kernel.py",
+    "clifford_qc/measurement/grouping.py", "clifford_qc/models/fcidump.py",
+)
+
+
+def _named_source_bindings():
+    # Named sources for this exploratory audit, not a complete import closure.
+    return {p: hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in NAMED_SOURCES}
 
 
 def _ledger(bank, indices):
@@ -61,10 +73,13 @@ def _git_provenance(root):
 
 
 def build_report(path, *, orbital_irreps=None):
+    sources, provenance = _named_source_bindings(), _git_provenance(ROOT)
     data = read_fcidump(path)
     if data.n_orbitals > 4 or data.n_electrons % 2 or data.ms2 != 0:
         raise ValueError("this complete-bank audit requires <=4 spatial orbitals and a closed-shell reference")
     model = fcidump_model(path)
+    if model.metadata['source_sha256'] != data.source_sha256:
+        raise RuntimeError("input changed during audit")
     reference = DeterminantReference.from_program(model.reference)
     occupied = reference.occupied
     occupied_spatial = tuple(range(data.n_electrons // 2))
@@ -96,13 +111,12 @@ def build_report(path, *, orbital_irreps=None):
                      "complete_candidate_bank": complete,
                      "complete_bank_seconds": time.perf_counter() - started,
                      "energy": result.ground_energy, "retained_rank": result.effective_rank})
-    # Named sources for this exploratory audit, not a complete import closure.
-    sources = ("benchmarks/benchmark_symmetry_pools.py", "clifford_qc/subspace/symmetry_pools.py",
-               "clifford_qc/subspace/fermionic_generators.py", "clifford_qc/subspace/projection.py",
-               "clifford_qc/subspace/linalg.py",
-               "clifford_qc/reference_states.py", "clifford_qc/fermion.py", "clifford_qc/multivector.py",
-               "clifford_qc/pauli_kernel.py", "clifford_qc/measurement/grouping.py",
-               "clifford_qc/models/fcidump.py")
+    if _named_source_bindings() != sources:
+        raise RuntimeError("source changed during audit")
+    if read_fcidump(path).source_sha256 != data.source_sha256:
+        raise RuntimeError("input changed during audit")
+    if _git_provenance(ROOT) != provenance:
+        raise RuntimeError("Git state changed during audit")
     return {"schema": "clifford_qc.symmetry_pool_audit.v1", "exploratory": True,
             "physical_shots": 0, "finite_shot_cost_claim": False,
             "input_sha256": data.source_sha256, "n_spatial": data.n_orbitals,
@@ -117,8 +131,7 @@ def build_report(path, *, orbital_irreps=None):
                             "platform": platform.platform(), "processor": platform.processor(),
                             "threads": {key: os.environ.get(key) for key in
                                         ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS")}},
-            **_git_provenance(ROOT),
-            "named_source_sha256": {p: hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in sources},
+            **provenance, "named_source_sha256": sources,
             "rows": rows}
 
 

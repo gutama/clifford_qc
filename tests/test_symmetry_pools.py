@@ -184,7 +184,8 @@ def test_filter_requires_matching_interleaved_register_and_nonempty_integer_char
         point_group_filter([], (np.bool_(True),))
 
 
-def test_structural_audit_counts_screening_and_complete_candidate_banks(tmp_path):
+def test_structural_audit_counts_screening_and_complete_candidate_banks(tmp_path, monkeypatch):
+    from benchmarks import benchmark_symmetry_pools as audit
     from benchmarks.benchmark_symmetry_pools import build_report
     path = tmp_path/'pair.FCIDUMP'
     path.write_text('&FCI NORB=2, NELEC=2, MS2=0, ORBSYM=1,2, ISYM=1 /\n'
@@ -200,6 +201,26 @@ def test_structural_audit_counts_screening_and_complete_candidate_banks(tmp_path
     assert [row['complete_candidate_bank']['pairs_built'] for row in report['rows']] == [10, 6, 3, 3]
     assert all(row['energy'] == pytest.approx(report['rows'][0]['energy'], abs=1e-12) for row in report['rows'])
     assert set(report['named_source_sha256']) >= {'clifford_qc/subspace/symmetry_pools.py'}
+    # Changing a bound file during real matrix assembly must prevent a report.
+    source = tmp_path/'execution.py'
+    input_text = path.read_text()
+    original_ledger = audit._ledger
+    for changed in ('source', 'input'):
+        source.write_text('before')
+        path.write_text(input_text)
+        def mutate(bank, indices):
+            ledger = original_ledger(bank, indices)
+            if changed == 'source':
+                source.write_text('after')
+            else:
+                path.write_text(input_text.replace('-0.8', '-0.7'))
+            return ledger
+        with monkeypatch.context() as patch:
+            patch.setattr(audit, 'ROOT', tmp_path)
+            patch.setattr(audit, 'NAMED_SOURCES', ('execution.py',))
+            patch.setattr(audit, '_ledger', mutate)
+            with pytest.raises(RuntimeError, match=changed+' changed during audit'):
+                build_report(path, orbital_irreps=(0, 1))
 
 
 def test_exported_audit_tree_cannot_borrow_a_parent_repository_commit(tmp_path):

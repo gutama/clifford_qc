@@ -93,7 +93,8 @@ universes including identity, QWC setting counts, retained ranks and energies.
 Single-run timings include grouping and start each arm with a cold kernel
 cache. They are descriptive, not a throughput comparison. Named source hashes,
 the input digest, solver controls, environment and Git/dirty-tree provenance
-are recorded; source archives explicitly leave Git provenance unverified.
+are recorded. Input, named-source and Git-state changes during an audit cause
+an explicit failure; source archives leave Git provenance unverified.
 The named sources are not a complete import closure. Existing
 outputs cannot be overwritten.
 
