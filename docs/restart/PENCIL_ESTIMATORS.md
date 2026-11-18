@@ -532,7 +532,8 @@ only from the two declared studies.
 | Covariance-aware constrained ratio | Implemented, opt-in, measured path only | Budget fixed before evaluation; a histogram-retaining campaign with tails, failures and below-ground rates; coverage of the rerun-search bootstrap |
 | Interval coverage instrument and declared study | Implemented and [run as declared](INTERVAL_COVERAGE.md) on three four-qubit banks | Molecular banks and realistic noise need their own declared study; a budget rule for the constrained ratio that transfers between systems |
 | Target-aware acquisition | Implemented, opt-in, and [run as declared](TARGET_ACQUISITION.md) on four spin banks | A stopping rule that stays valid when the solve's truncation changes between looks; molecular banks and realistic noise need their own declared study |
-| Symmetry pool and SoA kernel work | Pending | Invariant tests, real structured-bank timings, full selection-cache costs at matched error |
+| Symmetry pool reduction | [Implemented, opt-in](SYMMETRY_POOLS.md): spin-free closed-shell singles/doubles and explicit real-Abelian point-group characters | Global symmetry and independent singlet-CISD span tests; bounded molecular-bank audit. Cumulative selection-cache shots at matched error, open-shell couplings and a declared sampled study remain pending |
+| SoA kernel work | Pending | Invariant tests, real structured-bank timings, full selection-cache costs at matched error |
 | Hardware bridge, community instances, distribution | Pending | End-to-end local adapter checks, strong classical baselines, reproducible packaging/docs builds |
 
 Before running a new confirmatory campaign, freeze its estimators, thresholds,

@@ -14,6 +14,15 @@ Benchmark campaigns, their declarations and their outcomes are recorded in
 
 ### Added
 
+- **Symmetry-adapted excitation pools**
+  ([docs/restart/SYMMETRY_POOLS.md](docs/restart/SYMMETRY_POOLS.md)).
+  `clifford_qc.subspace.symmetry_pools` adds native spin-free closed-shell
+  singles/doubles and whole-operator filtering by explicit real-Abelian
+  point-group characters, with an optional Hamiltonian-invariance check.
+  A bounded exact molecular-bank audit counts initial screening and complete
+  candidate-bank resources separately. Fewer generators do not by themselves
+  imply fewer measurement words or shots.
+
 - **Hierarchical commutator subspaces and resource-aware information acquisition**
   ([benchmarks/GEOMETRIC_INFORMATION_STUDY.md](benchmarks/GEOMETRIC_INFORMATION_STUDY.md)).
   `clifford_qc.subspace` adds two pure-NumPy research modules (re-exported in
