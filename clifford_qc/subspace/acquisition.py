@@ -26,6 +26,16 @@ not a finite-sample certificate. The naive single-look interval is returned
 beside it so the two can be compared. All data are pooled, pilot included, and
 the allocation depends on earlier outcomes, so the estimate carries the bias
 any adaptive design has.
+
+Control variates are opt-in (``control_variates``). A declared family of
+sector terms ``K_k`` that annihilate every bank state (see
+:mod:`~clifford_qc.subspace.symmetry_shifts`) gives zero-mean corrections
+``g_k = B† K_k B`` read from the same shots. Each look then reports the
+corrected Ritz value, stops on its standard error and, under targeting, spends
+the next round by Neyman allocation on the corrected functional. The family is
+certified before any shot; the correction coefficients are refitted at every
+look from the data so far, which adds an ``O(1/N)`` bias and a slightly
+optimistic standard error, so the interval stays asymptotic.
 """
 
 from __future__ import annotations
@@ -38,12 +48,15 @@ from typing import Any, Sequence
 import numpy as np
 
 from ..measurement.cache import GroupedWordCache
+from ..measurement.confidence import simultaneous_z_radius
 from ..measurement.functionals import WordFunctional, ritz_functional
 from ..measurement.grouping import shared_basis
 from ..measurement.session import SharedMeasurement
 from .coverage import delta_method_applies
 from .linalg import SubspaceResult
-from .uncertainty import Interval, ritz_uncertainty
+from .symmetry_shifts import (ControlVariateEstimate, ShiftTerm, certify_bank_family,
+                              corrected_ritz_functional)
+from .uncertainty import ASYMPTOTIC, Interval, ritz_uncertainty
 
 ALLOCATIONS = ("uniform", "ritz_targeted")
 _SOLVE_FAILURES = (ValueError, np.linalg.LinAlgError)
@@ -85,6 +98,13 @@ class RitzAcquisition:
     ``"schedule_exhausted"`` or ``"deterministic"``. ``schedule`` records what
     was declared, with ``interval_family`` the number of looks ``interval``
     pays for.
+
+    With control variates, ``energy`` and ``std_error`` in each look are the
+    corrected values the stopping rule saw, ``raw_energy`` and
+    ``raw_std_error`` the uncorrected Ritz value, ``control_variates_used`` how
+    many terms were readable, and both intervals are centred on the corrected
+    value. ``control_variate`` holds the correction at the last look;
+    ``result`` is always the uncorrected solve.
     """
 
     result: SubspaceResult
@@ -95,6 +115,7 @@ class RitzAcquisition:
     stopped: str
     allocation: str
     schedule: dict[str, Any]
+    control_variate: ControlVariateEstimate | None = None
 
     @property
     def shots(self) -> int:
@@ -104,6 +125,11 @@ class RitzAcquisition:
     @property
     def std_error(self) -> float:
         return float(self.looks[-1]["std_error"])
+
+    @property
+    def energy(self) -> float:
+        """The reported estimate: corrected when control variates were used."""
+        return float(self.looks[-1]["energy"])
 
 
 def uniform_group_plan(groups: Sequence[Sequence], budget: int) -> dict[int, int]:
@@ -188,7 +214,8 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
                  round_budgets: Sequence[int], allocation: str = "ritz_targeted",
                  target_std_error: float | None = None,
                  solver_kwargs: dict | None = None, root: int = 0,
-                 delta: float = 0.05) -> RitzAcquisition:
+                 delta: float = 0.05,
+                 control_variates: Sequence[ShiftTerm] | None = None) -> RitzAcquisition:
     """Measure a pilot, then spend predeclared rounds toward the Ritz value.
 
     ``pilot_shots_per_group`` shots go uniformly to every setting. Each entry of
@@ -202,6 +229,14 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
     functional. It does not discount shots a setting already has, so it is the
     Neyman rule per round, not for the cumulative total, and it buys nothing
     for a direction the current solve has truncated away.
+
+    ``control_variates`` is a family of sector terms (for instance
+    :func:`~clifford_qc.subspace.symmetry_shifts.sector_shift_family`). It is
+    certified on the bank before any shot and refused if a term fails to
+    annihilate every bank state. At each look the correction coefficients are
+    fitted to the data so far; the corrected value is what the look reports,
+    what the stopping rule tests and, under targeting, what the next round is
+    allocated to. Terms with a word no setting reads are left out and counted.
 
     Only estimators the delta method accepts are supported, because both the
     allocation target and the interval are its Ritz functional. A look that
@@ -228,6 +263,10 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
     if not delta_method_applies(kwargs):
         raise ValueError("target-aware acquisition needs an estimator the delta method "
                          "accepts: no overlap repair, rotation or constrained ratio")
+    terms: tuple[ShiftTerm, ...] | None = None
+    if control_variates is not None:
+        terms = tuple(control_variates)
+        certify_bank_family(shared.bank, terms)
     # Every look at which the run could report: after the pilot and each round.
     family = len(budgets) + 1 if target_std_error is not None else 1
 
@@ -235,6 +274,7 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
     looks: list[dict[str, Any]] = []
     stopped = "schedule_exhausted"
     point = None
+    correction: ControlVariateEstimate | None = None
     for index in range(len(budgets) + 1):
         try:
             point = shared.solve(cache, **kwargs)
@@ -248,15 +288,25 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
                 f"look {index} retained {len(point.energies)} root(s) after "
                 f"{cache.total_shots} shots, fewer than root {root} needs",
                 cache=cache, looks=tuple(looks))
-        functional = ritz_functional(shared.bank, point.indices,
-                                     point.ritz_vector(root), point.energies[root])
-        sigma = math.sqrt(max(0.0, functional.variance(cache)))
+        if terms is None:
+            functional = ritz_functional(shared.bank, point.indices,
+                                         point.ritz_vector(root), point.energies[root])
+            sigma = math.sqrt(max(0.0, functional.variance(cache)))
+            energy = float(point.energies[root])
+        else:
+            correction, functional = corrected_ritz_functional(shared, cache, point, terms,
+                                                               root=root)
+            sigma, energy = correction.std_error, correction.energy
         retained = point.resources.get("smallest_retained_overlap_eigenvalue")
         look = {"look": index, "shots": int(cache.total_shots),
-                "energy": float(point.energies[root]), "std_error": sigma,
+                "energy": energy, "std_error": sigma,
                 "retained_rank": int(point.effective_rank),
                 "smallest_retained_overlap": None if retained is None else float(retained),
                 "stopped": False}
+        if correction is not None:
+            look.update(raw_energy=correction.raw_energy,
+                        raw_std_error=correction.raw_std_error,
+                        control_variates_used=len(correction.used))
         looks.append(look)
         if target_std_error is not None and sigma <= target_std_error:
             stopped = "target_met"
@@ -274,15 +324,31 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
         shared.measure_plan(backend, plan, cache)
     assert point is not None
     looks[-1]["stopped"] = True
+    schedule = {"pilot_shots_per_group": pilot, "round_budgets": list(budgets),
+                "target_std_error": target_std_error, "delta": float(delta),
+                "interval_family": family, "solver_kwargs": kwargs}
+    if terms is None:
+        interval = ritz_uncertainty(shared, cache, point, root=root, delta=delta,
+                                    family=family)
+        naive = ritz_uncertainty(shared, cache, point, root=root, delta=delta)
+    else:
+        assert correction is not None
+        schedule["control_variates"] = [term.label for term in terms]
+        interval = _corrected_interval(correction, delta, family)
+        naive = _corrected_interval(correction, delta, 1)
     return RitzAcquisition(
-        result=point, cache=cache,
-        interval=ritz_uncertainty(shared, cache, point, root=root, delta=delta,
-                                  family=family),
-        naive_interval=ritz_uncertainty(shared, cache, point, root=root, delta=delta),
-        looks=tuple(looks), stopped=stopped, allocation=allocation,
-        schedule={"pilot_shots_per_group": pilot, "round_budgets": list(budgets),
-                  "target_std_error": target_std_error, "delta": float(delta),
-                  "interval_family": family, "solver_kwargs": kwargs})
+        result=point, cache=cache, interval=interval, naive_interval=naive,
+        looks=tuple(looks), stopped=stopped, allocation=allocation, schedule=schedule,
+        control_variate=correction)
+
+
+def _corrected_interval(correction: ControlVariateEstimate, delta: float,
+                        family: int) -> Interval:
+    """The delta-method interval of :func:`ritz_uncertainty`, on the corrected value."""
+    radius = simultaneous_z_radius(correction.std_error ** 2, delta, family)
+    return Interval(estimate=correction.energy, lower=correction.energy - radius,
+                    upper=correction.energy + radius, delta=delta, evidence=ASYMPTOTIC,
+                    std_error=correction.std_error)
 
 
 __all__ = ["ALLOCATIONS", "AcquisitionError", "RitzAcquisition", "TIE_TOLERANCE",

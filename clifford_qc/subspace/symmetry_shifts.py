@@ -345,6 +345,30 @@ def _reference_density(reference) -> MV:
     raise ValueError("certifying a shift needs an MV or determinant reference")
 
 
+def certify_bank_family(bank, family: Sequence[ShiftTerm], *,
+                        tolerance: float = 1e-9) -> tuple[float, float]:
+    """Refuse a family that does not annihilate every state of ``bank``.
+
+    Each ``D_k`` must vanish on the bank's reference and commute with its
+    multiplier and with every generator, within ``tolerance``. Returns the two
+    residuals of :func:`check_sector_family` when the family passes.
+    """
+    family = tuple(family)
+    if not family:
+        raise ValueError("a shift family must name at least one term")
+    if not all(isinstance(term, ShiftTerm) for term in family):
+        raise ValueError("a shift family is a sequence of ShiftTerm")
+    generators = [bank.generator(i) for i in range(len(bank))]
+    sector_residual, commutator_residual = check_sector_family(
+        family, _reference_density(bank.reference), generators)
+    if max(sector_residual, commutator_residual) > tolerance:
+        raise ValueError(
+            "a shift term does not annihilate every bank state: "
+            f"<D^2> residual {sector_residual:.3g}, commutator residual "
+            f"{commutator_residual:.3g} (tolerance {tolerance:g})")
+    return sector_residual, commutator_residual
+
+
 def ritz_control_variate(shared, cache, point, family: Sequence[ShiftTerm], *, root: int = 0,
                          coefficients: Mapping[str, float] | None = None,
                          tolerance: float = 1e-9) -> ControlVariateEstimate:
@@ -360,25 +384,36 @@ def ritz_control_variate(shared, cache, point, family: Sequence[ShiftTerm], *, r
     ``coefficients`` fixes ``xi`` (for instance from :func:`fit_sector_shift`
     on prior knowledge). Without it ``xi`` minimizes the corrected variance
     from this cache's grouped covariances, the classic control-variate fit.
-    The family is certified on the bank's reference first, as in
-    :func:`fit_sector_shift`.
+    The family is certified on the bank's reference first
+    (:func:`certify_bank_family`).
+    """
+    certify_bank_family(shared.bank, family, tolerance=tolerance)
+    return corrected_ritz_functional(shared, cache, point, family, root=root,
+                                     coefficients=coefficients)[0]
+
+
+def corrected_ritz_functional(shared, cache, point, family: Sequence[ShiftTerm], *,
+                              root: int = 0, coefficients: Mapping[str, float] | None = None):
+    """:func:`ritz_control_variate` without certification, plus its functional.
+
+    Returns ``(estimate, functional)``. ``functional`` is the corrected Ritz
+    functional ``f - sum_k xi_k g_k`` at the chosen ``xi``: a word functional
+    whose variance is ``estimate.std_error ** 2``, so an allocation rule can
+    target the corrected estimate directly. The caller must already have
+    certified ``family`` on this bank (:func:`certify_bank_family`); nothing
+    here checks that ``<g_k> = 0``.
     """
     from ..measurement.functionals import WordFunctional, covariance_matrix, ritz_functional
 
     bank = shared.bank
-    generators = [bank.generator(i) for i in range(len(bank))]
-    sector_residual, commutator_residual = check_sector_family(
-        family, _reference_density(bank.reference), generators)
-    if max(sector_residual, commutator_residual) > tolerance:
-        raise ValueError(
-            "a shift term does not annihilate every bank state: "
-            f"<D^2> residual {sector_residual:.3g}, commutator residual "
-            f"{commutator_residual:.3g} (tolerance {tolerance:g})")
     vector = point.ritz_vector(root)
     energy = float(point.energies[root])
     target = ritz_functional(bank, point.indices, vector, energy)
-    if not target.is_deterministic and \
-            cache.candidate_group_statistics(dict(target.coefficients)) is None:
+    def readable(codes) -> bool:
+        # The test candidate_group_statistics applies, without its moments.
+        return all(cache.group_weights(code) for code in codes)
+
+    if not target.is_deterministic and not readable(target.coefficients):
         raise ValueError("the cache does not read every word of the Ritz functional; "
                          "solve the point from the same cache")
     b = sum((complex(c) * bank.generator(i).mv for c, i in zip(vector, point.indices)),
@@ -391,7 +426,7 @@ def ritz_control_variate(shared, cache, point, family: Sequence[ShiftTerm], *, r
                  if code != 0 and value.real != 0.0}
         if not words:
             continue
-        if cache.candidate_group_statistics(words) is None:
+        if not readable(words):
             unreadable.append(term.label)
             continue
         constant = operator.terms.get(0, 0j).real
@@ -399,8 +434,8 @@ def ritz_control_variate(shared, cache, point, family: Sequence[ShiftTerm], *, r
         used.append(term.label)
     if not functionals:
         raw_sigma = math.sqrt(max(0.0, target.variance(cache)))
-        return ControlVariateEstimate(energy, raw_sigma, energy, raw_sigma, {}, (),
-                                      tuple(unreadable), coefficients is None)
+        return (ControlVariateEstimate(energy, raw_sigma, energy, raw_sigma, {}, (),
+                                       tuple(unreadable), coefficients is None), target)
     # One pass over the histograms: index 0 is the target, then each g_k.
     joint = covariance_matrix([target, *functionals], cache)
     target_variance, gf, gg = joint[0, 0], joint[1:, 0], joint[1:, 1:]
@@ -411,11 +446,19 @@ def ritz_control_variate(shared, cache, point, family: Sequence[ShiftTerm], *, r
         xi = np.array([float(coefficients.get(label, 0.0)) for label in used])
     variance = target_variance - 2.0 * float(xi @ gf) + float(xi @ gg @ xi)
     correction = float(sum(x * g.estimate(cache) for x, g in zip(xi, functionals)))
-    return ControlVariateEstimate(
+    combined = dict(target.coefficients)
+    constant = float(target.constant)
+    for x, g in zip(xi, functionals):
+        constant -= float(x) * g.constant
+        for code, value in g.coefficients.items():
+            combined[code] = combined.get(code, 0.0) - float(x) * value
+    estimate = ControlVariateEstimate(
         energy=energy - correction, std_error=math.sqrt(max(0.0, variance)),
         raw_energy=energy, raw_std_error=raw_sigma,
         coefficients={label: float(x) for label, x in zip(used, xi)},
         used=tuple(used), unreadable=tuple(unreadable), fitted=coefficients is None)
+    return estimate, WordFunctional({code: value for code, value in combined.items()
+                                     if value != 0.0}, constant)
 
 
 def ritz_word_functional(hamiltonian, generators: Iterable, ritz_coefficients: Sequence[complex],
@@ -430,6 +473,6 @@ def ritz_word_functional(hamiltonian, generators: Iterable, ritz_coefficients: S
 
 
 __all__ = ["OBJECTIVES", "ControlVariateEstimate", "SectorShift", "ShiftTerm",
-           "check_sector_family", "ritz_control_variate",
-           "fit_sector_shift", "grouped_shot_variance", "ritz_word_functional",
-           "sector_shift_family"]
+           "certify_bank_family", "check_sector_family", "corrected_ritz_functional",
+           "fit_sector_shift", "grouped_shot_variance", "ritz_control_variate",
+           "ritz_word_functional", "sector_shift_family"]

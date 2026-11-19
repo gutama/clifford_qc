@@ -1,9 +1,11 @@
 """Sector-annihilating shifts: exactness, certification and exact shot variance."""
+from dataclasses import replace
+
 import numpy as np
 import pytest
 
 from clifford_qc.dense_reference import density_from_statevector
-from clifford_qc.fermion import cdag_op, total_number_op
+from clifford_qc.fermion import c_op, cdag_op, total_number_op
 from clifford_qc.ir import PauliWord
 from clifford_qc.matrix import to_matrix
 from clifford_qc.models import fcidump_model
@@ -11,7 +13,8 @@ from clifford_qc.multivector import MV
 from clifford_qc.subspace import Generator, MatrixElementBank, identity_generator
 from clifford_qc.subspace.symmetry_pools import spin_adapted_excitations
 from clifford_qc.subspace.symmetry_shifts import (
-    fit_sector_shift, grouped_shot_variance, ritz_word_functional, sector_shift_family,
+    ShiftTerm, fit_sector_shift, grouped_shot_variance, ritz_word_functional,
+    sector_shift_family,
 )
 
 TRI = ('&FCI NORB=3, NELEC=2, MS2=0, ORBSYM=1,1,1, ISYM=1 /\n'
@@ -205,27 +208,16 @@ def test_control_variate_reports_unreadable_terms_and_refuses_misuse(problem):
     shared, full, point = _measured(problem, shots=300, seed=3)
     family = sector_shift_family(3, 2)
 
-    class HideTerm:
-        """The cache, except that one term's words have no reader."""
-
-        def __init__(self, cache, hidden):
-            self._cache, self._hidden = cache, hidden
-
-        def __getattr__(self, name):
-            return getattr(self._cache, name)
-
-        def candidate_group_statistics(self, coefficients):
-            if set(coefficients) == self._hidden:
-                return None
-            return self._cache.candidate_group_statistics(coefficients)
-
-    b = sum((complex(c) * shared.bank.generator(i).mv
-             for c, i in zip(point.ritz_vector(0), point.indices)), MV(6))
-    operator = b.dagger() * family[3].operator * b
-    hidden = {code for code, v in operator.terms.items() if code != 0 and v.real != 0.0}
-    estimate = ritz_control_variate(shared, HideTerm(full, hidden), point, family)
-    assert estimate.unreadable == (family[3].label,)
-    assert family[3].label not in estimate.used and len(estimate.used) == len(family) - 1
+    # A certified term whose words no bank setting reads: N - Ne times a
+    # number-conserving double excitation the bank never measures.
+    excitation = cdag_op(6, 0) * cdag_op(6, 2) * c_op(6, 4) * c_op(6, 1)
+    extra = ShiftTerm('extra', family[0].sector, excitation + excitation.dagger())
+    estimate = ritz_control_variate(shared, full, point, [*family, extra])
+    assert estimate.unreadable == ('extra',)
+    assert estimate.used == tuple(term.label for term in family)
+    # Leaving the term out changes nothing else.
+    assert estimate == replace(ritz_control_variate(shared, full, point, family),
+                               unreadable=('extra',))
     # A point solved from another cache whose words this one cannot read.
     partial = shared.measure_plan(FiniteShotBackend(seed=4),
                                   {word.code: 50 for word in shared.groups[0]})
