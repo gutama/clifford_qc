@@ -347,10 +347,12 @@ producing machine. No row was bitwise equal and none failed the checker's
 comparison. The largest relative difference in any ledger energy was `7.4e-9`.
 This is one machine and one alternative kernel, not a guarantee for every CPU.
 
-Two bound sources, `clifford_qc/subspace/coverage.py` and
-`clifford_qc/subspace/uncertainty.py`, were edited after this record was
-produced: an unavailable root now becomes a reported failure instead of an
-`IndexError`. Their bytes at the declaration commit are packaged under
+Three bound sources were edited after this record was produced.
+`clifford_qc/subspace/coverage.py` and `clifford_qc/subspace/uncertainty.py`
+now report an unavailable root as a failure instead of an `IndexError`, and
+`clifford_qc/subspace/acquisition.py` gained opt-in control variates
+([SYMMETRY_SHIFTS.md](SYMMETRY_SHIFTS.md)) that no recorded run uses. Their
+bytes at the declaration commit are packaged under
 `benchmarks/provenance/execution_sources/f8358f87aa28539ca397b6e7a8074bbc90ea9b20/`, and the checker holds the
 recorded digests against that snapshot. The replay then runs with the edited
 code and still has to reproduce every row it compares, which it does. A bound

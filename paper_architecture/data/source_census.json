@@ -249,17 +249,17 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 20881,
-        "modules": 52
+        "lines": 21425,
+        "modules": 53
       },
       "surface": {
         "lines": 39,
         "modules": 1
       }
     },
-    "package_lines": 39875,
-    "package_modules": 132,
-    "test_lines": 50091,
-    "test_modules": 202
+    "package_lines": 40419,
+    "package_modules": 133,
+    "test_lines": 50457,
+    "test_modules": 203
   }
 }

@@ -437,3 +437,141 @@ def test_the_estimated_standard_error_tracks_the_spread_under_targeting(system):
     spread = float(np.std([r.result.ground_energy for r in runs], ddof=1))
     claimed = float(np.sqrt(np.mean([r.std_error ** 2 for r in runs])))
     assert claimed == pytest.approx(spread, rel=0.3)
+
+
+# ---------------------------------------------------------- control variates
+
+TRI = ('&FCI NORB=3, NELEC=2, MS2=0, ORBSYM=1,1,1, ISYM=1 /\n'
+       '0.6 1 1 1 1\n0.5 2 2 2 2\n0.4 3 3 3 3\n0.1 2 1 2 1\n0.1 3 1 3 1\n'
+       '0.12 3 2 3 2\n0.3 2 2 1 1\n0.3 3 3 1 1\n0.3 3 3 2 2\n0.05 2 1 1 1\n0.04 3 2 2 2\n'
+       '-0.9 1 1 0 0\n-1.0 2 2 0 0\n0.3 3 3 0 0\n0.05 3 2 0 0\n0.07 2 1 0 0\n0.0 0 0 0 0\n')
+
+
+@pytest.fixture(scope="module")
+def molecular(tmp_path_factory):
+    """A correlated two-electron singlet in three orbitals, with spin-adapted doubles."""
+    from clifford_qc.dense_reference import density_from_statevector
+    from clifford_qc.measurement.session import SharedMeasurement
+    from clifford_qc.models import fcidump_model
+    from clifford_qc.subspace import MatrixElementBank, identity_generator
+    from clifford_qc.subspace.symmetry_pools import spin_adapted_excitations
+    from clifford_qc.subspace.symmetry_shifts import sector_shift_family
+
+    path = tmp_path_factory.mktemp("acquisition") / "tri.FCIDUMP"
+    path.write_text(TRI)
+    hamiltonian = fcidump_model(path).hamiltonian.to_mv()
+    rng = np.random.default_rng(5)
+    psi = np.zeros(64, complex)
+    for a in range(3):
+        for b in range(3):
+            bits = ["0"] * 6
+            bits[2 * a] = bits[2 * b + 1] = "1"
+            psi[int("".join(bits), 2)] += rng.normal() * (1.0 if a == b else 0.3)
+    rho = density_from_statevector(psi / np.linalg.norm(psi))
+    generators = [identity_generator(6)] + spin_adapted_excitations(3, (0,))
+    shared = SharedMeasurement(MatrixElementBank(rho, hamiltonian, generators))
+    return shared, sector_shift_family(3, 2, sz=0.0)
+
+
+def corrected(shared, seed, family, **kwargs):
+    kwargs.setdefault("pilot_shots_per_group", 100)
+    kwargs.setdefault("round_budgets", [100 * len(shared.groups)] * 2)
+    return acquire_ritz(shared, FiniteShotBackend(seed=seed), control_variates=family,
+                        **kwargs)
+
+
+@pytest.mark.parametrize("bad", ["leaky", "empty", "not_terms"])
+def test_a_control_variate_family_is_certified_before_any_shot(molecular, bad):
+    from clifford_qc.subspace.symmetry_shifts import sector_shift_family
+
+    shared, family = molecular
+    # Three electrons is the wrong sector: N - 3 does not annihilate the bank.
+    families = {"leaky": sector_shift_family(3, 3), "empty": [],
+                "not_terms": [term.operator for term in family]}
+
+    class NoShots:
+        def sample_grouped_from_state(self, *args, **kwargs):
+            raise AssertionError("a refused family must not sample")
+
+    with pytest.raises(ValueError):
+        acquire_ritz(shared, NoShots(), pilot_shots_per_group=100, round_budgets=[800],
+                     control_variates=families[bad])
+
+
+def test_a_corrected_run_reports_the_corrected_value_and_its_interval(molecular):
+    from clifford_qc.subspace.symmetry_shifts import ritz_control_variate
+
+    shared, family = molecular
+    result = corrected(shared, 61, family, target_std_error=1e-9)
+    assert result.stopped == "schedule_exhausted"
+    final = ritz_control_variate(shared, result.cache, result.result, family)
+    assert result.control_variate == final
+    assert result.energy == result.looks[-1]["energy"] == final.energy
+    assert result.std_error == final.std_error
+    assert result.looks[-1]["raw_energy"] == result.result.ground_energy == final.raw_energy
+    assert result.looks[-1]["control_variates_used"] == len(final.used) > 0
+    assert result.schedule["control_variates"] == [term.label for term in family]
+    looks = len(result.looks)
+    for interval, family_size in [(result.interval, looks), (result.naive_interval, 1)]:
+        z = NormalDist().inv_cdf(1 - 0.05 / (2 * family_size))
+        assert interval.estimate == final.energy
+        assert interval.std_error == final.std_error
+        assert interval.upper - interval.estimate == pytest.approx(z * final.std_error)
+        assert interval.estimate - interval.lower == pytest.approx(z * final.std_error)
+    # A fitted correction can only lower the in-sample variance: xi = 0 is allowed.
+    for look in result.looks:
+        assert look["std_error"] <= look["raw_std_error"] * (1 + 1e-9)
+
+
+def test_an_uncorrected_run_is_unchanged(molecular):
+    shared, _ = molecular
+    plain = corrected(shared, 61, None)
+    assert plain.control_variate is None
+    assert "control_variates" not in plain.schedule
+    assert all("raw_energy" not in look for look in plain.looks)
+    assert plain.energy == plain.result.ground_energy
+
+
+def test_under_uniform_allocation_the_correction_changes_no_shot(molecular):
+    from clifford_qc.measurement.session import grouped_cache_fingerprint
+
+    shared, family = molecular
+    plain = corrected(shared, 62, None, allocation="uniform")
+    fixed = corrected(shared, 62, family, allocation="uniform")
+    assert grouped_cache_fingerprint(fixed.cache) == grouped_cache_fingerprint(plain.cache)
+    assert [look["raw_energy"] for look in fixed.looks] == \
+        [look["energy"] for look in plain.looks]
+    assert [look["raw_std_error"] for look in fixed.looks] == \
+        pytest.approx([look["std_error"] for look in plain.looks], rel=1e-9)
+
+
+def test_targeted_rounds_are_allocated_to_the_corrected_functional(molecular):
+    from clifford_qc.measurement.session import grouped_cache_fingerprint
+    from clifford_qc.subspace.symmetry_shifts import corrected_ritz_functional
+
+    shared, family = molecular
+    budget = 100 * len(shared.groups)
+    result = corrected(shared, 63, family, round_budgets=[budget])
+    backend = FiniteShotBackend(seed=63)
+    cache = shared.measure(backend, 100)
+    _, functional = corrected_ritz_functional(shared, cache, shared.solve(cache), family)
+    plan = neyman_group_plan(shared.groups, cache, functional, budget)
+    point = shared.solve(cache)
+    raw = ritz_functional(shared.bank, point.indices, point.ritz_vector(0),
+                          point.energies[0])
+    assert plan != neyman_group_plan(shared.groups, cache, raw, budget)
+    shared.measure_plan(backend, plan, cache)
+    assert grouped_cache_fingerprint(result.cache) == grouped_cache_fingerprint(cache)
+
+
+def test_a_corrected_run_stops_on_the_corrected_standard_error(molecular):
+    shared, family = molecular
+    pilot = corrected(shared, 64, family, round_budgets=[1])
+    first = pilot.looks[0]
+    assert first["std_error"] < first["raw_std_error"]
+    target = 0.5 * (first["std_error"] + first["raw_std_error"])
+    stopped = corrected(shared, 64, family, target_std_error=target)
+    plain = corrected(shared, 64, None, target_std_error=target)
+    assert stopped.stopped == "target_met" and len(stopped.looks) == 1
+    assert stopped.shots == 100 * len(shared.groups)
+    assert len(plain.looks) > 1
