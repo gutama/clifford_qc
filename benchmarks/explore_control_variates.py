@@ -11,7 +11,10 @@ mean. Three modes:
   bank matrices and energy are checked unchanged by every shift.
 - ``caches``: one fixed-size measurement per replica. The raw Ritz value is
   compared with the control-variate correction fitted from the same cache and
-  with coefficients fitted exactly beforehand (an oracle a real run lacks).
+  with fixed coefficients fitted beforehand by ``fit_sector_shift`` from exact
+  quantities (``prefit``). The prefit targets the Ritz functional's own
+  regrouped settings, not the bank's, so it is a comparison and not an
+  optimum the cache fit could only approach.
 - ``acquisition``: ``acquire_ritz`` over a fifteen-look schedule, uniform and
   Ritz-targeted, with and without control variates. A stopping rule only
   truncates the run it would otherwise have continued, so every run spends
@@ -126,11 +129,11 @@ def build_system(name: str, *, prepare: bool = True) -> dict:
     shared = SharedMeasurement(MatrixElementBank(rho, hamiltonian, generators))
     exact = shared.bank.solve()
     family = sector_shift_family(n_spatial, electrons, sz=0.0)
-    oracle = fit_sector_shift(hamiltonian, family, objective="ritz", reference=rho,
+    prefit = fit_sector_shift(hamiltonian, family, objective="ritz", reference=rho,
                               generators=generators, ritz_coefficients=exact.ritz_vector(0),
                               energy=exact.ground_energy).coefficients
     system = {"shared": shared, "exact": float(exact.ground_energy), "family": family,
-              "oracle": oracle, "hamiltonian": hamiltonian, "rho": rho,
+              "prefit": prefit, "hamiltonian": hamiltonian, "rho": rho,
               "generators": generators, "solved": exact, "n_spatial": n_spatial,
               "electrons": electrons}
     if prepare:
@@ -188,11 +191,11 @@ def cache_row(task: tuple[int, int, int]) -> dict:
     except (ValueError, np.linalg.LinAlgError) as error:
         return {"replica": replica, "seed": seed, "failed": f"{type(error).__name__}: {error}"}
     fitted = ritz_control_variate(shared, cache, point, family)
-    known = ritz_control_variate(shared, cache, point, family, coefficients=STATE["oracle"])
+    known = ritz_control_variate(shared, cache, point, family, coefficients=STATE["prefit"])
     return {"replica": replica, "seed": seed, "rank": int(point.effective_rank),
             "raw": [fitted.raw_energy - exact, fitted.raw_std_error],
             "fitted": [fitted.energy - exact, fitted.std_error],
-            "oracle": [known.energy - exact, known.std_error],
+            "prefit": [known.energy - exact, known.std_error],
             "unreadable": list(fitted.unreadable)}
 
 
@@ -247,9 +250,9 @@ def summarize_caches(rows: list[dict]) -> dict:
     ok = [row for row in rows if "failed" not in row]
     z = 1.959963984540054
     summary = {"replicas": len(rows), "failures": len(rows) - len(ok)}
-    for arm in ("raw", "fitted", "oracle"):
+    for arm in ("raw", "fitted", "prefit"):
         summary[arm] = _arm_summary([row[arm][0] for row in ok], [row[arm][1] for row in ok], z)
-    for arm in ("fitted", "oracle"):
+    for arm in ("fitted", "prefit"):
         summary[arm]["mse_ratio_vs_raw"] = (summary["raw"]["rmse"] / summary[arm]["rmse"]) ** 2
     summary["unreadable_terms"] = sorted({term for row in ok for term in row["unreadable"]})
     return summary
@@ -324,13 +327,17 @@ def _git_provenance() -> dict:
 def run(system: str, mode: str, *, root: int, replicas: int, shots: int | None,
         targets, workers: int) -> dict:
     started = time.time()
+    # Before any work: a file created while the run is in progress must not
+    # be mistaken for the tree the run executed.
+    git = _git_provenance()
     STATE.clear()
     STATE.update(build_system(system, prepare=mode != "exact"))
     shared = STATE["shared"]
     if mode == "exact":
         rows, summary = [], exact_table()
         replicas = 0
-        return _record(system, mode, root, replicas, shots, targets, summary, rows, started)
+        return _record(system, mode, root, replicas, shots, targets, summary, rows, started,
+                       git)
     work = cache_row if mode == "caches" else acquisition_row
     tasks = [(root, replica, shots or 0) for replica in range(replicas)]
     if workers > 1:
@@ -341,10 +348,11 @@ def run(system: str, mode: str, *, root: int, replicas: int, shots: int | None,
         rows = [work(task) for task in tasks]
     summary = (summarize_caches(rows) if mode == "caches"
                else summarize_acquisition(rows, targets))
-    return _record(system, mode, root, replicas, shots, targets, summary, rows, started)
+    return _record(system, mode, root, replicas, shots, targets, summary, rows, started, git)
 
 
-def _record(system, mode, root, replicas, shots, targets, summary, rows, started) -> dict:
+def _record(system, mode, root, replicas, shots, targets, summary, rows, started,
+            git) -> dict:
     shared = STATE["shared"]
     try:
         import scipy
@@ -359,9 +367,9 @@ def _record(system, mode, root, replicas, shots, targets, summary, rows, started
         "targets": list(targets) if mode == "acquisition" else None,
         "words": len(shared.words), "settings": len(shared.groups),
         "exact_energy": STATE["exact"], "family": [term.label for term in STATE["family"]],
-        "oracle_coefficients": STATE["oracle"], "summary": summary, "rows": rows,
+        "prefit_coefficients": STATE["prefit"], "summary": summary, "rows": rows,
         "seconds": time.time() - started,
-        "provenance": {**_git_provenance(),
+        "provenance": {**git,
                        "named_sources": _SOURCES_AT_IMPORT if _HASHED_BEFORE_IMPORT else None,
                        "python": platform.python_version(), "numpy": np.__version__,
                        "scipy": scipy_version, "platform": platform.platform()},
