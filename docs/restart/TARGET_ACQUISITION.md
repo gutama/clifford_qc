@@ -325,6 +325,12 @@ change between looks. A stopping rule for a truncating estimator needs either
 a bound on the truncation bias or a rule that refuses to stop on a rank the
 next look does not confirm. Neither is implemented here.
 
+A later check, not part of this declaration, kept this stopping rule and
+reported a grouped-bootstrap interval at the stop instead. On fresh seeds it
+covered in 99% to 100% of `tfim6_mixed` runs, at a median 1.2 to 2.0 times the
+width. It is now an opt-in of `acquire_ritz`
+([BOOTSTRAP_STOP.md](BOOTSTRAP_STOP.md)).
+
 ### Adaptive bias
 
 On the well-conditioned bank the full-schedule mean error under targeting was
@@ -351,7 +357,9 @@ Three bound sources were edited after this record was produced.
 `clifford_qc/subspace/coverage.py` and `clifford_qc/subspace/uncertainty.py`
 now report an unavailable root as a failure instead of an `IndexError`, and
 `clifford_qc/subspace/acquisition.py` gained opt-in control variates
-([SYMMETRY_SHIFTS.md](SYMMETRY_SHIFTS.md)) that no recorded run uses. Their
+([SYMMETRY_SHIFTS.md](SYMMETRY_SHIFTS.md)) and, with `uncertainty.py`, an
+opt-in bootstrap interval at the stop ([BOOTSTRAP_STOP.md](BOOTSTRAP_STOP.md)),
+which no recorded run uses. Their
 bytes at the declaration commit are packaged under
 `benchmarks/provenance/execution_sources/f8358f87aa28539ca397b6e7a8074bbc90ea9b20/`, and the checker holds the
 recorded digests against that snapshot. The replay then runs with the edited

@@ -38,7 +38,10 @@ tested the interval reported by a predeclared stopping rule. Targeting was
 never dearer and was 1.4 to 2.7 times cheaper in five of eight cells. The
 stopped interval over-covered on the three four-qubit banks and under-covered
 on the held-out six-qubit bank, where the rule stopped on solves that had
-truncated a direction.
+truncated a direction. A [bootstrap interval at the same stop](BOOTSTRAP_STOP.md)
+re-solves every resample and so sees that truncation. On fresh seeds, under
+criteria fixed before the run, it covered in 99% to 100% of the six-qubit runs,
+at the cost of intervals up to seven times wider where truncation was frequent.
 
 [Symmetry-shift control variates](SYMMETRY_SHIFTS.md) subtract certified
 zero-mean sector terms from a measured Ritz value, after the fact or at every

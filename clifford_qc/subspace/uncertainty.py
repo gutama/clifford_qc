@@ -9,6 +9,7 @@ import numpy as np
 
 from ..backends.protocol import GroupSample, MeasurementBatch
 from ..measurement.cache import GroupedWordCache
+from ..measurement.confidence import simultaneous_z_radius
 from ..measurement.functionals import ritz_functional
 from ..measurement.session import SharedMeasurement, grouped_cache_fingerprint
 from ..selection import EvidenceLevel
@@ -165,4 +166,39 @@ def bootstrap_ritz(shared: SharedMeasurement, cache: GroupedWordCache, *,
                     upper=float(upper), delta=delta, evidence=HEURISTIC,
                     std_error=float(np.std(values, ddof=1)) if replicates > 1 else None)
 
-__all__ = ["Interval", "ritz_uncertainty", "bootstrap_ritz", "bootstrap_ritz_samples"]
+def bootstrap_spread(samples) -> float:
+    """Half the central 68% range of bootstrap draws: ``(q84 - q16) / 2``.
+
+    For Gaussian draws this is their standard deviation. Unlike the standard
+    deviation it ignores the tails, so a few replicas that lost a retained
+    direction move it only as far as they move the central range.
+    """
+    values = np.asarray(samples, dtype=float)
+    if values.ndim != 1 or values.size < 2 or not np.all(np.isfinite(values)):
+        raise ValueError("bootstrap_spread needs at least two finite draws")
+    low, high = np.quantile(values, [0.16, 0.84])
+    return float((high - low) / 2.0)
+
+
+def bootstrap_spread_interval(estimate: float, samples, *, delta: float = 0.05,
+                              family: int = 1) -> Interval:
+    """``estimate +- z * bootstrap_spread(samples)`` -- ``heuristic``.
+
+    ``z`` is the normal quantile :func:`ritz_uncertainty` uses for the same
+    ``delta`` and ``family``, so the two intervals differ only in the spread.
+    The bootstrap spread includes how far the retained eigenspace moves under
+    resampling, which the delta method's linearization leaves out; it is
+    centred on the point estimate rather than on the draws, so a draw
+    distribution shifted by truncation widens the interval instead of moving it.
+    """
+    if not 0.0 < delta < 1.0:
+        raise ValueError("delta must be in (0, 1)")
+    spread = bootstrap_spread(samples)
+    radius = simultaneous_z_radius(spread ** 2, delta, family)
+    estimate = float(estimate)
+    return Interval(estimate=estimate, lower=estimate - radius, upper=estimate + radius,
+                    delta=delta, evidence=HEURISTIC, std_error=spread)
+
+
+__all__ = ["Interval", "ritz_uncertainty", "bootstrap_ritz", "bootstrap_ritz_samples",
+           "bootstrap_spread", "bootstrap_spread_interval"]
