@@ -639,7 +639,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 5061 passed, 13 skipped (expected if green)
+pytest                                      # 5078 passed, 13 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -658,7 +658,7 @@ the remaining `13 - 7 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-5067      == 5061   + (13      -   7)
+5084      == 5078   + (13      -   7)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -1701,6 +1701,27 @@ its recorded spin ordering. Every output binds the input, named implementation
 sources (hashed before the package is imported) and fixed solver controls,
 records Git/dirty-tree provenance, and refuses overwrite. `work/` is
 gitignored, so earlier outputs there leave a later run's tree clean. Neither the audit nor the new pool rewrites a frozen record.
+
+### Symmetry-shift control variates
+
+`docs/restart/SYMMETRY_SHIFTS.md` documents certified sector-annihilating
+shifts, their use as control variates on existing caches, and the
+`control_variates` option of `acquire_ritz`. Its numbers are exploratory, not
+a declared study.
+
+```bash
+python -m pytest tests/test_symmetry_shifts.py tests/test_acquisition.py -q
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+python benchmarks/explore_control_variates.py --system tri --mode exact \
+    --output work/control-variates/tri-exact.json
+```
+
+The document lists the command behind every table. `--mode caches` and
+`--mode acquisition` take a seed root and a replica count; the eight-qubit
+systems take about ten minutes to compile their per-setting outcome
+distributions before the first shot. Outputs record named source digests, the
+Git head and whether the tree was clean when the run started, and refuse to
+overwrite.
 
 ### Declared interval-coverage study
 

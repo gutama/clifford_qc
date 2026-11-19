@@ -14,6 +14,21 @@ Benchmark campaigns, their declarations and their outcomes are recorded in
 
 ### Added
 
+- **Symmetry-shift control variates**
+  ([docs/restart/SYMMETRY_SHIFTS.md](docs/restart/SYMMETRY_SHIFTS.md)).
+  `clifford_qc.subspace.symmetry_shifts` builds BLISS-style families
+  `K = (Q - q)O` that annihilate every state of a bank whose generators
+  conserve particle number and `S_z`, and certifies them before use. A shift
+  is fitted to the grouped Neyman shot variance of the Ritz functional or to a
+  state-free coefficient proxy, or applied after the fact as a control variate
+  read from an existing cache (`ritz_control_variate`), with no new shot.
+  `acquire_ritz(control_variates=...)` reports, stops on and allocates to the
+  corrected Ritz value at every look. A family that fails certification is
+  refused before any shot. Defaults and frozen records are unchanged; the
+  recorded bytes of `acquisition.py` are packaged so the target-acquisition
+  replay stays on. `benchmarks/explore_control_variates.py` reproduces the
+  exploratory runs.
+
 - **Symmetry-adapted excitation pools**
   ([docs/restart/SYMMETRY_POOLS.md](docs/restart/SYMMETRY_POOLS.md)).
   `clifford_qc.subspace.symmetry_pools` adds native spin-free closed-shell

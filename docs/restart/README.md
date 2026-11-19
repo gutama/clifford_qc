@@ -40,6 +40,16 @@ stopped interval over-covered on the three four-qubit banks and under-covered
 on the held-out six-qubit bank, where the rule stopped on solves that had
 truncated a direction.
 
+[Symmetry-shift control variates](SYMMETRY_SHIFTS.md) subtract certified
+zero-mean sector terms from a measured Ritz value, after the fact or at every
+look of an acquisition run. In exploratory runs on spin-adapted molecular banks
+they cut mean-squared error 1.4 to 7 times at fixed shots. On a six-qubit bank,
+combined with targeting, they reached a standard-error target with 9 to 13
+times fewer shots than uniform allocation, and the stopped interval covered.
+On H4 targeting did most of the work, 10.5 times fewer shots to the tighter
+target, and the correction added a further 1.2 times. None of the declared
+spin banks qualifies: their generators break the symmetry.
+
 The [preregistered noise-aware selection experiment](NOISE_AWARE_SELECTION.md)
 closed negative on its equal-shot held-out criterion. An independent H4 audit
 checks the published energy trajectory and Pauli support counts.
