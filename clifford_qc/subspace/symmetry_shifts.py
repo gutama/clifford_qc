@@ -310,6 +310,114 @@ def grouped_shot_variance(coefficients: Mapping[int, float], reference: MV) -> d
             "uniform": len(groups) * sum(s * s for s in sigmas)}
 
 
+@dataclass(frozen=True)
+class ControlVariateEstimate:
+    """A Ritz value corrected by zero-mean sector terms read from the same cache.
+
+    ``energy = raw_energy - sum_k coefficients[k] g_k`` where each ``g_k`` is
+    the cache estimate of ``<B† K_k B>``, exactly zero in expectation for the
+    solved ``B``. ``std_error`` is the delta-method standard error of the
+    corrected functional. ``unreadable`` names terms with a word no measured
+    setting can read; they are left out rather than guessed. With
+    ``fitted=True`` the coefficients were estimated from this cache, which adds
+    an ``O(1/N)`` bias and makes ``std_error`` slightly optimistic.
+    """
+
+    energy: float
+    std_error: float
+    raw_energy: float
+    raw_std_error: float
+    coefficients: dict[str, float]
+    used: tuple[str, ...]
+    unreadable: tuple[str, ...]
+    fitted: bool
+
+
+def _reference_density(reference) -> MV:
+    if isinstance(reference, MV):
+        return reference
+    occupied = getattr(reference, "occupied", None)
+    if occupied is not None:
+        from ..states import ket_density
+        filled = set(int(q) for q in occupied)
+        return ket_density(reference.n, "".join("1" if q in filled else "0"
+                                                for q in range(reference.n)))
+    raise ValueError("certifying a shift needs an MV or determinant reference")
+
+
+def ritz_control_variate(shared, cache, point, family: Sequence[ShiftTerm], *, root: int = 0,
+                         coefficients: Mapping[str, float] | None = None,
+                         tolerance: float = 1e-9) -> ControlVariateEstimate:
+    """Correct a measured Ritz value with sector terms of known zero mean.
+
+    No shot is spent and the bank is not rebuilt: every ``g_k = B† K_k B`` is
+    a fixed linear combination of word means already in ``cache``, with
+    ``B = sum_i c_i A_i`` from ``point``. Because ``K_k`` annihilates every
+    bank state, ``<g_k> = 0`` exactly for any ``c``, so subtracting ``xi_k
+    g_k`` changes the estimate's noise and not its mean -- the symmetry shift
+    applied after the fact as a control variate.
+
+    ``coefficients`` fixes ``xi`` (for instance from :func:`fit_sector_shift`
+    on prior knowledge). Without it ``xi`` minimizes the corrected variance
+    from this cache's grouped covariances, the classic control-variate fit.
+    The family is certified on the bank's reference first, as in
+    :func:`fit_sector_shift`.
+    """
+    from ..measurement.functionals import WordFunctional, covariance_matrix, ritz_functional
+
+    bank = shared.bank
+    generators = [bank.generator(i) for i in range(len(bank))]
+    sector_residual, commutator_residual = check_sector_family(
+        family, _reference_density(bank.reference), generators)
+    if max(sector_residual, commutator_residual) > tolerance:
+        raise ValueError(
+            "a shift term does not annihilate every bank state: "
+            f"<D^2> residual {sector_residual:.3g}, commutator residual "
+            f"{commutator_residual:.3g} (tolerance {tolerance:g})")
+    vector = point.ritz_vector(root)
+    energy = float(point.energies[root])
+    target = ritz_functional(bank, point.indices, vector, energy)
+    if not target.is_deterministic and \
+            cache.candidate_group_statistics(dict(target.coefficients)) is None:
+        raise ValueError("the cache does not read every word of the Ritz functional; "
+                         "solve the point from the same cache")
+    b = sum((complex(c) * bank.generator(i).mv for c, i in zip(vector, point.indices)),
+            MV(bank.n))
+    bd = b.dagger()
+    used, unreadable, functionals = [], [], []
+    for term in family:
+        operator = bd * term.operator * b
+        words = {code: value.real for code, value in operator.terms.items()
+                 if code != 0 and value.real != 0.0}
+        if not words:
+            continue
+        if cache.candidate_group_statistics(words) is None:
+            unreadable.append(term.label)
+            continue
+        constant = operator.terms.get(0, 0j).real
+        functionals.append(WordFunctional(words, constant))
+        used.append(term.label)
+    if not functionals:
+        raw_sigma = math.sqrt(max(0.0, target.variance(cache)))
+        return ControlVariateEstimate(energy, raw_sigma, energy, raw_sigma, {}, (),
+                                      tuple(unreadable), coefficients is None)
+    # One pass over the histograms: index 0 is the target, then each g_k.
+    joint = covariance_matrix([target, *functionals], cache)
+    target_variance, gf, gg = joint[0, 0], joint[1:, 0], joint[1:, 1:]
+    raw_sigma = math.sqrt(max(0.0, float(target_variance)))
+    if coefficients is None:
+        xi, *_ = np.linalg.lstsq(gg, gf, rcond=None)
+    else:
+        xi = np.array([float(coefficients.get(label, 0.0)) for label in used])
+    variance = target_variance - 2.0 * float(xi @ gf) + float(xi @ gg @ xi)
+    correction = float(sum(x * g.estimate(cache) for x, g in zip(xi, functionals)))
+    return ControlVariateEstimate(
+        energy=energy - correction, std_error=math.sqrt(max(0.0, variance)),
+        raw_energy=energy, raw_std_error=raw_sigma,
+        coefficients={label: float(x) for label, x in zip(used, xi)},
+        used=tuple(used), unreadable=tuple(unreadable), fitted=coefficients is None)
+
+
 def ritz_word_functional(hamiltonian, generators: Iterable, ritz_coefficients: Sequence[complex],
                          energy: float) -> dict[int, float]:
     """Non-identity word coefficients of ``B†(H - E)B``, ``B = sum_i c_i A_i``."""
@@ -321,6 +429,7 @@ def ritz_word_functional(hamiltonian, generators: Iterable, ritz_coefficients: S
     return {code: value.real for code, value in functional.terms.items() if code != 0}
 
 
-__all__ = ["OBJECTIVES", "SectorShift", "ShiftTerm", "check_sector_family",
+__all__ = ["OBJECTIVES", "ControlVariateEstimate", "SectorShift", "ShiftTerm",
+           "check_sector_family", "ritz_control_variate",
            "fit_sector_shift", "grouped_shot_variance", "ritz_word_functional",
            "sector_shift_family"]

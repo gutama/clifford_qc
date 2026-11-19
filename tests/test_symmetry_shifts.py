@@ -158,3 +158,79 @@ def test_invalid_requests_are_rejected(problem):
     with pytest.raises(ValueError, match='finite'):
         sector_shift_family(2, 2, sz=float('nan'))
     assert total_number_op(6).n == 6
+
+
+def _measured(problem, shots=400, seed=11):
+    from clifford_qc.backends.finite_shot import FiniteShotBackend
+    from clifford_qc.measurement.session import SharedMeasurement
+    hamiltonian, _, rho, generators, _ = problem
+    shared = SharedMeasurement(MatrixElementBank(rho, hamiltonian, generators))
+    cache = shared.measure(FiniteShotBackend(seed=seed), shots)
+    return shared, cache, shared.solve(cache)
+
+
+def test_control_variate_terms_have_exactly_zero_mean_and_cannot_raise_the_variance(problem):
+    from clifford_qc.measurement.functionals import ritz_functional
+    from clifford_qc.subspace.symmetry_shifts import ritz_control_variate
+    _, _, rho, _, _ = problem
+    shared, cache, point = _measured(problem)
+    family = sector_shift_family(3, 2, sz=0.0)
+    estimate = ritz_control_variate(shared, cache, point, family)
+    assert estimate.fitted and estimate.unreadable == ()
+    assert set(estimate.used) <= {term.label for term in family} and estimate.used
+    raw = ritz_functional(shared.bank, point.indices, point.ritz_vector(0), point.energies[0])
+    assert estimate.raw_energy == point.energies[0]
+    assert estimate.raw_std_error == pytest.approx(raw.variance(cache) ** 0.5, rel=1e-12)
+    # xi = 0 is feasible, so the fitted correction cannot raise the variance.
+    assert estimate.std_error <= estimate.raw_std_error * (1 + 1e-12)
+    # Each B'KB has exactly zero mean on the reference for the solved B.
+    b = sum((complex(c) * shared.bank.generator(i).mv
+             for c, i in zip(point.ritz_vector(0), point.indices)), MV(6))
+    for term in family:
+        operator = b.dagger() * term.operator * b
+        mean = sum(v.real * (2 ** 6) * rho.terms.get(code, 0j).real
+                   for code, v in operator.terms.items())
+        assert abs(mean) < 1e-12
+    # Zero coefficients reproduce the raw estimate exactly.
+    zero = ritz_control_variate(shared, cache, point, family,
+                                coefficients={term.label: 0.0 for term in family})
+    assert not zero.fitted
+    assert zero.energy == estimate.raw_energy
+    assert zero.std_error == pytest.approx(estimate.raw_std_error, rel=1e-12)
+
+
+def test_control_variate_reports_unreadable_terms_and_refuses_misuse(problem):
+    from clifford_qc.backends.finite_shot import FiniteShotBackend
+    from clifford_qc.subspace.symmetry_shifts import ritz_control_variate
+    shared, full, point = _measured(problem, shots=300, seed=3)
+    family = sector_shift_family(3, 2)
+
+    class HideTerm:
+        """The cache, except that one term's words have no reader."""
+
+        def __init__(self, cache, hidden):
+            self._cache, self._hidden = cache, hidden
+
+        def __getattr__(self, name):
+            return getattr(self._cache, name)
+
+        def candidate_group_statistics(self, coefficients):
+            if set(coefficients) == self._hidden:
+                return None
+            return self._cache.candidate_group_statistics(coefficients)
+
+    b = sum((complex(c) * shared.bank.generator(i).mv
+             for c, i in zip(point.ritz_vector(0), point.indices)), MV(6))
+    operator = b.dagger() * family[3].operator * b
+    hidden = {code for code, v in operator.terms.items() if code != 0 and v.real != 0.0}
+    estimate = ritz_control_variate(shared, HideTerm(full, hidden), point, family)
+    assert estimate.unreadable == (family[3].label,)
+    assert family[3].label not in estimate.used and len(estimate.used) == len(family) - 1
+    # A point solved from another cache whose words this one cannot read.
+    partial = shared.measure_plan(FiniteShotBackend(seed=4),
+                                  {word.code: 50 for word in shared.groups[0]})
+    with pytest.raises(ValueError, match='every word of the Ritz functional'):
+        ritz_control_variate(shared, partial, point, family)
+    # A family for another electron count does not vanish on this reference.
+    with pytest.raises(ValueError, match='does not annihilate'):
+        ritz_control_variate(shared, full, point, sector_shift_family(3, 3))
