@@ -639,7 +639,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 5020 passed, 13 skipped (expected if green)
+pytest                                      # 5061 passed, 13 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -658,7 +658,7 @@ the remaining `13 - 7 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-5026      == 5020   + (13      -   7)
+5067      == 5061   + (13      -   7)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -1678,6 +1678,29 @@ unpruned construction within the tolerances stored in the v2 record. At
 `1e-8` all quoted rungs pass and the stored numerical differences are zero.
 `tests/test_krylov_width.py` checks the collapse identity, nested sweep, and
 certificate gate.
+
+### Symmetry-adapted excitation pools
+
+`docs/restart/SYMMETRY_POOLS.md` documents native spin-free closed-shell
+singles/doubles and the explicit real-Abelian point-group filter. The bounded
+exact audit compares the initial 2x2 screening cache and the complete candidate
+bank; it measures no finite-shot saving and does not infer FCIDUMP irrep codes.
+
+```bash
+python -m pytest tests/test_symmetry_pools.py -q
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+python -m benchmarks.benchmark_symmetry_pools \
+    --orbital-irreps 0 1 0 1 --output work/symmetry-pools-h4.json
+```
+
+The default input is the committed four-spatial-orbital H4 FCIDUMP. Pass
+`--fcidump` for another bounded input and omit `--orbital-irreps` to compare
+spin adaptation alone; `--hamiltonian-atol` admits declared integral noise in
+the Hamiltonian symmetry check. Both arms excite the model's own reference in
+its recorded spin ordering. Every output binds the input, named implementation
+sources (hashed before the package is imported) and fixed solver controls,
+records Git/dirty-tree provenance, and refuses overwrite. `work/` is
+gitignored, so earlier outputs there leave a later run's tree clean. Neither the audit nor the new pool rewrites a frozen record.
 
 ### Declared interval-coverage study
 
