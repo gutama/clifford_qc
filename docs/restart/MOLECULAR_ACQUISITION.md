@@ -237,7 +237,9 @@ change after the declaration commit is the order of the report's comparison
 rows. On four workers the run took 14.5 hours, against the declared estimate
 of about ten. The checker recomputes every summary, verdict and criterion and
 finds no problem, and the declaration predates the record in the commit
-graph.
+graph. Under the record environment, `--replay 1 --require-replay` reruns the
+first replica of every system with `acquire_ritz` itself. It reproduces every
+stop, estimate, standard error, interval and bootstrap spread of those rows.
 
 ### Verdicts
 
