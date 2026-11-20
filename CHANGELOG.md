@@ -14,6 +14,20 @@ Benchmark campaigns, their declarations and their outcomes are recorded in
 
 ### Added
 
+- **Bootstrap interval at the acquisition stop**
+  ([docs/restart/BOOTSTRAP_STOP.md](docs/restart/BOOTSTRAP_STOP.md)).
+  `acquire_ritz(bootstrap_replicates=..., bootstrap_seed=...)` resamples the
+  data at the stopping look by setting, re-solves, and reports
+  `bootstrap_interval`: the estimate plus or minus the delta interval's `z`
+  times the bootstrap spread `(q84 - q16) / 2`. The stop, the shots and every
+  other reported value are unchanged; a failed replica is recorded, and the
+  option is refused with control variates. `bootstrap_spread` and
+  `bootstrap_spread_interval` build it from existing draws. On fresh seeds and
+  under criteria fixed before the run it covered in 99% to 100% of runs on the
+  held-out six-qubit bank, where the delta interval covered 84.5% to 93.5%.
+  `benchmarks/run_bootstrap_stop.py` and `check_bootstrap_stop.py` reproduce
+  and verify the records.
+
 - **Symmetry-shift control variates**
   ([docs/restart/SYMMETRY_SHIFTS.md](docs/restart/SYMMETRY_SHIFTS.md)).
   `clifford_qc.subspace.symmetry_shifts` builds BLISS-style families

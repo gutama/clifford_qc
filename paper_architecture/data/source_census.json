@@ -12,6 +12,7 @@
     "automatic_gates": [
       "check_bank_policy_matrix",
       "check_bank_storage_ledger",
+      "check_bootstrap_stop",
       "check_clifford_hierarchy",
       "check_cross_domain_ratio",
       "check_docs",
@@ -85,7 +86,7 @@
       "Plan ledger": 1,
       "Post-hoc declaration": 6,
       "Preregistration": 13,
-      "Sampled inference accounting": 4,
+      "Sampled inference accounting": 5,
       "Value-rebuilt": 34
     },
     "conditional_gates": [],
@@ -104,12 +105,12 @@
       "check_r3c_lih_full_cost",
       "check_r3d_qr3_refinement"
     ],
-    "gates": 81,
-    "named_in_workflow": 74,
-    "producers": 80,
+    "gates": 82,
+    "named_in_workflow": 75,
+    "producers": 81,
     "producers_without_gate": 26,
-    "run_on_every_pull_request": 63,
-    "same_stem_pairs": 54
+    "run_on_every_pull_request": 64,
+    "same_stem_pairs": 55
   },
   "records": {
     "annotated_records": [
@@ -249,7 +250,7 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 21425,
+        "lines": 21522,
         "modules": 53
       },
       "surface": {
@@ -257,9 +258,9 @@
         "modules": 1
       }
     },
-    "package_lines": 40419,
+    "package_lines": 40516,
     "package_modules": 133,
-    "test_lines": 50457,
-    "test_modules": 203
+    "test_lines": 50881,
+    "test_modules": 204
   }
 }

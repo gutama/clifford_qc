@@ -21,6 +21,9 @@ from clifford_qc.measurement.grouping import shared_basis
 from clifford_qc.subspace.acquisition import (
     AcquisitionError, acquire_ritz, neyman_group_plan, uniform_group_plan,
 )
+from clifford_qc.subspace.uncertainty import (
+    HEURISTIC, bootstrap_ritz_samples, bootstrap_spread, bootstrap_spread_interval,
+)
 
 ORTHOGONAL = {"key": "tfim4_orthogonal", "role": "development",
               "model": {"family": "tfim", "n": 4, "J": 1.0, "h": 1.0},
@@ -575,3 +578,142 @@ def test_a_corrected_run_stops_on_the_corrected_standard_error(molecular):
     assert stopped.stopped == "target_met" and len(stopped.looks) == 1
     assert stopped.shots == 100 * len(shared.groups)
     assert len(plain.looks) > 1
+
+
+# ------------------------------------------------- bootstrap interval at the stop
+
+def test_the_bootstrap_spread_is_the_central_range_and_ignores_the_tails():
+    rng = np.random.default_rng(3)
+    draws = rng.normal(2.0, 0.5, 20000)
+    assert bootstrap_spread(draws) == pytest.approx(0.5, rel=0.03)
+    # Five percent of draws far out in one tail move the standard deviation by
+    # orders of magnitude and the central range only by a few percent.
+    shifted = draws.copy()
+    shifted[:1000] = 1e3
+    assert np.std(shifted) > 100 * np.std(draws)
+    assert bootstrap_spread(shifted) == pytest.approx(0.5, rel=0.1)
+    low, high = np.quantile(shifted, [0.16, 0.84])
+    assert bootstrap_spread(shifted) == (high - low) / 2
+
+
+@pytest.mark.parametrize("draws", [[1.0], [], [1.0, math.nan], [1.0, math.inf], [[1.0, 2.0]]])
+def test_the_bootstrap_spread_needs_two_finite_draws(draws):
+    with pytest.raises(ValueError):
+        bootstrap_spread(draws)
+
+
+def test_the_bootstrap_spread_interval_uses_the_delta_method_quantile():
+    draws = np.linspace(-1.0, 1.0, 101)
+    interval = bootstrap_spread_interval(5.0, draws, delta=0.1, family=4)
+    z = NormalDist().inv_cdf(1.0 - 0.1 / 8.0)
+    assert interval.estimate == 5.0 and interval.std_error == bootstrap_spread(draws)
+    assert interval.upper - 5.0 == pytest.approx(z * interval.std_error, rel=1e-12)
+    assert 5.0 - interval.lower == pytest.approx(z * interval.std_error, rel=1e-12)
+    assert interval.evidence == HEURISTIC and not interval.certified
+    with pytest.raises(ValueError):
+        bootstrap_spread_interval(5.0, draws, delta=1.0)
+
+
+def test_without_a_bootstrap_nothing_about_it_is_reported(system):
+    found = run(system[0], 61, target_std_error=0.02)
+    assert found.bootstrap_interval is None and "bootstrap" not in found.schedule
+    assert not any("bootstrap_spread" in look or "bootstrap_failure" in look
+                   for look in found.looks)
+
+
+def test_a_bootstrap_changes_nothing_the_run_measured(system):
+    shared, _ = system
+    plain = run(shared, 61, target_std_error=0.02)
+    booted = run(shared, 61, target_std_error=0.02, bootstrap_replicates=20, bootstrap_seed=4)
+    assert booted.shots == plain.shots and booted.stopped == plain.stopped
+    assert booted.interval == plain.interval and booted.naive_interval == plain.naive_interval
+    assert list(booted.result.energies) == list(plain.result.energies)
+    stripped = [{k: v for k, v in look.items() if k != "bootstrap_spread"}
+                for look in booted.looks]
+    assert stripped == list(plain.looks)
+    assert booted.schedule == {**plain.schedule, "bootstrap": {"replicates": 20, "seed": 4}}
+
+
+@pytest.mark.parametrize("target", [0.02, None])
+def test_the_bootstrap_interval_resamples_the_last_look_and_pays_for_every_look(system,
+                                                                                 target):
+    shared, _ = system
+    found = run(shared, 67, target_std_error=target, bootstrap_replicates=40,
+                bootstrap_seed=11)
+    draws = bootstrap_ritz_samples(shared, found.cache, result=found.result,
+                                   replicates=40, seed=11)
+    family = 4 if target is not None else 1
+    assert found.schedule["interval_family"] == family
+    assert found.looks[-1]["bootstrap_spread"] == bootstrap_spread(draws)
+    assert found.bootstrap_interval == bootstrap_spread_interval(
+        found.result.energies[0], draws, delta=0.05, family=family)
+    # The quantile is the delta-method interval's: it pays for the same looks.
+    z = NormalDist().inv_cdf(1.0 - 0.05 / (2 * family))
+    assert found.bootstrap_interval.upper - found.energy == pytest.approx(
+        z * found.looks[-1]["bootstrap_spread"], rel=1e-12)
+
+
+def test_a_failed_bootstrap_is_recorded_and_the_acquisition_stands(system, monkeypatch):
+    shared, _ = system
+    plain = run(shared, 71, target_std_error=0.02)
+
+    def failing(*args, **kwargs):
+        raise ValueError("bootstrap replica 3 retained 0 root(s); root 0 is unavailable")
+
+    monkeypatch.setattr(acquisition, "bootstrap_ritz_samples", failing)
+    found = run(shared, 71, target_std_error=0.02, bootstrap_replicates=10)
+    assert found.bootstrap_interval is None
+    assert found.looks[-1]["bootstrap_failure"] == (
+        "ValueError: bootstrap replica 3 retained 0 root(s); root 0 is unavailable")
+    assert "bootstrap_spread" not in found.looks[-1]
+    assert found.interval == plain.interval and found.shots == plain.shots
+
+
+@pytest.mark.parametrize("kwargs", [
+    {"bootstrap_replicates": 1}, {"bootstrap_replicates": 0},
+    {"bootstrap_replicates": 2.5}, {"bootstrap_replicates": True},
+    {"bootstrap_replicates": 10, "bootstrap_seed": -1},
+    {"bootstrap_replicates": 10, "bootstrap_seed": 1.5},
+    {"bootstrap_replicates": 10, "bootstrap_seed": True},
+])
+def test_invalid_bootstrap_arguments_are_rejected_before_any_shot(system, kwargs):
+    class NoShots:
+        def sample_grouped_from_state(self, *args, **kwargs):
+            raise AssertionError("a rejected bootstrap must not sample")
+
+    with pytest.raises(ValueError):
+        acquire_ritz(system[0], NoShots(), pilot_shots_per_group=100, round_budgets=[800],
+                     **kwargs)
+
+
+def test_a_bootstrap_is_not_combined_with_control_variates(molecular):
+    shared, family = molecular
+
+    class NoShots:
+        def sample_grouped_from_state(self, *args, **kwargs):
+            raise AssertionError("a refused combination must not sample")
+
+    with pytest.raises(ValueError, match="not combined with control_variates"):
+        acquire_ritz(shared, NoShots(), pilot_shots_per_group=100, round_budgets=[800],
+                     control_variates=family, bootstrap_replicates=10)
+
+
+def test_the_bootstrap_spread_interval_refuses_a_non_finite_estimate_and_never_overflows():
+    for estimate in (math.nan, math.inf):
+        with pytest.raises(ValueError, match="estimate must be finite"):
+            bootstrap_spread_interval(estimate, [0.0, 1.0, 2.0])
+    # The spread squared would overflow; the radius must not.
+    interval = bootstrap_spread_interval(0.0, [-2e200, 0.0, 2e200])
+    assert math.isfinite(interval.upper) and interval.upper > 1e200
+
+
+def test_a_bootstrap_of_an_excited_root_resamples_that_root(system):
+    shared, _ = system
+    found = run(shared, 37, root=1, bootstrap_replicates=30, bootstrap_seed=5)
+    draws = bootstrap_ritz_samples(shared, found.cache, result=found.result, root=1,
+                                   replicates=30, seed=5)
+    assert found.looks[-1]["bootstrap_spread"] == bootstrap_spread(draws)
+    assert found.bootstrap_interval.estimate == found.result.energies[1] == found.energy
+    ground = bootstrap_ritz_samples(shared, found.cache, result=found.result, root=0,
+                                    replicates=30, seed=5)
+    assert bootstrap_spread(ground) != bootstrap_spread(draws)

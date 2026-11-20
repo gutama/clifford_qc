@@ -639,7 +639,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 5078 passed, 13 skipped (expected if green)
+pytest                                      # 5132 passed, 13 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -658,7 +658,7 @@ the remaining `13 - 7 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-5084      == 5078   + (13      -   7)
+5138      == 5132   + (13      -   7)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -1749,6 +1749,44 @@ Both study checkers replay only while every bound source matches the record or
 has its execution-time bytes packaged under
 `benchmarks/provenance/execution_sources/<declaration commit>/`. To edit a bound
 source, package its old bytes there in the same change; the tests fail otherwise.
+
+### Bootstrap interval at the acquisition stop
+
+`docs/restart/BOOTSTRAP_STOP.md` reports a fresh-seed check of a
+grouped-bootstrap interval at the declared stopping look, under the criteria in
+`docs/restart/bootstrap_stop_criteria.md`, and the development screen that
+chose it. The records are `docs/restart/bootstrap_stop_results.json.gz` and
+`docs/restart/bootstrap_stop_screen.json.gz`; the scripts that produced them
+are packaged byte for byte under `benchmarks/provenance/bootstrap_stop/`.
+
+```bash
+python -m pytest tests/test_acquisition.py tests/test_bootstrap_stop.py -q
+python benchmarks/check_bootstrap_stop.py --replay 1
+python benchmarks/check_bootstrap_stop.py --report
+```
+
+The checker verifies both records, recomputes the arm-A verdict and the
+tables the document embeds, and runs as the `check_bootstrap_stop` CI gate.
+`--replay N` regenerates the first `N` replicas of every bank with the
+committed producer and with `acquire_ritz(bootstrap_replicates=...)`; it is
+skipped with a note under a NumPy or SciPy other than the record's, and
+`--require-replay` makes that a failure. `--reported-intervals` reruns every
+arm-A stop to compare the interval `acquire_ritz` itself reports:
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
+python benchmarks/check_bootstrap_stop.py --reported-intervals --jobs 4
+```
+
+The producer refuses to overwrite a record; a full fresh run took 2 h 10 min on
+four workers:
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
+python benchmarks/run_bootstrap_stop.py --mode fresh --jobs 4 \
+    --output reproductions/bootstrap_stop.json.gz
+python benchmarks/check_bootstrap_stop.py --results reproductions/bootstrap_stop.json.gz
+```
 
 ### Declared target-aware acquisition study
 
