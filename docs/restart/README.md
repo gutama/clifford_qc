@@ -46,7 +46,12 @@ at the cost of intervals up to seven times wider where truncation was frequent.
 The [declared molecular acquisition study](MOLECULAR_ACQUISITION.md) repeats
 that comparison on four molecular banks, adding control variates and the
 bootstrap interval at the stop, with pass/fail criteria on two held-out banks.
-It is declared and not yet run.
+All three passed. Targeting with control variates met each standard-error
+target with 3.3 to 9.7 times fewer shots than uniform allocation and a lower
+error at the stop, and both stopped intervals covered every replica. The raw
+Ritz value's reported error was 1.5 to 1.65 times too small under targeting,
+which the schedule-valid interval absorbed. The bootstrap was 1.4 to 1.8 times
+wider than needed there.
 
 [Symmetry-shift control variates](SYMMETRY_SHIFTS.md) subtract certified
 zero-mean sector terms from a measured Ritz value, after the fact or at every

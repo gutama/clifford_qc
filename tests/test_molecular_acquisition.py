@@ -237,3 +237,119 @@ def test_the_producer_refuses_to_overwrite_a_record(tmp_path, capsys):
     output.write_bytes(b"")
     assert producer.main(["--output", str(output)]) == 1
     assert "never overwritten" in capsys.readouterr().out
+
+
+def test_errors_at_every_look_read_each_arms_own_ledger(declaration, system, rows):
+    record = {"declaration": declaration, "systems": {"tri": system["design"]}, "rows": rows}
+    found = checker.look_errors(record, "tri")
+    assert len(found) == len(declaration["cumulative_shots_per_group"])
+    # Every run reads the same pilot, so the first look is shared by the arms
+    # that report the same functional.
+    first = found[0]["arms"]
+    assert first["uniform"] == first["targeted"]
+    assert first["uniform_cv"] == first["targeted_cv"]
+    target = system["design"]["target"]
+    last = len(found) - 1
+    errors = [row["runs"]["targeted_cv"]["ledger"][last]["energy"] - target for row in rows]
+    assert found[last]["arms"]["targeted_cv"]["rmse"] \
+        == pytest.approx(float(np.sqrt(np.mean(np.square(errors)))))
+    short = copy.deepcopy(record)
+    short["rows"][0]["runs"]["targeted"]["ledger"].pop()
+    assert checker.look_errors(short, "tri")[last]["arms"]["targeted"]["n"] == 2
+
+
+# ------------------------------------------------------------ the committed record
+
+DECLARATION_COMMIT = "324fefd05d402774e5c3342284007f5e962167e9"
+
+
+@pytest.fixture(scope="module")
+def committed():
+    return checker.read_record(producer.RESULTS)
+
+
+def _cells(committed, systems=("lih", "beh2")):
+    by_key = {entry["system"]: entry for entry in committed["summaries"]}
+    return [(system, key, by_key[system]) for system in systems
+            for key in ("0.01", "0.005")]
+
+
+def test_the_committed_record_matches_its_declaration(committed):
+    declaration = producer.load_declaration()
+    assert checker.declaration_problems(committed, producer.DECLARATION) == []
+    assert checker.row_problems(committed, declaration) == []
+    assert checker.summary_problems(committed, declaration) == []
+    assert len(committed["rows"]) == sum(s["replicas"] for s in declaration["systems"]) == 700
+    assert committed["declaration"]["seed_root"] == 20261120
+    assert committed["declaration_commit"] == DECLARATION_COMMIT
+    assert committed["implementation"].keys() == set(producer.IMPLEMENTATION)
+    assert committed["provenance"]["git_dirty"] is False
+    # The eight-qubit banks take minutes to build and are checked by the gate.
+    tri = producer.build_system(declaration["systems"][0])
+    assert checker.design_problems(committed, {"systems": declaration["systems"][:1]},
+                                   {"tri": tri}) == []
+
+
+def test_the_committed_record_reports_what_the_document_says(committed):
+    criteria = committed["criteria"]
+    assert criteria["C1"] and criteria["C2"] and criteria["C3"]
+    for entry in committed["summaries"]:
+        for arm in entry["arms"].values():
+            for cell in arm["stopping"].values():
+                assert cell["solve_failures"] == 0
+                assert cell["stopped"]["schedule_exhausted"] == 0
+                assert cell["bootstrap"] is None or cell["bootstrap"]["failures"] == 0
+    for system, key, entry in _cells(committed):
+        uniform = entry["arms"]["uniform"]["stopping"][key]
+        corrected = entry["arms"]["targeted_cv"]["stopping"][key]
+        raw = entry["arms"]["targeted"]["stopping"][key]
+        # Fewer shots and a lower error at the stop, in every held-out cell, so
+        # the direction of C1 needs no model of how error falls with shots.
+        shots = entry["comparisons"]["uniform/targeted_cv"]["stopping"][key]["shot_ratio"]
+        assert 3.3 < shots < 9.8
+        assert corrected["errors"]["rmse"] < uniform["errors"]["rmse"] / 1.4
+        # Both intervals cover every replica; the corrected value's reported
+        # error is honest and its bootstrap is wider than it needs to be.
+        assert corrected["coverage"]["schedule_valid"]["rate"] == 1.0
+        assert corrected["bootstrap"]["coverage"]["rate"] == 1.0
+        assert corrected["errors"]["rmse"] <= corrected["rms_std_error"]
+        assert 1.4 < corrected["bootstrap"]["median_spread_over_std_error"] < 1.8
+        # The raw Ritz value's reported error is optimistic under targeting:
+        # an unadjusted 1.96 sigma interval under-covers there.
+        assert raw["errors"]["rmse"] > 1.4 * raw["rms_std_error"]
+        assert raw["coverage"]["naive"]["label"] == "under"
+        # Targeting with and without the correction stops at nearly the same
+        # shots; the correction's gain is error at the stop.
+        same = entry["comparisons"]["targeted/targeted_cv"]["stopping"][key]["shot_ratio"]
+        assert 0.95 < same < 1.1
+
+
+def test_error_falls_faster_than_one_over_root_shots_across_the_schedule(committed):
+    # The declared caveat on matched error, measured: over the 128-fold
+    # schedule the raw uniform error falls far more than the 11.3-fold that
+    # one over root shots predicts.
+    for system in ("lih", "beh2"):
+        found = checker.look_errors(committed, system)
+        first, last = found[0]["arms"]["uniform"], found[-1]["arms"]["uniform"]
+        assert last["mean_shots_per_setting"] / first["mean_shots_per_setting"] \
+            == pytest.approx(128.0, rel=1e-3)
+        assert first["rmse"] / last["rmse"] > 50
+
+
+def test_the_study_document_embeds_the_generated_report(committed):
+    document = checker.DOCUMENT.read_text()
+    assert checker.report(committed) in document
+    assert committed["declaration_commit"] in document
+
+
+def test_the_declaration_predates_the_committed_record(committed, environment_skip):
+    import subprocess
+
+    commit = committed["declaration_commit"]
+    history = subprocess.run(["git", "rev-parse", "--is-shallow-repository"],
+                             cwd=producer.ROOT, capture_output=True, text=True).stdout.strip()
+    present = subprocess.run(["git", "cat-file", "-e", f"{commit}^{{commit}}"],
+                             cwd=producer.ROOT, capture_output=True).returncode == 0
+    if history != "false" or not present:
+        environment_skip("the declaration commit's history is not in this checkout")
+    assert checker.history_problems(committed, producer.DECLARATION, producer.RESULTS) == []

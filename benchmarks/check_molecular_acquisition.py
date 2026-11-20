@@ -322,18 +322,48 @@ def _ratio(found: dict) -> str:
     return f"{found['ratio']:.2f}x [{low:.2f}, {high:.2f}]"
 
 
+def look_errors(record: dict, system: str) -> list[dict]:
+    """Each arm's error at every look of the full schedule, from the run ledgers.
+
+    An arm reads its run's raw energy, or its corrected energy for the
+    ``_cv`` arms. A run that failed contributes only the looks it reached, so
+    each look's count is reported with it.
+    """
+    declaration = record["declaration"]
+    target = record["systems"][system]["target"]
+    members = [row for row in record["rows"] if row["system"] == system]
+    out = []
+    for look in range(producer.looks(declaration)):
+        entry = {"look": look, "arms": {}}
+        for arm in declaration["arms"]:
+            field = "energy" if arm["corrected"] else "raw_energy"
+            reached = [row["runs"][arm["run"]]["ledger"][look] for row in members
+                       if len(row["runs"][arm["run"]]["ledger"]) > look]
+            errors = [step[field] - target for step in reached]
+            entry["arms"][arm["key"]] = {
+                "n": len(errors),
+                "rmse": math.sqrt(sum(e * e for e in errors) / len(errors)) if errors else None,
+                "mean_shots_per_setting": (sum(step["shots"] for step in reached) / len(reached)
+                                           / record["systems"][system]["settings"]
+                                           if reached else None)}
+        out.append(entry)
+    return out
+
+
 def report(record: dict) -> str:
     """The record's results as Markdown, in the form the study document embeds."""
     declaration = record["declaration"]
+    goals = declaration["target_std_errors"]
     lines = []
     for entry in record["summaries"]:
         system = entry["system"]
         design = record["systems"][system]
         lines += [f"### `{system}` ({entry['role'].replace('_', ' ')})", "",
-                  "| Target | Arm | Exhausted | Mean shots per setting | RMSE at stop "
-                  "| Delta interval | Bootstrap interval | r / sigma |",
-                  "| ---: | --- | ---: | ---: | ---: | --- | --- | ---: |"]
-        for goal in declaration["target_std_errors"]:
+                  "| Target | Arm | Exhausted | Mean shots per setting | RMS reported SE "
+                  "| RMSE at stop | Delta interval | Bootstrap interval | r / sigma "
+                  "| Unadjusted 1.96 sigma |",
+                  "| ---: | --- | ---: | ---: | ---: | ---: | --- | --- | ---: | --- |"]
+        for goal in goals:
             key = producer.target_key(goal)
             for arm in declaration["arms"]:
                 cell = entry["arms"][arm["key"]]["stopping"][key]
@@ -341,24 +371,44 @@ def report(record: dict) -> str:
                 ratio = (f"{boot['median_spread_over_std_error']:.2f}"
                          if boot and boot["median_spread_over_std_error"] is not None else "–")
                 rmse = f"{cell['errors']['rmse']:.5f}" if cell["errors"] else "n/a"
+                sigma = (f"{cell['rms_std_error']:.5f}" if cell["rms_std_error"] is not None
+                         else "n/a")
                 lines.append(
                     f"| {goal:g} | {arm['key']} | {cell['stopped']['schedule_exhausted']} | "
-                    f"{cell['mean_shots_per_setting']:,.0f} | {rmse} | "
+                    f"{cell['mean_shots_per_setting']:,.0f} | {sigma} | {rmse} | "
                     f"{_rate(cell['coverage']['schedule_valid'])} | "
-                    f"{_rate(boot['coverage'] if boot else None)} | {ratio} |")
+                    f"{_rate(boot['coverage'] if boot else None)} | {ratio} | "
+                    f"{_rate(cell['coverage']['naive'])} |")
         lines += ["", "| Comparison | Equal shots (MSE ratio) | "
-                  + " | ".join(f"Matched error at {goal:g}"
-                               for goal in declaration["target_std_errors"]) + " |",
-                  "| --- | --- | " + " | ".join("---" for _ in declaration["target_std_errors"])
-                  + " |"]
+                  + " | ".join(f"Matched error at {goal:g} | Raw shot ratio at {goal:g}"
+                               for goal in goals) + " |",
+                  "| --- | --- | " + " | ".join("--- | ---:" for _ in goals) + " |"]
         for reference, arm in declaration["comparison"]["pairs"]:
             found = entry["comparisons"][f"{reference}/{arm}"]
-            cells = [f"{_ratio(found['stopping'][producer.target_key(goal)]['matched_error'])} "
-                     f"{found['stopping'][producer.target_key(goal)]['verdict']}"
-                     for goal in declaration["target_std_errors"]]
+            cells = []
+            for goal in goals:
+                stop = found["stopping"][producer.target_key(goal)]
+                cells.append(f"{_ratio(stop['matched_error'])} {stop['verdict']} | "
+                             f"{stop['shot_ratio']:.2f}x")
             lines.append(f"| {found['reference']} over {found['arm']} | "
                          f"{_ratio(found['equal_shots'])} {found['equal_shots']['label']} | "
                          + " | ".join(cells) + " |")
+        arms = [arm["key"] for arm in declaration["arms"]]
+        lines += ["", "RMSE at every look of the full schedule:", "",
+                  "| Look | Mean shots per setting | " + " | ".join(arms) + " |",
+                  "| ---: | ---: | " + " | ".join("---:" for _ in arms) + " |"]
+        for found in look_errors(record, system):
+            first = found["arms"][arms[0]]
+            row = []
+            for arm in arms:
+                cell = found["arms"][arm]
+                text = f"{cell['rmse']:.5f}" if cell["rmse"] is not None else "n/a"
+                if cell["n"] != entry["arms"][arm]["replicas"]:
+                    text += f" (n={cell['n']})"
+                row.append(text)
+            shots = (f"{first['mean_shots_per_setting']:,.0f}"
+                     if first["mean_shots_per_setting"] is not None else "n/a")
+            lines.append(f"| {found['look']} | {shots} | " + " | ".join(row) + " |")
         lines += ["", f"Exact rank {design['exact_rank']}, {design['settings']:,} settings, "
                   f"{entry['arms']['uniform']['replicas']} replicas.", ""]
     criteria = record["criteria"]

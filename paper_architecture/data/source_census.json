@@ -1,7 +1,6 @@
 {
   "gates": {
     "absent_from_workflow": [
-      "check_molecular_acquisition",
       "check_phase16b_feasibility",
       "check_phase16b_preregistration",
       "check_phase16b_v2_feasibility",
@@ -29,6 +28,7 @@
       "check_krylov_width",
       "check_mapping_axis",
       "check_molecular",
+      "check_molecular_acquisition",
       "check_noise_aware_selection",
       "check_observable_noise",
       "check_orthogonal_active_space",
@@ -107,10 +107,10 @@
       "check_r3d_qr3_refinement"
     ],
     "gates": 83,
-    "named_in_workflow": 75,
+    "named_in_workflow": 76,
     "producers": 82,
     "producers_without_gate": 26,
-    "run_on_every_pull_request": 64,
+    "run_on_every_pull_request": 65,
     "same_stem_pairs": 56
   },
   "records": {
@@ -261,7 +261,7 @@
     },
     "package_lines": 40624,
     "package_modules": 133,
-    "test_lines": 51221,
+    "test_lines": 51337,
     "test_modules": 205
   }
 }

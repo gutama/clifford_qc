@@ -6,7 +6,10 @@ to measured banks, and builds it into
 [target-aware acquisition](TARGET_ACQUISITION.md). Everything is opt-in;
 no default and no frozen record changes. The evidence below is exploratory:
 the systems, seeds, schedule and targets were chosen while the method was
-being developed, not declared beforehand.
+being developed, not declared beforehand. The
+[declared molecular acquisition study](MOLECULAR_ACQUISITION.md) then tested
+it on two held-out banks under criteria fixed in advance, and all three
+criteria passed.
 
 ## The identity
 

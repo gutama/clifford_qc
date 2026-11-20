@@ -639,7 +639,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 5164 passed, 13 skipped (expected if green)
+pytest                                      # 5170 passed, 13 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -658,7 +658,7 @@ the remaining `13 - 7 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-5170      == 5164   + (13      -   7)
+5176      == 5170   + (13      -   7)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -1755,23 +1755,36 @@ source, package its old bytes there in the same change; the tests fail otherwise
 `docs/restart/MOLECULAR_ACQUISITION.md` declares, before any evaluation seed,
 a study of Ritz-targeted allocation and symmetry-shift control variates on
 four molecular banks, with the delta-method and bootstrap intervals at a
-predeclared stop and three pass/fail criteria on the held-out banks. The
-declaration is `docs/restart/molecular_acquisition_declaration.json`; the
-record, once run, is `docs/restart/molecular_acquisition_results.json.gz`. The
-producer runs only from a clean tree under the record environment, writes each
-finished replica to `work/molecular-acquisition/rows.jsonl`, resumes from it,
-and refuses to overwrite the record. It takes about ten hours on four workers:
+predeclared stop and three pass/fail criteria on the held-out banks, and
+reports its results; all three criteria pass. The declaration is
+`docs/restart/molecular_acquisition_declaration.json` and the record is
+`docs/restart/molecular_acquisition_results.json.gz`. The producer runs only
+from a clean tree under the record environment, writes each finished replica to
+`work/molecular-acquisition/rows.jsonl`, resumes from it, and refuses to
+overwrite the record. The recorded run took 14.5 hours on four workers:
 
 ```bash
 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
 python benchmarks/run_molecular_acquisition.py --jobs 4
+```
+
+The checker verifies the record against the declaration, rebuilds every bank's
+exact facts, recomputes every summary, verdict and criterion, and runs as the
+`check_molecular_acquisition` CI gate. `--verify-history` needs a full clone.
+`--report` prints the tables the document embeds:
+
+```bash
+python -m pytest tests/test_molecular_acquisition.py -q
 python benchmarks/check_molecular_acquisition.py --verify-history
-python benchmarks/check_molecular_acquisition.py --replay 1
+python benchmarks/check_molecular_acquisition.py --report
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+python benchmarks/check_molecular_acquisition.py --replay 1 --require-replay
 ```
 
 `--replay N` reruns the first `N` replicas of every bank with `acquire_ritz`
 itself; it first compiles each 8-qubit bank's outcome distributions, about ten
-minutes per bank.
+minutes per bank. It is skipped with a note under a NumPy or SciPy other than
+the record's, and `--require-replay` makes that a failure.
 
 ### Bootstrap interval at the acquisition stop
 
