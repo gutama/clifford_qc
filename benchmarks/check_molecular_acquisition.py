@@ -351,7 +351,8 @@ def report(record: dict) -> str:
                                for goal in declaration["target_std_errors"]) + " |",
                   "| --- | --- | " + " | ".join("---" for _ in declaration["target_std_errors"])
                   + " |"]
-        for pair, found in entry["comparisons"].items():
+        for reference, arm in declaration["comparison"]["pairs"]:
+            found = entry["comparisons"][f"{reference}/{arm}"]
             cells = [f"{_ratio(found['stopping'][producer.target_key(goal)]['matched_error'])} "
                      f"{found['stopping'][producer.target_key(goal)]['verdict']}"
                      for goal in declaration["target_std_errors"]]
