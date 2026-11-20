@@ -77,8 +77,10 @@ found.looks[-1]["bootstrap_spread"]   # r
 - If a resampled solve fails, `bootstrap_interval` is `None` and the last look
   records `bootstrap_failure`; the acquisition itself is still returned. A
   failed replica is never dropped to produce an interval.
-- It is refused with `control_variates`, because it would resample the
-  uncorrected Ritz value, not the corrected one the run reports.
+- With `control_variates` every resample is re-solved and its correction
+  refitted from that resample, as each look refits it, and the interval is
+  centred on the corrected value. The fresh-seed check above used no control
+  variates, so this combination has not been checked against the exact energy.
 - `bootstrap_spread(draws)` and `bootstrap_spread_interval(estimate, draws,
   delta=..., family=...)` in `clifford_qc.subspace.uncertainty` build the same
   interval from draws a caller already has.

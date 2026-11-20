@@ -502,13 +502,22 @@ def test_a_control_variate_family_is_certified_before_any_shot(molecular, bad):
 
 
 def test_a_corrected_run_reports_the_corrected_value_and_its_interval(molecular):
-    from clifford_qc.subspace.symmetry_shifts import ritz_control_variate
+    from clifford_qc.subspace.symmetry_shifts import (corrected_ritz_functional,
+                                                      ritz_control_variate, shift_pair_table)
 
     shared, family = molecular
     result = corrected(shared, 61, family, target_std_error=1e-9)
     assert result.stopped == "schedule_exhausted"
-    final = ritz_control_variate(shared, result.cache, result.result, family)
+    table = shift_pair_table(shared.bank, shared.indices, family)
+    final, _ = corrected_ritz_functional(shared, result.cache, result.result, family,
+                                         table=table)
     assert result.control_variate == final
+    # The run builds its correction from the pair table; the operator products
+    # of ritz_control_variate give the same correction to rounding.
+    direct = ritz_control_variate(shared, result.cache, result.result, family)
+    assert direct.used == final.used and direct.unreadable == final.unreadable
+    assert direct.energy == pytest.approx(final.energy, abs=1e-12)
+    assert direct.std_error == pytest.approx(final.std_error, rel=1e-9)
     assert result.energy == result.looks[-1]["energy"] == final.energy
     assert result.std_error == final.std_error
     assert result.looks[-1]["raw_energy"] == result.result.ground_energy == final.raw_energy
@@ -550,14 +559,16 @@ def test_under_uniform_allocation_the_correction_changes_no_shot(molecular):
 
 def test_targeted_rounds_are_allocated_to_the_corrected_functional(molecular):
     from clifford_qc.measurement.session import grouped_cache_fingerprint
-    from clifford_qc.subspace.symmetry_shifts import corrected_ritz_functional
+    from clifford_qc.subspace.symmetry_shifts import corrected_ritz_functional, shift_pair_table
 
     shared, family = molecular
     budget = 100 * len(shared.groups)
     result = corrected(shared, 63, family, round_budgets=[budget])
     backend = FiniteShotBackend(seed=63)
     cache = shared.measure(backend, 100)
-    _, functional = corrected_ritz_functional(shared, cache, shared.solve(cache), family)
+    _, functional = corrected_ritz_functional(
+        shared, cache, shared.solve(cache), family,
+        table=shift_pair_table(shared.bank, shared.indices, family))
     plan = neyman_group_plan(shared.groups, cache, functional, budget)
     point = shared.solve(cache)
     raw = ritz_functional(shared.bank, point.indices, point.ritz_vector(0),
@@ -686,18 +697,45 @@ def test_invalid_bootstrap_arguments_are_rejected_before_any_shot(system, kwargs
                      **kwargs)
 
 
-def test_a_bootstrap_is_not_combined_with_control_variates(molecular):
+def test_a_corrected_run_bootstraps_the_corrected_value(molecular):
+    from clifford_qc.subspace.symmetry_shifts import corrected_ritz_functional, shift_pair_table
+
     shared, family = molecular
+    table = shift_pair_table(shared.bank, shared.indices, family)
+    plain = corrected(shared, 83, family)
+    found = corrected(shared, 83, family, bootstrap_replicates=24, bootstrap_seed=6)
+    # The bootstrap changes nothing the run measured or reported.
+    assert found.shots == plain.shots and found.interval == plain.interval
+    assert [{k: v for k, v in look.items() if k != "bootstrap_spread"} for look in found.looks] \
+        == list(plain.looks)
 
-    class NoShots:
-        def sample_grouped_from_state(self, *args, **kwargs):
-            raise AssertionError("a refused combination must not sample")
+    def refit(replica, solved):
+        return corrected_ritz_functional(shared, replica, solved, family, table=table)[0].energy
 
-    with pytest.raises(ValueError, match="not combined with control_variates"):
-        acquire_ritz(shared, NoShots(), pilot_shots_per_group=100, round_budgets=[800],
-                     control_variates=family, bootstrap_replicates=10)
+    draws = bootstrap_ritz_samples(shared, found.cache, result=found.result, replicates=24,
+                                   seed=6, statistic=refit)
+    assert found.looks[-1]["bootstrap_spread"] == bootstrap_spread(draws)
+    assert found.bootstrap_interval == bootstrap_spread_interval(
+        found.control_variate.energy, draws, delta=0.05, family=1)
+    assert found.bootstrap_interval.estimate == found.energy != found.result.energies[0]
+    # Refitting on every resample removes most of the spread the correction removes.
+    raw = bootstrap_ritz_samples(shared, found.cache, result=found.result, replicates=24, seed=6)
+    assert bootstrap_spread(draws) < 0.7 * bootstrap_spread(raw)
 
 
+def test_a_statistic_reads_the_same_resamples_as_the_ritz_value(system):
+    shared, _ = system
+    found = run(shared, 89)
+    plain = bootstrap_ritz_samples(shared, found.cache, result=found.result, replicates=12,
+                                   seed=3)
+    same = bootstrap_ritz_samples(shared, found.cache, result=found.result, replicates=12,
+                                  seed=3, statistic=lambda replica, solved: solved.energies[0])
+    assert list(same) == list(plain)
+    seen = []
+    bootstrap_ritz_samples(shared, found.cache, result=found.result, replicates=3, seed=3,
+                           statistic=lambda replica, solved: seen.append(
+                               (replica.total_shots, solved.estimator_parameters)) or 0.0)
+    assert seen == [(found.shots, found.result.estimator_parameters)] * 3
 def test_the_bootstrap_spread_interval_refuses_a_non_finite_estimate_and_never_overflows():
     for estimate in (math.nan, math.inf):
         with pytest.raises(ValueError, match="estimate must be finite"):

@@ -197,16 +197,8 @@ class GroupedWordCache:
         """The group whose measurement basis reads this word: the group whose
         per-qubit basis letter equals the word's letter at every qubit in the
         word's support. QWC grouping partitions the word set, so it is unique."""
-        assigned = self._word_group.get(code)
-        if assigned is not None:
-            return self._groups.get(assigned)
-        # Compatibility fallback for legacy hand-built GroupSample objects
-        # that predate explicit word assignments.
-        supp = self._word_support(self.n, code)
-        for g in self._groups.values():
-            if self._group_reads(g, code, supp):
-                return g
-        return None
+        key = self.group_key(code)
+        return None if key is None else self._groups.get(key)
 
     def group_key(self, code: int) -> tuple | None:
         """Basis key of the group this cache reads a word from, or ``None``.
@@ -220,11 +212,14 @@ class GroupedWordCache:
         assigned = self._word_group.get(code)
         if assigned is not None:
             return assigned
-        supp = self._word_support(self.n, code)
-        for key, g in self._groups.items():
-            if self._group_reads(g, code, supp):
-                return key
-        return None
+        # A word no batch assigned -- a legacy hand-built group, or a product
+        # such as a control-variate term that no bank word equals -- goes to
+        # the first group able to read it. ``reader_keys`` lists those in group
+        # order and caches them until a new setting arrives, so a functional
+        # with thousands of such words is not rescanned against every group on
+        # every call.
+        readers = self.reader_keys(code)
+        return readers[0] if readers else None
 
     def reader_keys(self, code: int) -> tuple:
         """Basis keys of *every* group whose shots record this word's outcome.

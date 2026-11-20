@@ -82,6 +82,29 @@ def test_reader_keys_agree_with_letterwise_scan(sessions):
     assert max(cache.reader_count(word.code) for word in pooled.words) > 1
 
 
+def test_an_unassigned_word_goes_to_the_first_group_that_reads_it(sessions):
+    """``group_key``'s fallback is the first reading group in setting order.
+
+    It used to rescan every setting on every call; it now reads the cached
+    ``reader_keys``. Words no batch assigned -- products of bank words, such as
+    a control-variate term -- must land exactly where the scan put them.
+    """
+    assigned = sessions[0]
+    cache = assigned.measure(FiniteShotBackend(1), 8)
+    order = list(cache.group_states())
+    unassigned = 0
+    for code in range(1, 4 ** cache.n):
+        support = [j for j in range(cache.n) if (code >> (2 * j)) & 3]
+        first = next((state["key"] for state in order
+                      for basis in [dict(state["basis"])]
+                      if all(j in basis and basis[j] == "IXYZ"[(code >> (2 * j)) & 3]
+                             for j in support)), None)
+        assigned_key = cache._word_group.get(code)
+        assert cache.group_key(code) == (first if assigned_key is None else assigned_key)
+        unassigned += assigned_key is None and first is not None
+    assert unassigned >= 20  # the fallback path is what is being tested
+
+
 def test_pooling_weights_are_a_convex_split(sessions):
     """Weights sum to one over readers: a reweighting, never a second copy."""
     pooled = sessions[1]

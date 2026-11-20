@@ -353,13 +353,15 @@ producing machine. No row was bitwise equal and none failed the checker's
 comparison. The largest relative difference in any ledger energy was `7.4e-9`.
 This is one machine and one alternative kernel, not a guarantee for every CPU.
 
-Three bound sources were edited after this record was produced.
+Four bound sources were edited after this record was produced.
 `clifford_qc/subspace/coverage.py` and `clifford_qc/subspace/uncertainty.py`
 now report an unavailable root as a failure instead of an `IndexError`, and
 `clifford_qc/subspace/acquisition.py` gained opt-in control variates
 ([SYMMETRY_SHIFTS.md](SYMMETRY_SHIFTS.md)) and, with `uncertainty.py`, an
 opt-in bootstrap interval at the stop ([BOOTSTRAP_STOP.md](BOOTSTRAP_STOP.md)),
-which no recorded run uses. Their
+which no recorded run uses. `clifford_qc/measurement/cache.py` now finds the
+group that reads an unassigned word from its cached reader list instead of
+rescanning every setting, which returns the same group. Their
 bytes at the declaration commit are packaged under
 `benchmarks/provenance/execution_sources/f8358f87aa28539ca397b6e7a8074bbc90ea9b20/`, and the checker holds the
 recorded digests against that snapshot. The replay then runs with the edited

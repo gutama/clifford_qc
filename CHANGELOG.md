@@ -14,6 +14,21 @@ Benchmark campaigns, their declarations and their outcomes are recorded in
 
 ### Added
 
+- **Bootstrap of the corrected Ritz value, and faster control variates.**
+  `acquire_ritz(control_variates=..., bootstrap_replicates=...)` is no longer
+  refused: every resample is re-solved and its correction refitted, and the
+  interval is centred on the corrected value. `bootstrap_ritz_samples` takes a
+  `statistic` for any estimate of a resampled cache and its re-solved point.
+  `shift_pair_table` expands every `A_a† K_k A_b` once, so each correction term
+  is a sparse product; `acquire_ritz` uses it at every look. On an 8-qubit bank
+  with about 1,700 settings a corrected acquisition run fell from 166 s to
+  40 s, and one corrected resample from about 10 s to 1.7 s. Part of that is
+  `GroupedWordCache.group_key`, which now finds the group for a word no batch
+  assigned from its cached reader list instead of rescanning every setting; it
+  returns the same group, and its bytes at the two records' declaration
+  commits are packaged. Correction words are now kept when their real
+  coefficient exceeds the operator tolerance, in both paths.
+
 - **Bootstrap interval at the acquisition stop**
   ([docs/restart/BOOTSTRAP_STOP.md](docs/restart/BOOTSTRAP_STOP.md)).
   `acquire_ritz(bootstrap_replicates=..., bootstrap_seed=...)` resamples the

@@ -65,6 +65,13 @@ except the acquisition option.
   and `raw_std_error`; `result` is the uncorrected solve; both intervals are
   centred on the corrected value with the same Bonferroni schedule as before.
   Under uniform allocation the correction changes no shot.
+- `shift_pair_table(bank, indices, family)` expands every `A_a† K_k A_b` once,
+  after which each `B† K_k B` is a sparse product with the Ritz vector instead
+  of three operator products. `acquire_ritz` builds it once per run and uses it
+  at every look and in `bootstrap_replicates`, which with control variates
+  re-solves every resample and refits its correction. Both paths keep a word
+  when its real coefficient exceeds the operator tolerance, and agree to
+  rounding.
 
 ## Limits
 

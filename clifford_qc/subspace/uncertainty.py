@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import Callable
 
 import numpy as np
 
@@ -85,7 +86,9 @@ def ritz_uncertainty(shared: SharedMeasurement, cache: GroupedWordCache,
 def bootstrap_ritz_samples(shared: SharedMeasurement, cache: GroupedWordCache, *,
                            root: int = 0, replicates: int = 200, seed: int = 0,
                            solver_kwargs: dict | None = None,
-                           result: SubspaceResult | None = None) -> np.ndarray:
+                           result: SubspaceResult | None = None,
+                           statistic: Callable[[GroupedWordCache, SubspaceResult], float]
+                           | None = None) -> np.ndarray:
     """The resampled Ritz values behind :func:`bootstrap_ritz`, in draw order.
 
     Each group's outcome histogram is resampled multinomially at its own shot
@@ -93,6 +96,11 @@ def bootstrap_ritz_samples(shared: SharedMeasurement, cache: GroupedWordCache, *
     describes. A caller that needs several intervals, or more than one interval
     construction, from one set of draws starts here. A failed replica raises,
     including ``ValueError`` if it no longer retains the requested root.
+
+    ``statistic(replica_cache, replica_result)`` replaces the Ritz value with
+    any estimate computed from a resampled cache and its re-solved point, for
+    instance a control-variate correction refitted on every replica. The
+    resampling stream is the same with or without it.
     """
     if replicates < 2:
         raise ValueError("replicates must be at least two")
@@ -124,11 +132,13 @@ def bootstrap_ritz_samples(shared: SharedMeasurement, cache: GroupedWordCache, *
         replica.add_batch(MeasurementBatch(n=shared.n, shots={}, plus_counts={},
                                            circuits=len(groups), groups=tuple(groups),
                                            state_key=cache.state_key))
-        energies = shared.solve(replica, **kwargs).energies
+        solved = shared.solve(replica, **kwargs)
+        energies = solved.energies
         if not -len(energies) <= root < len(energies):
             raise ValueError(f"bootstrap replica {len(samples)} retained {len(energies)} "
                              f"root(s); root {root} is unavailable")
-        samples.append(energies[root])
+        samples.append(energies[root] if statistic is None
+                       else float(statistic(replica, solved)))
     return np.array(samples)
 
 

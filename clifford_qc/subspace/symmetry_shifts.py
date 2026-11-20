@@ -33,7 +33,7 @@ import numpy as np
 from ..fermion import c_op, cdag_op, total_number_op, total_sz_op
 from ..ir import PauliSum, PauliWord
 from ..measurement.grouping import qwc_groups
-from ..multivector import MV
+from ..multivector import MV, TOL
 from ..pauli_kernel import word_mul
 from .generator_core import as_generators, to_mv
 from .symmetry_pools import _integer, _spin_pairs
@@ -392,8 +392,85 @@ def ritz_control_variate(shared, cache, point, family: Sequence[ShiftTerm], *, r
                                      coefficients=coefficients)[0]
 
 
+@dataclass(frozen=True)
+class ShiftPairTable:
+    """Every ``A_a† K_k A_b`` of one bank and family, as sparse word columns.
+
+    ``B† K_k B = sum_ab conj(c_a) c_b A_a† K_k A_b`` for ``B = sum_a c_a A_a``,
+    so once these products are expanded the correction terms of any Ritz
+    vector are a sparse matrix-vector product, not three operator products.
+    That is what makes refitting the correction on every bootstrap resample
+    affordable. Built by :func:`shift_pair_table`; read by
+    :func:`corrected_ritz_functional`.
+    """
+
+    indices: tuple[int, ...]
+    labels: tuple[str, ...]
+    # Per term: (codes, word_index, pair_index, values, constant_values), with
+    # pairs ordered a * len(indices) + b over all ordered generator pairs.
+    terms: tuple[tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray], ...]
+
+    def words(self, position: int, vector) -> tuple[dict[int, float], float]:
+        """The real word coefficients and constant of ``B† K B`` for one term.
+
+        A word is kept when its real coefficient exceeds the operator
+        tolerance, the rule the operator-product path applies, so a word whose
+        real part is rounding is dropped by both.
+        """
+        codes, word_index, pair_index, values, constants = self.terms[position]
+        c = np.asarray(vector, dtype=complex)
+        weights = np.outer(np.conjugate(c), c).ravel()
+        weighted = values * weights[pair_index]
+        real = np.bincount(word_index, weighted.real, minlength=len(codes))
+        keep = np.abs(real) > TOL
+        constant = complex(constants @ weights)
+        return ({int(code): float(value) for code, value in zip(codes[keep], real[keep])},
+                constant.real if abs(constant) > TOL else 0.0)
+
+
+def shift_pair_table(bank, indices: Sequence[int],
+                     family: Sequence[ShiftTerm]) -> ShiftPairTable:
+    """Expand ``A_a† K_k A_b`` for every ordered generator pair and family term.
+
+    Its cost is ``len(family) * len(indices) ** 2`` operator products, paid
+    once for a bank, after which :meth:`ShiftPairTable.words` builds each
+    correction term for any Ritz vector. The caller certifies the family.
+    """
+    indices = tuple(int(i) for i in indices)
+    generators = [bank.generator(i).mv for i in indices]
+    daggers = [g.dagger() for g in generators]
+    width = len(indices)
+    terms = []
+    for term in family:
+        operator = term.operator
+        right = [operator * g for g in generators]
+        positions: dict[int, int] = {}
+        word_index: list[int] = []
+        pair_index: list[int] = []
+        values: list[complex] = []
+        constants = np.zeros(width * width, dtype=complex)
+        for a in range(width):
+            for b in range(width):
+                product = daggers[a] * right[b]
+                pair = a * width + b
+                for code, value in product.terms.items():
+                    if code == 0:
+                        constants[pair] = value
+                        continue
+                    word_index.append(positions.setdefault(code, len(positions)))
+                    pair_index.append(pair)
+                    values.append(value)
+        codes = np.fromiter(positions, dtype=np.int64, count=len(positions))
+        terms.append((codes, np.asarray(word_index, dtype=np.int64),
+                       np.asarray(pair_index, dtype=np.int64),
+                       np.asarray(values, dtype=complex), constants))
+    return ShiftPairTable(indices=indices, labels=tuple(term.label for term in family),
+                          terms=tuple(terms))
+
+
 def corrected_ritz_functional(shared, cache, point, family: Sequence[ShiftTerm], *,
-                              root: int = 0, coefficients: Mapping[str, float] | None = None):
+                              root: int = 0, coefficients: Mapping[str, float] | None = None,
+                              table: ShiftPairTable | None = None):
     """:func:`ritz_control_variate` without certification, plus its functional.
 
     Returns ``(estimate, functional)``. ``functional`` is the corrected Ritz
@@ -402,6 +479,10 @@ def corrected_ritz_functional(shared, cache, point, family: Sequence[ShiftTerm],
     target the corrected estimate directly. The caller must already have
     certified ``family`` on this bank (:func:`certify_bank_family`); nothing
     here checks that ``<g_k> = 0``.
+
+    ``table`` (:func:`shift_pair_table` for this bank, ``point.indices`` and
+    ``family``) builds each correction term by a sparse product instead of
+    operator products; the terms agree to rounding.
     """
     from ..measurement.functionals import WordFunctional, covariance_matrix, ritz_functional
 
@@ -416,20 +497,31 @@ def corrected_ritz_functional(shared, cache, point, family: Sequence[ShiftTerm],
     if not target.is_deterministic and not readable(target.coefficients):
         raise ValueError("the cache does not read every word of the Ritz functional; "
                          "solve the point from the same cache")
-    b = sum((complex(c) * bank.generator(i).mv for c, i in zip(vector, point.indices)),
-            MV(bank.n))
-    bd = b.dagger()
+    if table is not None:
+        if (table.indices != tuple(int(i) for i in point.indices)
+                or table.labels != tuple(term.label for term in family)):
+            raise ValueError("the pair table was built for another bank order or family")
+        expansions = (table.words(position, vector) for position in range(len(family)))
+    else:
+        b = sum((complex(c) * bank.generator(i).mv for c, i in zip(vector, point.indices)),
+                MV(bank.n))
+        bd = b.dagger()
+
+        def expand(term):
+            operator = bd * term.operator * b
+            # Only the real part enters <B† K B>; a word whose real part is
+            # rounding (the imaginary part of a non-Hermitian term) is not read.
+            return ({code: value.real for code, value in operator.terms.items()
+                     if code != 0 and abs(value.real) > TOL},
+                    operator.terms.get(0, 0j).real)
+        expansions = (expand(term) for term in family)
     used, unreadable, functionals = [], [], []
-    for term in family:
-        operator = bd * term.operator * b
-        words = {code: value.real for code, value in operator.terms.items()
-                 if code != 0 and value.real != 0.0}
+    for term, (words, constant) in zip(family, expansions):
         if not words:
             continue
         if not readable(words):
             unreadable.append(term.label)
             continue
-        constant = operator.terms.get(0, 0j).real
         functionals.append(WordFunctional(words, constant))
         used.append(term.label)
     if not functionals:
@@ -472,7 +564,7 @@ def ritz_word_functional(hamiltonian, generators: Iterable, ritz_coefficients: S
     return {code: value.real for code, value in functional.terms.items() if code != 0}
 
 
-__all__ = ["OBJECTIVES", "ControlVariateEstimate", "SectorShift", "ShiftTerm",
+__all__ = ["OBJECTIVES", "ControlVariateEstimate", "SectorShift", "ShiftPairTable", "ShiftTerm",
            "certify_bank_family", "check_sector_family", "corrected_ritz_functional",
            "fit_sector_shift", "grouped_shot_variance", "ritz_control_variate",
-           "ritz_word_functional", "sector_shift_family"]
+           "ritz_word_functional", "sector_shift_family", "shift_pair_table"]

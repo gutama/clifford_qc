@@ -12,7 +12,6 @@ from benchmarks import run_bootstrap_stop as producer
 from benchmarks.run_interval_coverage import build_system, derived_seed
 from benchmarks.run_target_acquisition import load_declaration, schedule
 from clifford_qc.backends.finite_shot import FiniteShotBackend
-from clifford_qc.measurement.session import SharedMeasurement
 from clifford_qc.reproducibility import compare_json_records
 from clifford_qc.subspace.acquisition import acquire_ritz
 
@@ -239,16 +238,20 @@ def test_a_later_solve_failure_keeps_the_arms_that_had_already_stopped(declarati
     stops = {goal: live_row["A"][repr(goal)]["look"] for goal in declaration["target_std_errors"]}
     early, late = min(stops.values()), max(stops.values())
     assert early < late
-    solve = SharedMeasurement.solve
+    # build_system caches its systems, so this is the instance fresh_row uses.
+    # Patch the instance: another test's monkeypatch may already have left an
+    # instance-level solve there, which a class-level patch would not reach.
+    shared = build_system(declaration["systems"][0])[0]
+    solve = shared.solve
     seen = {"looks": 0}
 
-    def failing(self, cache, **kwargs):
+    def failing(cache, **kwargs):
         if seen["looks"] == late:
             raise np.linalg.LinAlgError("no retained mode")
         seen["looks"] += 1
-        return solve(self, cache, **kwargs)
+        return solve(cache, **kwargs)
 
-    monkeypatch.setattr(SharedMeasurement, "solve", failing)
+    monkeypatch.setattr(shared, "solve", failing)
     row = producer.fresh_row(declaration, 0, 0, 0, replicates=20)
     for goal, look in stops.items():
         a = row["A"][repr(goal)]

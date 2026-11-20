@@ -226,3 +226,40 @@ def test_control_variate_reports_unreadable_terms_and_refuses_misuse(problem):
     # A family for another electron count does not vanish on this reference.
     with pytest.raises(ValueError, match='does not annihilate'):
         ritz_control_variate(shared, full, point, sector_shift_family(3, 3))
+
+
+def test_the_pair_table_builds_the_same_correction_terms_as_operator_products(problem):
+    from clifford_qc.subspace.symmetry_shifts import shift_pair_table
+    shared, _, _ = _measured(problem)
+    family = sector_shift_family(3, 2, sz=0.0)
+    # A non-Hermitian term too: the table expands every ordered pair, so it
+    # does not rely on B† K B being Hermitian.
+    odd = ShiftTerm("odd", family[0].sector, cdag_op(6, 0) * c_op(6, 2))
+    terms = (*family, odd)
+    table = shift_pair_table(shared.bank, shared.indices, terms)
+    generators = [shared.bank.generator(i).mv for i in shared.indices]
+    rng = np.random.default_rng(3)
+    for _ in range(3):
+        vector = rng.normal(size=len(generators)) + 1j * rng.normal(size=len(generators))
+        b = sum((complex(c) * g for c, g in zip(vector, generators)), MV(6))
+        for position, term in enumerate(terms):
+            operator = b.dagger() * term.operator * b
+            expected = {code: value.real for code, value in operator.terms.items()
+                        if code != 0 and abs(value.real) > 1e-12}
+            words, constant = table.words(position, vector)
+            assert set(words) == set(expected)
+            assert max(abs(words[code] - expected[code]) for code in words) < 1e-12
+            assert constant == pytest.approx(operator.terms.get(0, 0j).real, abs=1e-12)
+
+
+def test_a_pair_table_for_another_order_or_family_is_refused(problem):
+    from clifford_qc.subspace.symmetry_shifts import corrected_ritz_functional, shift_pair_table
+    shared, cache, point = _measured(problem)
+    family = sector_shift_family(3, 2, sz=0.0)
+    table = shift_pair_table(shared.bank, shared.indices, family)
+    corrected_ritz_functional(shared, cache, point, family, table=table)
+    with pytest.raises(ValueError, match="another bank order or family"):
+        corrected_ritz_functional(shared, cache, point, family[:-1], table=table)
+    reversed_table = shift_pair_table(shared.bank, tuple(reversed(shared.indices)), family)
+    with pytest.raises(ValueError, match="another bank order or family"):
+        corrected_ritz_functional(shared, cache, point, family, table=reversed_table)

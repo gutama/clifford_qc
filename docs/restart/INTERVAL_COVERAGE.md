@@ -357,11 +357,14 @@ any failed solve in a cell. Every other row is regenerated as declared. This
 narrows the replay the declaration describes, which regenerates the first two
 replicas of every cell.
 
-Two bound sources, `clifford_qc/subspace/coverage.py` and
-`clifford_qc/subspace/uncertainty.py`, were edited after this record was
-produced: an unavailable root now becomes a reported failure instead of an
-`IndexError`, and `uncertainty.py` later gained the bootstrap-spread interval of
-[BOOTSTRAP_STOP.md](BOOTSTRAP_STOP.md), which no recorded row uses. Their bytes at the declaration commit are packaged under
+Three bound sources were edited after this record was produced. In
+`clifford_qc/subspace/coverage.py` and `clifford_qc/subspace/uncertainty.py`
+an unavailable root now becomes a reported failure instead of an `IndexError`,
+and `uncertainty.py` later gained the bootstrap-spread interval of
+[BOOTSTRAP_STOP.md](BOOTSTRAP_STOP.md), which no recorded row uses.
+`clifford_qc/measurement/cache.py` now finds the group that reads an
+unassigned word from its cached reader list instead of rescanning every
+setting, which returns the same group. Their bytes at the declaration commit are packaged under
 `benchmarks/provenance/execution_sources/c3129bbeb19d110cc1a16d4a059f7d66baa5dec2/`, and the checker holds the
 recorded digests against that snapshot. The replay then runs with the edited
 code and still has to reproduce every row it compares, which it does. A bound

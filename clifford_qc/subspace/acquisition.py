@@ -48,7 +48,9 @@ target-acquisition study, on fresh seeds and under criteria fixed before the
 run, it covered in at least 99% of runs in every cell, where the delta interval
 covered 84.5% to 93.5% on ``tfim6_mixed`` (``docs/restart/BOOTSTRAP_STOP.md``).
 It is heuristic and often wide: a spread many times ``std_error`` marks a stop
-whose truncation the data do not settle.
+whose truncation the data do not settle. With control variates each resample
+is re-solved and its correction refitted, so the interval is centred on the
+corrected value and its spread includes the fit.
 """
 
 from __future__ import annotations
@@ -67,8 +69,8 @@ from ..measurement.grouping import shared_basis
 from ..measurement.session import SharedMeasurement
 from .coverage import delta_method_applies
 from .linalg import SubspaceResult
-from .symmetry_shifts import (ControlVariateEstimate, ShiftTerm, certify_bank_family,
-                              corrected_ritz_functional)
+from .symmetry_shifts import (ControlVariateEstimate, ShiftPairTable, ShiftTerm,
+                              certify_bank_family, corrected_ritz_functional, shift_pair_table)
 from .uncertainty import (ASYMPTOTIC, Interval, bootstrap_ritz_samples, bootstrap_spread,
                           bootstrap_spread_interval, ritz_uncertainty)
 
@@ -121,8 +123,8 @@ class RitzAcquisition:
     ``result`` is always the uncorrected solve.
 
     With a bootstrap, ``bootstrap_interval`` is the schedule-valid interval
-    with the bootstrap spread in place of the delta-method standard error, and
-    the last look records ``bootstrap_spread``. If a resampled solve fails, the
+    with the bootstrap spread in place of the delta-method standard error,
+    centred on ``energy``, and the last look records ``bootstrap_spread``. If a resampled solve fails, the
     interval is ``None`` and the last look records ``bootstrap_failure``
     instead; the acquisition itself stands.
     """
@@ -268,8 +270,10 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
     :func:`~clifford_qc.subspace.uncertainty.bootstrap_spread_interval` with the
     same ``delta`` and look count as ``interval``. It costs that many extra
     solves and no shot, uses its own random stream, and changes nothing the run
-    measured or reported otherwise. The fresh-seed check used 500. It is not
-    combined with control variates, whose corrected value it would not resample.
+    measured or reported otherwise. The fresh-seed check used 500. With
+    ``control_variates`` every resample is re-solved and its correction refitted
+    from that resample, as each look refits it, and the interval is centred on
+    the corrected value.
 
     Only estimators the delta method accepts are supported, because both the
     allocation target and the interval are its Ritz functional. A look that
@@ -300,16 +304,17 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
         bootstrap_replicates = _positive_int(bootstrap_replicates, "bootstrap_replicates")
         if bootstrap_replicates < 2:
             raise ValueError("bootstrap_replicates must be at least two")
-        if control_variates is not None:
-            raise ValueError("the bootstrap interval resamples the uncorrected Ritz value; "
-                             "it is not combined with control_variates")
     if isinstance(bootstrap_seed, (bool, np.bool_)) or not isinstance(bootstrap_seed, Integral) \
             or bootstrap_seed < 0:
         raise ValueError("bootstrap_seed must be a nonnegative integer")
     terms: tuple[ShiftTerm, ...] | None = None
+    table: ShiftPairTable | None = None
     if control_variates is not None:
         terms = tuple(control_variates)
         certify_bank_family(shared.bank, terms)
+        # Expanded once, so every look and every bootstrap resample builds its
+        # correction terms by a sparse product.
+        table = shift_pair_table(shared.bank, shared.indices, terms)
     # Every look at which the run could report: after the pilot and each round.
     family = len(budgets) + 1 if target_std_error is not None else 1
 
@@ -338,7 +343,7 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
             energy = float(point.energies[root])
         else:
             correction, functional = corrected_ritz_functional(shared, cache, point, terms,
-                                                               root=root)
+                                                               root=root, table=table)
             sigma, energy = correction.std_error, correction.energy
         retained = point.resources.get("smallest_retained_overlap_eigenvalue")
         look = {"look": index, "shots": int(cache.total_shots),
@@ -382,16 +387,22 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
     bootstrap = None
     if bootstrap_replicates is not None:
         schedule["bootstrap"] = {"replicates": bootstrap_replicates, "seed": int(bootstrap_seed)}
+        statistic = None
+        if terms is not None:
+            def statistic(replica, solved, terms=terms):
+                return corrected_ritz_functional(shared, replica, solved, terms,
+                                                 root=root, table=table)[0].energy
         try:
             draws = bootstrap_ritz_samples(shared, cache, root=root,
                                            replicates=bootstrap_replicates,
-                                           seed=int(bootstrap_seed), result=point)
+                                           seed=int(bootstrap_seed), result=point,
+                                           statistic=statistic)
         except _SOLVE_FAILURES as error:
             looks[-1]["bootstrap_failure"] = f"{type(error).__name__}: {error}"
         else:
             looks[-1]["bootstrap_spread"] = bootstrap_spread(draws)
-            bootstrap = bootstrap_spread_interval(point.energies[root], draws, delta=delta,
-                                                  family=family)
+            centre = point.energies[root] if correction is None else correction.energy
+            bootstrap = bootstrap_spread_interval(centre, draws, delta=delta, family=family)
     return RitzAcquisition(
         result=point, cache=cache, interval=interval, naive_interval=naive,
         looks=tuple(looks), stopped=stopped, allocation=allocation, schedule=schedule,
