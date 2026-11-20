@@ -167,11 +167,12 @@ def bootstrap_ritz(shared: SharedMeasurement, cache: GroupedWordCache, *,
                     std_error=float(np.std(values, ddof=1)) if replicates > 1 else None)
 
 def bootstrap_spread(samples) -> float:
-    """Half the central 68% range of bootstrap draws: ``(q84 - q16) / 2``.
+    """Half the range between the 16th and 84th percentiles: ``(q84 - q16) / 2``.
 
-    For Gaussian draws this is their standard deviation. Unlike the standard
-    deviation it ignores the tails, so a few replicas that lost a retained
-    direction move it only as far as they move the central range.
+    For Gaussian draws this is ``Phi^-1(0.84)`` standard deviations, within 0.6%
+    of the standard deviation. Unlike the standard deviation it ignores the
+    tails, so a few replicas that lost a retained direction move it only as far
+    as they move the central range.
     """
     values = np.asarray(samples, dtype=float)
     if values.ndim != 1 or values.size < 2 or not np.all(np.isfinite(values)):
@@ -185,7 +186,8 @@ def bootstrap_spread_interval(estimate: float, samples, *, delta: float = 0.05,
     """``estimate +- z * bootstrap_spread(samples)`` -- ``heuristic``.
 
     ``z`` is the normal quantile :func:`ritz_uncertainty` uses for the same
-    ``delta`` and ``family``, so the two intervals differ only in the spread.
+    ``delta`` and ``family``, so the two intervals differ only in what ``z``
+    multiplies.
     The bootstrap spread includes how far the retained eigenspace moves under
     resampling, which the delta method's linearization leaves out; it is
     centred on the point estimate rather than on the draws, so a draw
@@ -193,9 +195,12 @@ def bootstrap_spread_interval(estimate: float, samples, *, delta: float = 0.05,
     """
     if not 0.0 < delta < 1.0:
         raise ValueError("delta must be in (0, 1)")
-    spread = bootstrap_spread(samples)
-    radius = simultaneous_z_radius(spread ** 2, delta, family)
     estimate = float(estimate)
+    if not math.isfinite(estimate):
+        raise ValueError("estimate must be finite")
+    spread = bootstrap_spread(samples)
+    # z itself, then times the spread: squaring an extreme spread could overflow.
+    radius = simultaneous_z_radius(1.0, delta, family) * spread
     return Interval(estimate=estimate, lower=estimate - radius, upper=estimate + radius,
                     delta=delta, evidence=HEURISTIC, std_error=spread)
 

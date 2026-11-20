@@ -639,7 +639,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 5111 passed, 13 skipped (expected if green)
+pytest                                      # 5132 passed, 13 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -658,7 +658,7 @@ the remaining `13 - 7 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-5117      == 5111   + (13      -   7)
+5138      == 5132   + (13      -   7)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -1766,10 +1766,20 @@ python benchmarks/check_bootstrap_stop.py --report
 ```
 
 The checker verifies both records, recomputes the arm-A verdict and the
-tables the document embeds, and `--replay N` regenerates the first `N`
-replicas of every bank with the committed producer and with
-`acquire_ritz(bootstrap_replicates=...)`. The producer refuses to overwrite a
-record; a full fresh run took 2 h 10 min on four workers:
+tables the document embeds, and runs as the `check_bootstrap_stop` CI gate.
+`--replay N` regenerates the first `N` replicas of every bank with the
+committed producer and with `acquire_ritz(bootstrap_replicates=...)`; it is
+skipped with a note under a NumPy or SciPy other than the record's, and
+`--require-replay` makes that a failure. `--reported-intervals` reruns every
+arm-A stop to compare the interval `acquire_ritz` itself reports:
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
+python benchmarks/check_bootstrap_stop.py --reported-intervals --jobs 4
+```
+
+The producer refuses to overwrite a record; a full fresh run took 2 h 10 min on
+four workers:
 
 ```bash
 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \

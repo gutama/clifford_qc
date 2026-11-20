@@ -696,3 +696,24 @@ def test_a_bootstrap_is_not_combined_with_control_variates(molecular):
     with pytest.raises(ValueError, match="not combined with control_variates"):
         acquire_ritz(shared, NoShots(), pilot_shots_per_group=100, round_budgets=[800],
                      control_variates=family, bootstrap_replicates=10)
+
+
+def test_the_bootstrap_spread_interval_refuses_a_non_finite_estimate_and_never_overflows():
+    for estimate in (math.nan, math.inf):
+        with pytest.raises(ValueError, match="estimate must be finite"):
+            bootstrap_spread_interval(estimate, [0.0, 1.0, 2.0])
+    # The spread squared would overflow; the radius must not.
+    interval = bootstrap_spread_interval(0.0, [-2e200, 0.0, 2e200])
+    assert math.isfinite(interval.upper) and interval.upper > 1e200
+
+
+def test_a_bootstrap_of_an_excited_root_resamples_that_root(system):
+    shared, _ = system
+    found = run(shared, 37, root=1, bootstrap_replicates=30, bootstrap_seed=5)
+    draws = bootstrap_ritz_samples(shared, found.cache, result=found.result, root=1,
+                                   replicates=30, seed=5)
+    assert found.looks[-1]["bootstrap_spread"] == bootstrap_spread(draws)
+    assert found.bootstrap_interval.estimate == found.result.energies[1] == found.energy
+    ground = bootstrap_ritz_samples(shared, found.cache, result=found.result, root=0,
+                                    replicates=30, seed=5)
+    assert bootstrap_spread(ground) != bootstrap_spread(draws)

@@ -37,6 +37,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import hashlib
+import importlib.metadata
 import json
 import math
 import platform
@@ -127,25 +128,44 @@ def fresh_row(declaration: dict, system: int, replica: int, allocation_index: in
     arm_a: dict = {}
     arm_b: dict = {}
     last = None
+    # One bootstrap per (look, target): both arms, and a stop that is later
+    # relabelled as exhausting the schedule, read the same draws.
+    boots: dict = {}
 
     def snapshot(index, point, sigma, t, tag):
-        draws = bootstrap_ritz_samples(
-            shared, cache, result=point, replicates=replicates,
-            seed=derived_seed(root, BOOTSTRAP_STREAM + system, replica,
-                              10 * allocation_index + t, index))
-        q = np.quantile(draws, list(FRESH_LEVELS))
-        return {"look": index, "shots": int(cache.total_shots),
-                "estimate": float(point.energies[0]), "sigma": sigma,
-                "rank": int(point.effective_rank), "robust": float((q[3] - q[1]) / 2),
-                "quantiles": [float(v) for v in q], "stopped": tag}
+        if (index, t) not in boots:
+            base = {"look": index, "shots": int(cache.total_shots),
+                    "estimate": float(point.energies[0]), "sigma": sigma,
+                    "rank": int(point.effective_rank)}
+            try:
+                draws = bootstrap_ritz_samples(
+                    shared, cache, result=point, replicates=replicates,
+                    seed=derived_seed(root, BOOTSTRAP_STREAM + system, replica,
+                                      10 * allocation_index + t, index))
+            except SOLVE_FAILURES as error:
+                # Recorded, never dropped: the checker counts it as a miss.
+                base["boot_failed"] = f"{type(error).__name__}: {error}"
+            else:
+                q = np.quantile(draws, list(FRESH_LEVELS))
+                base.update(robust=float((q[3] - q[1]) / 2), quantiles=[float(v) for v in q])
+            boots[(index, t)] = base
+        return {**boots[(index, t)], "stopped": tag}
 
+    row = {"system": spec["key"], "allocation": allocation, "replica": replica,
+           "seed": seed, "target": design["target"], "exact_rank": design["exact_rank"]}
     for index in range(len(budgets) + 1):
         try:
             point = shared.solve(cache, **declaration["solver_kwargs"])
         except SOLVE_FAILURES as error:
-            return {"system": spec["key"], "allocation": allocation, "replica": replica,
-                    "failed": f"look {index}: {type(error).__name__}: {error}",
-                    "A": arm_a, "B": arm_b}
+            # As in acquire_ritz: an arm that has already stopped keeps its
+            # result; every arm still running fails here, with its look.
+            failure = {"look": index, "shots": int(cache.total_shots),
+                       "failed": f"{type(error).__name__}: {error}"}
+            for arm in (arm_a, arm_b):
+                for goal in targets:
+                    arm.setdefault(goal, failure)
+            return {**row, "A": {repr(k): v for k, v in arm_a.items()},
+                    "B": {repr(k): v for k, v in arm_b.items()}}
         functional = ritz_functional(shared.bank, point.indices, point.ritz_vector(0),
                                      point.energies[0])
         sigma = math.sqrt(max(0.0, functional.variance(cache)))
@@ -159,7 +179,7 @@ def fresh_row(declaration: dict, system: int, replica: int, allocation_index: in
                 arm_a[goal] = boot
             if goal not in arm_b:
                 boot = boot or snapshot(index, point, sigma, t, "target_met")
-                if boot["robust"] <= goal:
+                if boot.get("robust", math.inf) <= goal:
                     arm_b[goal] = boot
         if all(g in arm_a and g in arm_b for g in targets) or index == len(budgets):
             break
@@ -175,9 +195,7 @@ def fresh_row(declaration: dict, system: int, replica: int, allocation_index: in
         for arm in (arm_a, arm_b):
             if goal not in arm:
                 arm[goal] = snapshot(index, point, sigma, t, "schedule_exhausted")
-    return {"system": spec["key"], "allocation": allocation, "replica": replica,
-            "seed": seed, "target": design["target"], "exact_rank": design["exact_rank"],
-            "A": {repr(k): v for k, v in arm_a.items()},
+    return {**row, "A": {repr(k): v for k, v in arm_a.items()},
             "B": {repr(k): v for k, v in arm_b.items()}}
 
 
@@ -189,9 +207,18 @@ def _fresh_work(task: tuple) -> list[dict]:
 
 # ------------------------------------------------------------------ screen mode
 
+_STOPS: dict | None = None
+
+
 def _declared_stops() -> dict:
-    record = json.load(gzip.open(DECLARED_RESULTS))
-    return {(r["system"], r["allocation"], r["replica"]): r["stopping"] for r in record["rows"]}
+    """The declared record's stopped runs, read once per process."""
+    global _STOPS
+    if _STOPS is None:
+        with gzip.open(DECLARED_RESULTS, "rt") as handle:
+            record = json.load(handle)
+        _STOPS = {(r["system"], r["allocation"], r["replica"]): r["stopping"]
+                  for r in record["rows"]}
+    return _STOPS
 
 
 def screen_rows(declaration: dict, system: int, replica: int, *,
@@ -264,14 +291,35 @@ def _git() -> dict:
         return {"git_head": None, "dirty_tree": None}
 
 
-def provenance(started: float) -> dict:
-    import scipy
+def dependencies() -> dict:
+    """Versions whose change can move a finite-shot value (``sampling_stream_mismatch``)."""
+    versions = {}
+    for package in ("numpy", "scipy"):
+        try:
+            versions[package] = importlib.metadata.version(package)
+        except importlib.metadata.PackageNotFoundError:
+            versions[package] = None
+    return versions
 
+
+def provenance(started: float) -> dict:
     return {**_git(), "producer": "benchmarks/run_bootstrap_stop.py",
             "producer_sha256": sha256(ROOT / "benchmarks" / "run_bootstrap_stop.py"),
             "started_unix": started, "python": platform.python_version(),
-            "numpy": np.__version__, "scipy": scipy.__version__,
+            "dependencies": dependencies(),
             "implementation": {path: sha256(ROOT / path) for path in IMPLEMENTATION}}
+
+
+def build_record(mode: str, rows: list[dict], *, declaration: dict, replicas: int,
+                 replicates: int, stamp: dict, seconds: float) -> dict:
+    """The record a mode writes; ``check_bootstrap_stop.py`` reads exactly this shape."""
+    common = {"replicas": replicas, "bootstrap_replicates": replicates,
+              "provenance": stamp, "seconds": seconds, "rows": rows}
+    if mode == "fresh":
+        return {"schema": RESULTS_SCHEMA, "seed_root": FRESH_ROOT,
+                "criteria_sha256": sha256(CRITERIA), **common}
+    return {"schema": SCREEN_SCHEMA, "seed_root": declaration["seed_root"],
+            "quantile_levels": list(screen_levels(declaration)), **common}
 
 
 def main(argv=None) -> int:
@@ -302,11 +350,9 @@ def main(argv=None) -> int:
             rows.extend(chunk)
             if done % 50 == 0:
                 print(f"{done}/{len(tasks)} ({time.time() - started:.0f}s)", flush=True)
-    record = {"schema": RESULTS_SCHEMA if args.mode == "fresh" else SCREEN_SCHEMA,
-              "seed_root": FRESH_ROOT if args.mode == "fresh" else declaration["seed_root"],
-              "replicas": args.replicas, "bootstrap_replicates": args.bootstrap_replicates,
-              "criteria_sha256": sha256(CRITERIA), "provenance": stamp,
-              "seconds": time.time() - started, "rows": rows}
+    record = build_record(args.mode, rows, declaration=declaration, replicas=args.replicas,
+                          replicates=args.bootstrap_replicates, stamp=stamp,
+                          seconds=time.time() - started)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     opener = gzip.open if args.output.suffix == ".gz" else open
     with opener(args.output, "wt") as handle:

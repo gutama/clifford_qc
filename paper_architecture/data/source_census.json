@@ -1,7 +1,6 @@
 {
   "gates": {
     "absent_from_workflow": [
-      "check_bootstrap_stop",
       "check_phase16b_feasibility",
       "check_phase16b_preregistration",
       "check_phase16b_v2_feasibility",
@@ -13,6 +12,7 @@
     "automatic_gates": [
       "check_bank_policy_matrix",
       "check_bank_storage_ledger",
+      "check_bootstrap_stop",
       "check_clifford_hierarchy",
       "check_cross_domain_ratio",
       "check_docs",
@@ -106,10 +106,10 @@
       "check_r3d_qr3_refinement"
     ],
     "gates": 82,
-    "named_in_workflow": 74,
+    "named_in_workflow": 75,
     "producers": 81,
     "producers_without_gate": 26,
-    "run_on_every_pull_request": 63,
+    "run_on_every_pull_request": 64,
     "same_stem_pairs": 55
   },
   "records": {
@@ -250,7 +250,7 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 21517,
+        "lines": 21522,
         "modules": 53
       },
       "surface": {
@@ -258,9 +258,9 @@
         "modules": 1
       }
     },
-    "package_lines": 40511,
+    "package_lines": 40516,
     "package_modules": 133,
-    "test_lines": 50701,
+    "test_lines": 50881,
     "test_modules": 204
   }
 }
