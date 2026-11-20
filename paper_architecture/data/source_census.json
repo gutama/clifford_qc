@@ -1,6 +1,7 @@
 {
   "gates": {
     "absent_from_workflow": [
+      "check_molecular_acquisition",
       "check_phase16b_feasibility",
       "check_phase16b_preregistration",
       "check_phase16b_v2_feasibility",
@@ -86,7 +87,7 @@
       "Plan ledger": 1,
       "Post-hoc declaration": 6,
       "Preregistration": 13,
-      "Sampled inference accounting": 5,
+      "Sampled inference accounting": 6,
       "Value-rebuilt": 34
     },
     "conditional_gates": [],
@@ -105,12 +106,12 @@
       "check_r3c_lih_full_cost",
       "check_r3d_qr3_refinement"
     ],
-    "gates": 82,
+    "gates": 83,
     "named_in_workflow": 75,
-    "producers": 81,
+    "producers": 82,
     "producers_without_gate": 26,
     "run_on_every_pull_request": 64,
-    "same_stem_pairs": 55
+    "same_stem_pairs": 56
   },
   "records": {
     "annotated_records": [
@@ -260,7 +261,7 @@
     },
     "package_lines": 40624,
     "package_modules": 133,
-    "test_lines": 50982,
-    "test_modules": 204
+    "test_lines": 51221,
+    "test_modules": 205
   }
 }

@@ -43,6 +43,11 @@ re-solves every resample and so sees that truncation. On fresh seeds, under
 criteria fixed before the run, it covered in 99% to 100% of the six-qubit runs,
 at the cost of intervals up to seven times wider where truncation was frequent.
 
+The [declared molecular acquisition study](MOLECULAR_ACQUISITION.md) repeats
+that comparison on four molecular banks, adding control variates and the
+bootstrap interval at the stop, with pass/fail criteria on two held-out banks.
+It is declared and not yet run.
+
 [Symmetry-shift control variates](SYMMETRY_SHIFTS.md) subtract certified
 zero-mean sector terms from a measured Ritz value, after the fact or at every
 look of an acquisition run. In exploratory runs on spin-adapted molecular banks
