@@ -918,6 +918,12 @@ wall-clock profiles are machine-dependent diagnostics, not scientific records.
 
 ## Continuous integration
 
+The declared [molecular interval coverage study](docs/restart/MOLECULAR_INTERVAL_COVERAGE.md)
+uses the already frozen LiH/H4 molecular cases at two fixed shot budgets.
+See `benchmarks/run_molecular_interval_coverage.py` and
+`benchmarks/check_molecular_interval_coverage.py`; the protocol records the
+execution and replay commands. The molecular coverage full run is never a PR gate.
+
 `.github/workflows/ci.yml` runs on every pull request and on every push to
 `main`. Each value gate builds its environment out of the record it verifies
 rather than out of a hand-written pin:
