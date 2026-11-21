@@ -16,7 +16,7 @@ extends the sampled workflow while preserving the original negative result.
 The [shared runner and artifact contract](RUNNER_ARTIFACTS.md) now supplies
 failure-preserving execution receipts, immutable byte-addressed artifacts and
 one CI gate registry, with all deterministic checks on every PR, affected
-restart replay and weekly verification. Legacy sampled instruments remain
+spin replay and weekly or explicit full cross-domain verification. Legacy sampled instruments remain
 manual-only under their frozen reporting contracts. Historical scientific runners and evidence remain unchanged.
 
 The [pencil-estimator review and fixed-policy ladder](PENCIL_ESTIMATORS.md)

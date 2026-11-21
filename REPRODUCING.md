@@ -1042,7 +1042,7 @@ record; unrecorded library versions are not presented as historical pins.
 | `test` | every PR, main push, schedule and dispatch | full pytest/lint plus global environment, documentation, evidence and manuscript gates |
 | `extras` | every PR, main push, schedule and dispatch | minimum-Python NumPy-only and full bridge/chemistry test suites |
 | `compatibility` | schedule and dispatch | full advertised Python-version matrix with research/stabilizer extras |
-| `records` | every PR, main push, schedule and dispatch | all structural/report checks, grouped by identical pinned environment in bounded batches; affected restart replays run separately, and explicit dispatch additionally runs legacy sampled instruments |
+| `records` | every PR, main push, schedule and dispatch | all structural/report checks in bounded, pinned-environment batches; affected spin replays run separately; full cross-domain molecular replay runs only on schedule or explicit dispatch; dispatch additionally runs legacy sampled instruments |
 
 Sunday 09:17 Asia/Jakarta runs deterministic and restart full-seed verification.
 Every structural batch retains the sum of its constituent command timeout
@@ -1067,9 +1067,14 @@ Maintenance metadata parsing/publication shares `metadata_io`; frozen campaign
 serializers and source snapshots retain their historical contracts.
 
 A PR changing legacy sampled producers, declarations or evidence must name an
-explicit dispatch against its exact head before merge. Restart replay and CI
-transport changes exercise their matching restart verification automatically. Weekly replay supplements that requirement. Each replay
-uses existing evidence; the workflow never invokes a new campaign's `--execute`.
+explicit dispatch against its exact head before merge. The spin replay still
+runs automatically for affected changes. The expensive full cross-domain
+replay is deferred to weekly verification or explicit dispatch; the planner
+reports it when affected, and the short independent cross-domain checker
+remains mandatory on every PR/main push. Changes to the molecular campaign's
+scientific sources, declaration or evidence should be verified by full replay
+against the exact proposed head before merge. Each replay uses existing
+evidence; the workflow never invokes a new campaign's `--execute`.
 
 ```bash
 python -m benchmarks.ci_gates --plan --event workflow_dispatch

@@ -82,10 +82,28 @@ def test_transport_change_runs_all_deterministic_gates(path):
     assert {"replay_sampled_ratio", "replay_cross_domain_ratio"} <= chosen
 
 
-def test_unavailable_git_ancestry_selects_full_replay_instead_of_skipping():
+def test_unavailable_git_ancestry_selects_all_eligible_replays_and_reports_deferred():
     result = ci.plan("pull_request", {})
     assert result["has_structural"] and result["has_sampled"]
-    assert "replay_cross_domain_ratio" in names(result["sampled"]["include"])
+    assert "replay_sampled_ratio" in names(result["sampled"]["include"])
+    assert "check_cross_domain_ratio" in names(result["structural"]["include"])
+    assert result['deferred_replays'] == ['replay_cross_domain_ratio']
+
+
+@pytest.mark.parametrize('event', ['pull_request', 'push'])
+@pytest.mark.parametrize('path', ['benchmarks/run_cross_domain_ratio.py',
+                                 'docs/restart/cross_domain_ratio_results.json.gz',
+                                 '.github/workflows/ci.yml'])
+def test_expensive_cross_domain_replay_is_deferred_even_when_affected(event, path, monkeypatch):
+    monkeypatch.setattr(ci, 'changed_paths', lambda *a: [path])
+    payload = {'pull_request': {'base': {'sha': 'a'*40}, 'head': {'sha': 'b'*40}},
+               'before': 'a'*40, 'after': 'b'*40}
+    result = ci.plan(event, payload)
+    assert 'check_cross_domain_ratio' in names(result['structural']['include'])
+    assert 'replay_cross_domain_ratio' not in names(result['sampled']['include'])
+    assert result['deferred_replays'] == ['replay_cross_domain_ratio']
+    assert 'replay_cross_domain_ratio' not in {
+        gate for row in result['records']['include'] for gate in row['gates'].split(',')}
 
 
 @pytest.mark.parametrize("event", ["schedule", "workflow_dispatch"])
@@ -116,7 +134,8 @@ def test_deleted_and_renamed_evidence_paths_are_both_routed(tmp_path):
     assert "replay_cross_domain_ratio" in names(ci.affected(ci.load_registry(), changed))
 
 
-@pytest.mark.parametrize("mutation", ["duplicate", "traversal", "missing_script", "unknown_tier", "manual_contract"])
+@pytest.mark.parametrize("mutation", ["duplicate", "traversal", "missing_script", "unknown_tier", "manual_contract",
+                                      "defer_structural", "defer_manual", "invalid_schedule_flag"])
 def test_registry_rejects_corruption(tmp_path, mutation):
     registry = json.loads(ci.REGISTRY.read_text())
     if mutation == "duplicate": registry["gates"].append(deepcopy(registry["gates"][0]))
@@ -125,6 +144,12 @@ def test_registry_rejects_corruption(tmp_path, mutation):
     elif mutation == "unknown_tier": registry["gates"][0]["tier"] = "quietly_skip"
     elif mutation == "manual_contract":
         next(g for g in registry['gates'] if g['gate']=='check_r3d_qr3_refinement')['manual_only'] = False
+    elif mutation == "defer_structural":
+        next(g for g in registry['gates'] if g['tier'] == 'structural')['scheduled_only'] = True
+    elif mutation == "defer_manual":
+        next(g for g in registry['gates'] if g.get('manual_only'))['scheduled_only'] = True
+    elif mutation == "invalid_schedule_flag":
+        next(g for g in registry['gates'] if g['gate'] == 'replay_cross_domain_ratio')['scheduled_only'] = 'true'
     path = tmp_path/"registry.json"
     path.write_text(json.dumps(registry))
     with pytest.raises(ValueError):
@@ -260,7 +285,10 @@ def test_routine_edits_do_not_spend_sampled_replays(path):
 @pytest.mark.parametrize('event', ['pull_request', 'push', 'schedule'])
 def test_frozen_manual_only_replays_are_never_automatic(event):
     result = ci.plan(event, {})
-    assert names(result['sampled']['include']) == {'replay_sampled_ratio', 'replay_cross_domain_ratio'}
+    expected = {'replay_sampled_ratio'}
+    if event == 'schedule':
+        expected.add('replay_cross_domain_ratio')
+    assert names(result['sampled']['include']) == expected
     assert 'check_r3d_qr3_refinement' not in names(result['sampled']['include'])
     config = json.loads((ci.ROOT/'benchmarks/configs/r3d_qr3_refinement.json').read_text())
     assert config['reporting_contract']['sampled_ci_is_manual_dispatch_only'] is True

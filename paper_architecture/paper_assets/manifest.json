@@ -25,7 +25,7 @@
       "architecture_sources_sha256": "9fc2a060afd98e1f64c01d337bbb31b8e7471b93a4bd849bc65481453f578e5c",
       "asset_git_blob_sha": "9564583b1786671c456df57f4b7512f9e5d96f0c",
       "sources": {
-        "paper_architecture/data/source_census.json": "459bff53d9b4b2e1c3a481efe616f713e54f4789369722991c8815786ade2c51",
+        "paper_architecture/data/source_census.json": "84d5d0ab8c7ac4d0d3a0c73ac7067279f0136bf849f8750d36c02efa304bcba1",
         "paper_architecture/make_tables.py": "40de3f1c267f35491150cdf8302320d4ffb69ca4631fd2f3e06431d5d893717c"
       }
     }

@@ -69,7 +69,7 @@ def load_registry(path=REGISTRY, *, root=ROOT):
         raise ValueError("empty or duplicate CI gates")
     for gate in gates:
         required = {"gate", "tier", "commands", "environment_record", "timeout", "watch"}
-        if (not required <= set(gate) or not set(gate) <= required | {"execution_declaration", "inputs", "manual_only", "max_output_bytes", "artifacts"}
+        if (not required <= set(gate) or not set(gate) <= required | {"execution_declaration", "inputs", "manual_only", "scheduled_only", "max_output_bytes", "artifacts"}
                 or not re.fullmatch(r"[a-z][a-z0-9_]*", gate["gate"])
                 or gate["tier"] not in TIERS or type(gate["timeout"]) is not int
                 or not 1 <= gate["timeout"] <= 350 or not gate["commands"]
@@ -83,6 +83,9 @@ def load_registry(path=REGISTRY, *, root=ROOT):
                     and gate.get('manual_only') is not True):
                 raise ValueError('R3d frozen reporting contract requires manual dispatch')
         if (type(gate.get("manual_only", False)) is not bool
+                or type(gate.get("scheduled_only", False)) is not bool
+                or (gate.get("scheduled_only", False)
+                    and (gate['tier'] != 'sampled' or gate.get('manual_only', False)))
                 or type(gate.get("max_output_bytes", 16 * 2**20)) is not int
                 or not 0 < gate.get("max_output_bytes", 16 * 2**20) <= 64 * 2**20
                 or not isinstance(gate.get("inputs", []), list)
@@ -201,7 +204,8 @@ def affected(gates, changed, *, full=False, root=ROOT):
 
     Literal data reads are not a complete import graph, so every deterministic
     gate still runs on every PR. Legacy sampled gates retain manual dispatch.
-    The two new replay gates use explicit data/environment and import closures.
+    Restart replay dependencies are still tracked even when execution is
+    deferred by policy; the planner reports those replays separately.
     """
     for path in changed:
         if Path(path).is_absolute() or '..' in Path(path).parts or '\\' in path or not path:
@@ -313,9 +317,13 @@ def plan(event, payload, *, gates=None, root=ROOT):
     else:
         raise ValueError('unsupported CI event')
     manual = [g['gate'] for g in chosen if g.get('manual_only', False)]
+    deferred = [g['gate'] for g in chosen if g.get('scheduled_only', False)]
     if event != 'workflow_dispatch':
         chosen = [g for g in chosen if not g.get('manual_only', False)]
-    result = {'manual_required': manual if event in {'pull_request', 'push'} else []}
+    if event in {'pull_request', 'push'}:
+        chosen = [g for g in chosen if not g.get('scheduled_only', False)]
+    result = {'manual_required': manual if event in {'pull_request', 'push'} else [],
+              'deferred_replays': deferred if event in {'pull_request', 'push'} else []}
     for tier in ('structural', 'sampled'):
         rows = []
         for g in chosen:
@@ -379,7 +387,11 @@ def main(argv=None):
     gates = load_registry()
     if args.plan:
         payload = read_json(args.event_file) if args.event_file else {}
-        for key, value in plan(args.event, payload, gates=gates).items():
+        planned = plan(args.event, payload, gates=gates)
+        if planned['deferred_replays']:
+            print('Deferred full replays (weekly or explicit dispatch): '
+                  + ', '.join(planned['deferred_replays']), file=sys.stderr)
+        for key, value in planned.items():
             print(key + "=" + json.dumps(value, separators=(",", ":")))
         return 0
     if args.gates is not None:
