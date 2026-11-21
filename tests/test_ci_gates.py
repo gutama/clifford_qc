@@ -134,17 +134,17 @@ def test_registry_rejects_corruption(tmp_path, mutation):
 def test_workflow_uses_the_registry_and_retains_history_pins_failure_logs_and_schedule():
     text = (ci.ROOT/".github/workflows/ci.yml").read_text()
     assert 'cron:' in text
-    assert "--plan" in text and "fromJSON(needs.plan.outputs.structural)" in text
-    assert "fromJSON(needs.plan.outputs.sampled)" in text
+    assert "--plan" in text and "fromJSON(needs.plan.outputs.records)" in text
+    assert '--gates "$RECORD_GATES"' in text
     assert "python -m pytest --hypothesis-profile=ci" in text
     assert "--tier core" in text
-    # plan, the record-environment tests, both record matrices, and the two
-    # compatibility matrices: every job that runs the suite or a gate needs
+    # plan, the record-environment tests, the combined record matrix, and the
+    # two compatibility matrices: every job that runs the suite or a gate needs
     # history, since chronology checks walk it.
-    assert text.count("fetch-depth: 0") == 6
-    assert text.count("fail-fast: false") == 4
+    assert text.count("fetch-depth: 0") == 5
+    assert text.count("fail-fast: false") == 3
     assert "reference-record: ${{ matrix.environment_record }}" in text
-    assert text.count("actions/upload-artifact@v4") == 3
+    assert text.count("actions/upload-artifact@v4") == 2
     assert "pull_request_target" not in text
 
 
@@ -175,6 +175,7 @@ def test_every_advertised_python_version_is_tested_by_some_job():
     assert record in advertised
     assert tested | {record} == advertised
     assert record not in tested  # the pinned job already runs it
+    assert "if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'" in text
 
 
 def test_compatibility_jobs_state_their_extras_and_cover_both_ends_of_the_install():
@@ -269,8 +270,44 @@ def test_main_runs_are_unique_and_uploads_run_after_cancellation():
     text = (ci.ROOT/'.github/workflows/ci.yml').read_text()
     assert "github.event_name == 'pull_request' && github.ref || github.run_id" in text
     assert "cancel-in-progress: ${{ github.event_name == 'pull_request' }}" in text
-    assert text.count('if: ${{ always() }}') == 3
-    assert text.count('CI_JOB_STARTED_EPOCH=$(date +%s)') == 3
+    assert text.count('if: ${{ always() }}') == 2
+    assert text.count('CI_JOB_STARTED_EPOCH=$(date +%s)') == 2
+
+
+@pytest.mark.parametrize('event', ['pull_request', 'schedule', 'workflow_dispatch'])
+def test_batches_preserve_all_gates_pins_and_timeouts(event):
+    from benchmarks.check_record_environment import agreed, survey
+
+    result = ci.plan(event, {})
+    expected = names(result['structural']['include']) | names(result['sampled']['include'])
+    rows = result['records']['include']
+    flat = [name for row in rows for name in row['gates'].split(',')]
+    assert len(flat) == len(expected) and set(flat) == expected
+    assert len(rows) < len(expected)
+    assert len({row['label'] for row in rows}) == len(rows)
+    registry = {g['gate']: g for g in ci.load_registry()}
+
+    def pins(record):
+        declarations, problems = survey(ci.ROOT/'benchmarks/reference_results', [record])
+        value = agreed(declarations, problems)
+        assert not problems
+        return value
+
+    for row in rows:
+        gates = [registry[name] for name in row['gates'].split(',')]
+        if len(gates) > 1:
+            assert all(g['tier'] == 'structural' and not g.get('execution_declaration') for g in gates)
+            assert all(pins(g['environment_record']) == pins(row['environment_record']) for g in gates)
+        else:
+            assert row['execution_declaration'] == gates[0].get('execution_declaration', '')
+        assert row['timeout'] == min(sum(g['timeout'] * len(g['commands']) for g in gates) + 15, 350)
+        assert row['job_timeout_seconds'] == row['timeout'] * 60
+
+
+def test_batch_cli_refuses_missing_or_duplicate_gate_names(tmp_path):
+    for batch in ['check_docs,check_docs', 'check_docs,missing_gate']:
+        with pytest.raises(SystemExit, match='2'):
+            ci.main(['--gates', batch, '--output', str(tmp_path/'run')])
 
 
 def test_executor_uses_per_gate_logs_and_elapsed_job_budget(tmp_path, monkeypatch):

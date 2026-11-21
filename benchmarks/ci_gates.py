@@ -26,6 +26,9 @@ REGISTRY = ROOT / "benchmarks/ci_gates.json"
 TIERS = {"core", "structural", "sampled"}
 TRANSPORT = {"benchmarks/experiment_runner.py", "benchmarks/experiment_artifacts.py",
              "benchmarks/ci_gates.py", "benchmarks/ci_gates.json"}
+# Amortize checkout, dependency setup and input hashing without reducing any
+# command's declared timeout. Leave room for installation and receipt upload.
+STRUCTURAL_BATCH_MINUTES = 180
 
 
 def execution_environment(relative, *, root=ROOT):
@@ -238,6 +241,58 @@ def changed_paths(root, base, head):
     return raw.decode("utf-8").rstrip("\0").split("\0") if raw else []
 
 
+def record_batches(gates, *, root=ROOT):
+    """Batch structural gates with identical record-local environment pins.
+
+    Explicit execution declarations and sampled replays stay isolated. The
+    latter may be long-running and have independently meaningful receipts.
+    A batch's allowance is the sum of its task allowances plus setup headroom.
+    """
+    from benchmarks.check_record_environment import agreed, survey, pending
+
+    groups = {}
+    singles = []
+    pins = {}
+    for gate in gates:
+        if gate['tier'] == 'core':
+            continue
+        if gate['tier'] == 'sampled' or gate.get('execution_declaration'):
+            singles.append([gate])
+            continue
+        record = gate['environment_record']
+        if record not in pins:
+            declarations, problems = survey(Path(root)/'benchmarks/reference_results', [record])
+            versions = agreed(declarations, problems)
+            if problems or record in pending() or 'python' not in versions:
+                raise ValueError(f'invalid record environment for {record}: {problems}')
+            pins[record] = tuple(sorted(versions.items()))
+        groups.setdefault(pins[record], []).append(gate)
+
+    batches = []
+    for members in groups.values():
+        batch, minutes = [], 0
+        for gate in members:
+            cost = gate['timeout'] * len(gate['commands'])
+            if batch and minutes + cost > STRUCTURAL_BATCH_MINUTES:
+                batches.append(batch)
+                batch, minutes = [], 0
+            batch.append(gate)
+            minutes += cost
+        if batch:
+            batches.append(batch)
+    rows = []
+    for index, batch in enumerate(batches + singles, 1):
+        first = batch[0]
+        # Existing single-gate bounds are retained for the isolated replays.
+        minutes = min(sum(g['timeout'] * len(g['commands']) for g in batch) + 15, 350)
+        label = first['gate'] if len(batch) == 1 else f'structural-batch-{index:02d}'
+        rows.append({'label': label, 'gates': ','.join(g['gate'] for g in batch),
+                     'timeout': minutes, 'job_timeout_seconds': minutes * 60,
+                     'execution_declaration': first.get('execution_declaration', ''),
+                     'environment_record': first['environment_record']})
+    return rows
+
+
 def plan(event, payload, *, gates=None, root=ROOT):
     gates = load_registry() if gates is None else gates
     if event == 'pull_request':
@@ -274,6 +329,9 @@ def plan(event, payload, *, gates=None, root=ROOT):
                          'environment_record': g['environment_record']})
         result[tier] = {'include': rows}
         result['has_' + tier] = bool(rows)
+    records = record_batches(chosen, root=root)
+    result['records'] = {'include': records}
+    result['has_records'] = bool(records)
     return result
 
 
@@ -300,6 +358,7 @@ def main(argv=None):
     choice = parser.add_mutually_exclusive_group(required=True)
     choice.add_argument("--plan", action="store_true")
     choice.add_argument("--gate")
+    choice.add_argument("--gates", help="comma-separated names in one planned record batch")
     choice.add_argument("--tier", choices=sorted(TIERS))
     choice.add_argument("--environment", help="read a frozen declaration's execution environment")
     parser.add_argument("--emit", choices=("python", "constraints", "verify"), default="verify")
@@ -323,7 +382,14 @@ def main(argv=None):
         for key, value in plan(args.event, payload, gates=gates).items():
             print(key + "=" + json.dumps(value, separators=(",", ":")))
         return 0
-    selected = [g for g in gates if g["gate"] == args.gate or g["tier"] == args.tier]
+    if args.gates is not None:
+        names = args.gates.split(',')
+        by_name = {g['gate']: g for g in gates}
+        if len(set(names)) != len(names) or any(name not in by_name for name in names):
+            parser.error("--gates requires distinct existing gate names")
+        selected = [by_name[name] for name in names]
+    else:
+        selected = [g for g in gates if g["gate"] == args.gate or g["tier"] == args.tier]
     if not selected or args.output is None:
         parser.error("select an existing gate/tier and provide --output")
     receipt = execute(selected, output=args.output)

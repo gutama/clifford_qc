@@ -639,15 +639,15 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 5132 passed, 13 skipped (expected if green)
+python -m pytest
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
-and SciPy through `check_record_environment.py`. Seven optional test modules are
-dropped without OpenFermion, PennyLane, pytket, PyZX and PySCF; six individual tests
-also skip -- three on OpenFermion (including the shared-pool import check) and three on PySCF. Chemistry builders remain
-optional: install `.[chemistry]` when running those workflows, which changes
-collection totals.
+and SciPy through `check_record_environment.py`. Optional tests report skips
+when OpenFermion, PennyLane, pytket, PyZX or PySCF is absent. Chemistry builders
+remain optional: install `.[chemistry]` when running those workflows. Test
+collection totals change with the checkout and installed extras; use
+`python -m pytest --collect-only -q` for the current count.
 
 The counts above are expected accounting for a successful suite in this
 dependency set, derived from collection; they are not a claim that the full
@@ -885,12 +885,10 @@ reported count differs, so it is stable exactly where the count is not. Read a
 flagged arm as a region rather than an integer; §6.7's `k*` regions are the
 downstream consumer of that distinction.
 
-`check_docs.py` verifies the documented pair by collection. It reports a
-skip when the installed extras do not match the environment above; pass
-`--require-test-count` to turn that mismatch into a failure, which is what a
-run that has installed those extras should do. CI installs `test`, `research`,
-and `stim` only, so it takes the skip rather than gating on a count it cannot
-have produced.
+`check_docs.py` verifies the documented commands. The optional
+`--require-test-count` audit checks the installed extras and reports the current
+collection total. Ordinary CI does not collect twice to enforce a rolling
+pass/skip number: the full pytest run is the authority.
 
 The core package imports with numpy alone; without SciPy the optimizer
 falls back to pure-Python Adam (numerically equivalent results at looser
@@ -1042,10 +1040,14 @@ record; unrecorded library versions are not presented as historical pins.
 | job | when | contents |
 | --- | --- | --- |
 | `test` | every PR, main push, schedule and dispatch | full pytest/lint plus global environment, documentation, evidence and manuscript gates |
-| `structural-records` | every PR, main push, schedule and dispatch | the complete deterministic record/report safety net, under each record's own environment |
-| `sampled-records` | affected restart/transport/CI edits and weekly schedule | restart full-seed verification; explicit dispatch additionally runs legacy sampled instruments |
+| `extras` | every PR, main push, schedule and dispatch | minimum-Python NumPy-only and full bridge/chemistry test suites |
+| `compatibility` | schedule and dispatch | full advertised Python-version matrix with research/stabilizer extras |
+| `records` | every PR, main push, schedule and dispatch | all structural/report checks, grouped by identical pinned environment in bounded batches; affected restart replays run separately, and explicit dispatch additionally runs legacy sampled instruments |
 
 Sunday 09:17 Asia/Jakarta runs deterministic and restart full-seed verification.
+Every structural batch retains the sum of its constituent command timeout
+allowances (plus setup/upload headroom); distinct execution declarations and
+sampled replays retain independent jobs and receipts.
 The legacy sampled instruments remain **manual-dispatch only**, preserving
 R3d's frozen reporting contract. The planner reports affected manual work
 separately. Tests, examples, documents and PHASE_STATUS updates do not trigger

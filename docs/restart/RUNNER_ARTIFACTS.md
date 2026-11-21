@@ -115,6 +115,13 @@ fixture verifies inventory compatibility even in shallow clones and source archi
 | Weekly schedule | All deterministic gates and the restart full-seed verifications |
 | Explicit dispatch | All registered gates, including legacy manual-only sampled instruments |
 
+Structural checks with identical record-local pins share a bounded matrix
+job, so checkout, setup and input hashing run once per batch. Each check
+retains its original task timeout and its own execution receipt. Explicit
+execution declarations and sampled replays remain separate jobs. Core tests,
+the NumPy-only minimum-Python suite and the full bridge/chemistry suite run on
+PRs; the broader interpreter matrix runs on weekly verification or dispatch.
+
 Weekly verification is scheduled for Sunday 09:17 Asia/Jakarta. It never
 launches a new `--execute` campaign. Each main push has a unique concurrency
 identity, so later pushes cannot cancel or displace its replay obligations.
