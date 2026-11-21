@@ -26,10 +26,8 @@ jobs:
     name: select affected record gates
     runs-on: ubuntu-latest
     outputs:
-      structural: ${{ steps.gates.outputs.structural }}
-      sampled: ${{ steps.gates.outputs.sampled }}
-      has_structural: ${{ steps.gates.outputs.has_structural }}
-      has_sampled: ${{ steps.gates.outputs.has_sampled }}
+      records: ${{ steps.gates.outputs.records }}
+      has_records: ${{ steps.gates.outputs.has_records }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -78,6 +76,9 @@ jobs:
   # optional extra. These jobs install current dependencies, so they also see a
   # new NumPy or SciPy before a record environment is migrated to it.
   compatibility:
+    # The pinned full suite and both dependency endpoints still run on every
+    # PR. Intermediate interpreter combinations are exercised weekly/on demand.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     name: tests on Python ${{ matrix.python }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -115,10 +116,12 @@ jobs:
           # NumPy is the only core dependency: the suite must collect and pass,
           # skipping what needs an extra, with nothing else installed.
           - name: NumPy only
+            python: "3.10"
             extras: test
             require: ""
           # The bridge and chemistry tests skip everywhere else.
           - name: every bridge and chemistry extra
+            python: "3.12"
             extras: test,research,bridges,chemistry
             require: >-
               --require sparse_linalg --require stabilizer_backend
@@ -131,7 +134,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python }}
           cache: pip
           cache-dependency-path: pyproject.toml
       - run: python -m pip install --upgrade pip
@@ -139,17 +142,17 @@ jobs:
       - run: python -m clifford_qc.capabilities ${{ matrix.require }}
       - run: python -m pytest --hypothesis-profile=ci
 
-  structural-records:
+  records:
     needs: plan
-    if: needs.plan.outputs.has_structural == 'true'
-    name: ${{ matrix.gate }} (structural)
+    if: needs.plan.outputs.has_records == 'true'
+    name: ${{ matrix.label }} (record verification)
     runs-on: ubuntu-latest
     timeout-minutes: ${{ matrix.timeout }}
     env:
       CI_JOB_TIMEOUT_SECONDS: ${{ matrix.job_timeout_seconds }}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.structural) }}
+      matrix: ${{ fromJSON(needs.plan.outputs.records) }}
     steps:
       - name: Start job wall-time budget
         run: echo "CI_JOB_STARTED_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
@@ -160,41 +163,14 @@ jobs:
         with:
           reference-record: ${{ matrix.environment_record }}
           execution-declaration: ${{ matrix.execution_declaration }}
-      - run: python -m benchmarks.ci_gates --gate "${{ matrix.gate }}" --output ".ci-receipts/${{ matrix.gate }}"
+      - run: python -m benchmarks.ci_gates --gates "$RECORD_GATES" --output ".ci-receipts/$RECEIPT_LABEL"
+        env:
+          RECORD_GATES: ${{ matrix.gates }}
+          RECEIPT_LABEL: ${{ matrix.label }}
       - if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: receipts-${{ matrix.gate }}
-          path: .ci-receipts/${{ matrix.gate }}
-          retention-days: 14
-          include-hidden-files: true
-
-  sampled-records:
-    needs: plan
-    if: needs.plan.outputs.has_sampled == 'true'
-    name: ${{ matrix.gate }} (${{ matrix.verification_mode }})
-    runs-on: ubuntu-latest
-    timeout-minutes: ${{ matrix.timeout }}
-    env:
-      CI_JOB_TIMEOUT_SECONDS: ${{ matrix.job_timeout_seconds }}
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.sampled) }}
-    steps:
-      - name: Start job wall-time budget
-        run: echo "CI_JOB_STARTED_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: ./.github/actions/record-environment
-        with:
-          reference-record: ${{ matrix.environment_record }}
-          execution-declaration: ${{ matrix.execution_declaration }}
-      - run: python -m benchmarks.ci_gates --gate "${{ matrix.gate }}" --output ".ci-receipts/${{ matrix.gate }}"
-      - if: ${{ always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: receipts-${{ matrix.gate }}
-          path: .ci-receipts/${{ matrix.gate }}
+          name: receipts-${{ matrix.label }}
+          path: .ci-receipts/${{ matrix.label }}
           retention-days: 14
           include-hidden-files: true

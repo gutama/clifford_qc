@@ -16,7 +16,8 @@ This closes that gap. It checks that:
   3. the predeclared delta/eps table matches the constants in each script;
   4. every ``run_*.py`` benchmark is documented somewhere;
   5. every committed record is named by the document;
-  6. the quoted ``pytest`` test count matches what the suite collects.
+  6. the test invocation is documented (a quantitative collection audit is
+     available explicitly, but rolling pass/skip totals are not required).
 
 Constants are read with ``ast`` rather than by importing, so a check never
 executes benchmark code.
@@ -307,37 +308,23 @@ def _modules_provided_by(extras: set[str]) -> set[str]:
 
 def check_test_count(text: str, problems: list[str], skipped: list[str],
                      required: bool = False) -> None:
-    """The quoted ``pytest`` line must match what the suite actually collects.
+    """Check the documented test invocation; optionally audit collection.
 
-    This drifted by 147 tests before anything noticed, because every other
-    check here looks at benchmark scripts and records -- not at the environment
-    section a reader runs first. It then drifted by another 75, because the
-    check itself compared the quoted *skip* count against the number of files
-    carrying a guard. Those two agreed only while every guard was module level;
-    once tests began guarding individual cases, the comparison matched neither
-    the files pytest drops nor the skips it reports, so the check excused
-    itself as "unverified" in every environment and enforced nothing.
-
-    What is checkable without running the suite is the arithmetic relating the
-    two quoted numbers. With ``D`` files dropped at collection, each
-    contributing one skip, the remaining ``S - D`` skips are per-test and *are*
-    collected, so
-
-        collected == passed + (skipped - D)
-
-    holds whenever the suite is green. Both ``collected`` and ``D`` are
-    computed here, so a drift in either quoted number breaks the identity.
-
-    The identity is environment-specific, so it is only enforced when the
-    installed extras are the ones the document tells the reader to install --
-    determined by importability of the guarded modules, not by counting files.
-    Collection only, so no test is ever executed.
+    A legacy quoted pass/skip pair is still checked against the collection
+    identity (passed + skipped - files dropped at collection). Without a
+    quote, ordinary CI checks only the command; explicit audits verify the
+    installed extras and report the live collection count.
     """
     m = re.search(r"^\s*pytest\s+#\s*(\d+) passed, (\d+) skipped", text, re.M)
     if not m:
-        problems.append("environment section does not quote a pytest count")
-        return
-    want_passed, want_skipped = int(m.group(1)), int(m.group(2))
+        if not re.search(r"^\s*(?:python -m )?pytest(?:\s|$)", text, re.M):
+            problems.append("environment section does not document a pytest command")
+            return
+        # The full test suite already runs in CI. Collecting it again merely
+        # to enforce a hand-maintained total duplicates work and makes adding
+        # a test a documentation failure. Keep the explicit environment audit.
+        if not required:
+            return
 
     extras = _documented_extras(text)
     provided = _modules_provided_by(extras) if extras is not None else set()
@@ -371,9 +358,9 @@ def check_test_count(text: str, problems: list[str], skipped: list[str],
         return
 
     dropped = dropped_test_files()
-    if want_skipped < len(dropped):
+    if m and int(m.group(2)) < len(dropped):
         problems.append(
-            f"REPRODUCING.md quotes {want_skipped} skipped, but {len(dropped)} "
+            f"REPRODUCING.md quotes {m.group(2)} skipped, but {len(dropped)} "
             f"test file(s) are dropped at collection: "
             + ", ".join(f"{f} ({mod})" for f, mod in dropped))
         return
@@ -381,12 +368,16 @@ def check_test_count(text: str, problems: list[str], skipped: list[str],
     done = subprocess.run([sys.executable, "-m", "pytest", "--collect-only", "-q"],
                           cwd=ROOT, capture_output=True, text=True)
     found = re.search(r"^(\d+) tests? collected", done.stdout, re.M)
-    if not found:
+    if done.returncode != 0 or not found:
         detail = (done.stderr or done.stdout).strip().splitlines()
-        skipped.append("test count unverified "
-                       f"({detail[-1] if detail else f'exit {done.returncode}'})")
+        (problems if required else skipped).append("test count unverified "
+                         f"({detail[-1] if detail else f'exit {done.returncode}'})")
         return
     collected = int(found.group(1))
+    if not m:
+        print(f"Collected {collected} tests; {len(dropped)} optional files dropped at collection")
+        return
+    want_passed, want_skipped = int(m.group(1)), int(m.group(2))
     expected = want_passed + (want_skipped - len(dropped))
     if collected != expected:
         problems.append(
@@ -398,9 +389,8 @@ def check_test_count(text: str, problems: list[str], skipped: list[str],
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--require-test-count", action="store_true",
-                        help="fail, rather than skip, when the installed "
-                             "extras do not match the environment "
-                             "REPRODUCING.md quotes its test count for")
+                        help="audit test collection and fail if the installed "
+                             "extras do not match the documented environment")
     args = parser.parse_args(argv)
 
     text = DOC.read_text()

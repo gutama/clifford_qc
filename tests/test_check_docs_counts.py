@@ -19,6 +19,7 @@ from benchmarks.check_docs import (
     _importorskip_modules,
     dropped_test_files,
     guarded_modules,
+    check_test_count,
 )
 
 
@@ -134,3 +135,17 @@ def test_in_test_guards_keep_their_files_collected():
     assert "test_fermion_mapping.py" not in {
         name for name, _ in dropped_test_files()
     }
+
+
+def test_documented_pytest_without_rolling_count_needs_no_collection(monkeypatch):
+    from benchmarks import check_docs
+
+    def fail(*args, **kwargs):
+        raise AssertionError('ordinary documentation checks must not recollect pytest')
+
+    monkeypatch.setattr(check_docs.subprocess, 'run', fail)
+    problems, skipped = [], []
+    check_test_count('python -m pytest\n', problems, skipped)
+    assert problems == skipped == []
+    check_test_count('no test command\n', problems, skipped)
+    assert problems == ['environment section does not document a pytest command']

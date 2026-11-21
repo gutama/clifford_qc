@@ -686,16 +686,100 @@ def test_invalid_bootstrap_arguments_are_rejected_before_any_shot(system, kwargs
                      **kwargs)
 
 
-def test_a_bootstrap_is_not_combined_with_control_variates(molecular):
+def test_control_variate_bootstrap_refits_each_replica(molecular):
+    from clifford_qc.backends.protocol import GroupSample, MeasurementBatch
+    from clifford_qc.measurement.cache import GroupedWordCache
+    from clifford_qc.subspace.symmetry_shifts import ritz_control_variate
+
+    shared, family = molecular
+    found = corrected(shared, 61, family, round_budgets=[100], bootstrap_replicates=8,
+                      bootstrap_seed=11)
+    cache = found.cache
+    draws = bootstrap_ritz_samples(shared, cache, result=found.result,
+                                   replicates=8, seed=11, control_variates=family)
+
+    # Independently reconstruct the grouped resamples and evaluate both the
+    # refitted and frozen-fit statistics. The bank and shot counts are fixed;
+    # the Ritz vector and the control coefficients must move with every draw.
+    rng = np.random.default_rng(11)
+    expected, frozen, raw = [], [], []
+    for _ in range(8):
+        samples = []
+        for group in cache.group_states():
+            hist = group["hist"]
+            counts = np.asarray(list(hist.values()), dtype=float)
+            resampled = rng.multinomial(group["shots"], counts / counts.sum())
+            samples.append(GroupSample(
+                support=group["support"], basis=group["basis"],
+                hist={key: int(n) for key, n in zip(hist, resampled) if n},
+                shots=group["shots"], word_codes=group["word_codes"],
+                setting_key=group.get("setting_key"), readouts=group.get("readouts", {})))
+        replica = GroupedWordCache(shared.n, pooling=cache.pooling)
+        replica.add_batch(MeasurementBatch(n=shared.n, shots={}, plus_counts={},
+                                           circuits=len(samples), groups=tuple(samples),
+                                           state_key=cache.state_key))
+        point = shared.solve(replica, **found.result.estimator_parameters)
+        expected.append(ritz_control_variate(shared, replica, point, family).energy)
+        frozen.append(ritz_control_variate(
+            shared, replica, point, family,
+            coefficients=found.control_variate.coefficients).energy)
+        raw.append(point.ground_energy)
+    assert np.allclose(draws, expected, atol=1e-10, rtol=0)
+    assert not np.allclose(draws, frozen, atol=1e-7, rtol=0)
+    assert not np.allclose(draws, raw, atol=1e-7, rtol=0)
+    assert found.bootstrap_interval == bootstrap_spread_interval(found.energy, expected)
+    assert found.bootstrap_interval.estimate == found.control_variate.energy
+    assert not found.bootstrap_interval.certified
+    assert found.schedule["bootstrap"]["estimator"] == "refitted_control_variates"
+
+
+def test_control_variate_bootstrap_does_not_change_acquisition(molecular):
+    from clifford_qc.measurement.session import grouped_cache_fingerprint
+
+    shared, family = molecular
+    plain = corrected(shared, 64, family, target_std_error=0.01)
+    booted = corrected(shared, 64, family, target_std_error=0.01,
+                       bootstrap_replicates=8, bootstrap_seed=3)
+    assert grouped_cache_fingerprint(booted.cache) == grouped_cache_fingerprint(plain.cache)
+    assert booted.control_variate == plain.control_variate
+    assert booted.shots == plain.shots and booted.stopped == plain.stopped
+    assert booted.interval == plain.interval and booted.naive_interval == plain.naive_interval
+    assert tuple({k: v for k, v in look.items() if k != "bootstrap_spread"}
+                 for look in booted.looks) == plain.looks
+    assert booted.bootstrap_interval.estimate == plain.energy
+    assert booted.bootstrap_interval.upper - booted.energy == pytest.approx(
+        NormalDist().inv_cdf(1 - 0.05 / (2 * plain.schedule["interval_family"]))
+        * booted.looks[-1]["bootstrap_spread"])
+
+
+def test_invalid_control_variate_family_with_bootstrap_is_refused_before_shots(molecular):
+    from clifford_qc.subspace.symmetry_shifts import sector_shift_family
+
     shared, family = molecular
 
     class NoShots:
         def sample_grouped_from_state(self, *args, **kwargs):
             raise AssertionError("a refused combination must not sample")
 
-    with pytest.raises(ValueError, match="not combined with control_variates"):
+    with pytest.raises(ValueError, match="does not annihilate"):
         acquire_ritz(shared, NoShots(), pilot_shots_per_group=100, round_budgets=[800],
-                     control_variates=family, bootstrap_replicates=10)
+                     control_variates=sector_shift_family(3, 3), bootstrap_replicates=10)
+
+
+def test_failed_control_variate_bootstrap_retains_corrected_point(molecular, monkeypatch):
+    shared, family = molecular
+    plain = corrected(shared, 61, family, round_budgets=[100])
+
+    def failing(*args, **kwargs):
+        assert kwargs["control_variates"] == tuple(family)
+        raise ValueError("replica correction failed")
+
+    monkeypatch.setattr(acquisition, "bootstrap_ritz_samples", failing)
+    booted = corrected(shared, 61, family, round_budgets=[100], bootstrap_replicates=8)
+    assert booted.bootstrap_interval is None
+    assert booted.looks[-1]["bootstrap_failure"] == "ValueError: replica correction failed"
+    assert booted.control_variate == plain.control_variate
+    assert booted.interval == plain.interval and booted.shots == plain.shots
 
 
 def test_the_bootstrap_spread_interval_refuses_a_non_finite_estimate_and_never_overflows():

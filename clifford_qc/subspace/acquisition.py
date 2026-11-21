@@ -49,6 +49,9 @@ run, it covered in at least 99% of runs in every cell, where the delta interval
 covered 84.5% to 93.5% on ``tfim6_mixed`` (``docs/restart/BOOTSTRAP_STOP.md``).
 It is heuristic and often wide: a spread many times ``std_error`` marks a stop
 whose truncation the data do not settle.
+With control variates, each replica also refits the certified family at its
+own solved Ritz vector, so the bootstrap describes the corrected estimator.
+The previous coverage study did not include this combination.
 """
 
 from __future__ import annotations
@@ -69,7 +72,7 @@ from .coverage import delta_method_applies
 from .linalg import SubspaceResult
 from .symmetry_shifts import (ControlVariateEstimate, ShiftTerm, certify_bank_family,
                               corrected_ritz_functional)
-from .uncertainty import (ASYMPTOTIC, Interval, bootstrap_ritz_samples, bootstrap_spread,
+from .uncertainty import (ASYMPTOTIC, Interval, bootstrap_ritz_samples,
                           bootstrap_spread_interval, ritz_uncertainty)
 
 ALLOCATIONS = ("uniform", "ritz_targeted")
@@ -268,8 +271,10 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
     :func:`~clifford_qc.subspace.uncertainty.bootstrap_spread_interval` with the
     same ``delta`` and look count as ``interval``. It costs that many extra
     solves and no shot, uses its own random stream, and changes nothing the run
-    measured or reported otherwise. The fresh-seed check used 500. It is not
-    combined with control variates, whose corrected value it would not resample.
+    measured or reported otherwise. The fresh-seed check used 500. With
+    control variates, each replica refits the family using its own resampled
+    data and Ritz vector, and the reported interval is centred on the
+    corrected point estimate. Coverage of the combined policy is unvalidated.
 
     Only estimators the delta method accepts are supported, because both the
     allocation target and the interval are its Ritz functional. A look that
@@ -300,9 +305,6 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
         bootstrap_replicates = _positive_int(bootstrap_replicates, "bootstrap_replicates")
         if bootstrap_replicates < 2:
             raise ValueError("bootstrap_replicates must be at least two")
-        if control_variates is not None:
-            raise ValueError("the bootstrap interval resamples the uncorrected Ritz value; "
-                             "it is not combined with control_variates")
     if isinstance(bootstrap_seed, (bool, np.bool_)) or not isinstance(bootstrap_seed, Integral) \
             or bootstrap_seed < 0:
         raise ValueError("bootstrap_seed must be a nonnegative integer")
@@ -382,16 +384,19 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
     bootstrap = None
     if bootstrap_replicates is not None:
         schedule["bootstrap"] = {"replicates": bootstrap_replicates, "seed": int(bootstrap_seed)}
+        if terms is not None:
+            schedule["bootstrap"]["estimator"] = "refitted_control_variates"
         try:
             draws = bootstrap_ritz_samples(shared, cache, root=root,
                                            replicates=bootstrap_replicates,
-                                           seed=int(bootstrap_seed), result=point)
+                                           seed=int(bootstrap_seed), result=point,
+                                           control_variates=terms)
+            bootstrap = bootstrap_spread_interval(looks[-1]["energy"], draws, delta=delta,
+                                                  family=family)
         except _SOLVE_FAILURES as error:
             looks[-1]["bootstrap_failure"] = f"{type(error).__name__}: {error}"
         else:
-            looks[-1]["bootstrap_spread"] = bootstrap_spread(draws)
-            bootstrap = bootstrap_spread_interval(point.energies[root], draws, delta=delta,
-                                                  family=family)
+            looks[-1]["bootstrap_spread"] = bootstrap.std_error
     return RitzAcquisition(
         result=point, cache=cache, interval=interval, naive_interval=naive,
         looks=tuple(looks), stopped=stopped, allocation=allocation, schedule=schedule,

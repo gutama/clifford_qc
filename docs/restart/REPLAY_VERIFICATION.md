@@ -23,6 +23,13 @@ host is preserved, not reinterpreted as a strict pass.
 
 ## The CI contract
 
+The independent cross-domain science/chronology/accounting checker runs on
+every PR and main push. The full 2,304-outcome cross-domain replay runs at the
+weekly Sunday verification or on explicit workflow dispatch. The faster
+spin full replay remains automatic on affected changes. Deferred molecular
+replays are reported by the CI planner. No reduced-seed replay is called a
+full reproduction, and all original comparison criteria remain unchanged.
+
 `benchmarks/replay_verification.py` verifies each fixed, published record against
 its first-publication Git blob and invokes its independent scientific/history
 checker before drawing any replay outcomes. It then calls the original
