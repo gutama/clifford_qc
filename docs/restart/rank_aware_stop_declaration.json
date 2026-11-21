@@ -1,0 +1,27 @@
+{
+  "schema": "clifford_qc.rank_aware_stop.v1",
+  "declared_date": "2026-11-22",
+  "historical_bindings": {
+    "docs/restart/stretched_molecular_stop_declaration.json": "a18da71ff993114c0d4bedeeee918f0a60a54339ac64165e0aa68bc7c16309e3",
+    "docs/restart/stretched_molecular_stop_results.json.gz": "85bb2481d44e7c1a3995c038e265df6c0c2eef76d56fb18ce6fc980464764ccb"
+  },
+  "target": "same full-rank four-direction exact projected energies as stretched molecular stress study",
+  "rank_policy": {"consecutive_looks": 2, "margin_delta": 0.05},
+  "rank_policy_allocation": "When measured full-rank margin unresolved and targeting, spend half rounded up on worst overlap margin and remainder on corrected Ritz variance; all on margin if SE qualifies. Uniform fallback for deterministic or unavailable functional. Otherwise corrected Ritz targeting.",
+  "margin_rule": "All three normalized weak-mode margins (absolute tau_s, relative lambda_max, lambda_max/max_condition) minus covariance-aware Gaussian radii must be strictly positive; include diagonal-normalization derivative and largest-mode derivative, pay Bonferroni for 3 comparisons x scheduled looks. Require full live and retained rank and two consecutive separated looks. Heuristic, not a finite-sample bound.",
+  "cumulative_average_shots_per_group": [250, 500, 2000, 8000, 32000],
+  "target_std_error_Ha": 0.0016,
+  "bootstrap_half_width_Ha": 0.0016,
+  "outer_replicas": 16,
+  "bootstrap_replicas": 16,
+  "seed_root": 2026112219,
+  "development": "Seed 501 only for two rank-guard feasibility runs; toy finite differences, deterministic and failure-path tests. Prior stress data used for construction, never counted as fresh outcomes.",
+  "seed_rule": "SeedSequence([seed_root, case_index, replica, stream]).generate_state(1,uint64); measurement stream 0, terminal bootstrap stream 1. Width arm uses SeedSequence([bootstrap_seed, look_index]) for each width assessment. Identical initial pilot across arms; rank-margin allocation is a different trajectory.",
+  "arms": [{"key":"se_only","rank":false,"width":false,"fixed":false}, {"key":"rank_margin","rank":true,"width":false,"fixed":false}, {"key":"bootstrap_width","rank":false,"width":true,"fixed":false}, {"key":"fixed_budget","rank":false,"width":false,"fixed":true}],
+  "delta": 0.05,
+  "primary_criteria": {"arm":"rank_margin","minimum_true_precision_stops":12,"maximum_false_precision_stops":1,"require_strictly_fewer_false_stops_than_se_only":true,"each_molecule":true,"interpretation":"descriptive feasibility bar, not a hypothesis test. True stop is target_met and |error| <=1.6 mHa; false stop is target_met and |error|>1.6 mHa; failure/exhaustion is never a true stop."},
+  "secondary": "All-attempt success, false stops, exhaustion, failure; rank at terminal, actual error on returned point, RMSE, bias, all-attempt shot costs, total measured/attempted bootstrap solves, per-look guard diagnostics. Coverage of terminal delta and bootstrap intervals at their actual family-adjusted 95% level, unconditional and conditional on stopping. Fixed-budget arm has no early stop, family=1, report terminal accuracy and never credit it as an adaptive stop. Paired differences descriptive.",
+  "failure_policy": "All attempts, shots, and completed solves counted; failed bootstrap width cannot pass; at exhaustion report diagnostic terminal interval but not precision stop, failed interval uncovered. Unexpected errors abort and preserve checkpoints; never selectively retry.",
+  "environment": {"python":"3.12.14","numpy":"2.5.2","scipy":"1.18.0","threads":1},
+  "limitations": "Engineered cutoff on the same stretched frozen-core four-direction banks, certified diagonal CV only, ideal QWC shots. Rank guard's data-derived asymptotic margins and fixed-final-histogram spread are heuristic; no chemical accuracy, full-basis, hardware, or anytime-valid guarantee. Small 16 outer and inner samples; no claim of generalization or formal statistical superiority."
+}

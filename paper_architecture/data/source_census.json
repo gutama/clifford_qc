@@ -68,6 +68,7 @@
       "check_r3d_preregistration",
       "check_r4a_contextual_screen",
       "check_r4a_preregistration",
+      "check_rank_aware_stop",
       "check_record_environment",
       "check_sampled_ratio",
       "check_second_moment_validation",
@@ -89,7 +90,7 @@
       "Plan ledger": 1,
       "Post-hoc declaration": 6,
       "Preregistration": 13,
-      "Sampled inference accounting": 8,
+      "Sampled inference accounting": 9,
       "Value-rebuilt": 34
     },
     "conditional_gates": [],
@@ -108,12 +109,12 @@
       "check_r3c_lih_full_cost",
       "check_r3d_qr3_refinement"
     ],
-    "gates": 85,
-    "named_in_workflow": 78,
-    "producers": 84,
+    "gates": 86,
+    "named_in_workflow": 79,
+    "producers": 85,
     "producers_without_gate": 26,
-    "run_on_every_pull_request": 67,
-    "same_stem_pairs": 58
+    "run_on_every_pull_request": 68,
+    "same_stem_pairs": 59
   },
   "records": {
     "annotated_records": [
@@ -253,17 +254,17 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 21554,
-        "modules": 53
+        "lines": 21735,
+        "modules": 54
       },
       "surface": {
         "lines": 39,
         "modules": 1
       }
     },
-    "package_lines": 40548,
-    "package_modules": 133,
-    "test_lines": 51263,
-    "test_modules": 207
+    "package_lines": 40729,
+    "package_modules": 134,
+    "test_lines": 51383,
+    "test_modules": 208
   }
 }

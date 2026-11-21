@@ -90,6 +90,20 @@
                 "tests/test_stretched_molecular_stop.py"]
     },
     {
+      "commands": [["benchmarks/check_rank_aware_stop.py", "--declaration-only"]],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_rank_aware_stop",
+      "inputs": ["docs/restart/rank_aware_stop_declaration.json",
+                 "docs/restart/stretched_molecular_stop_declaration.json",
+                 "docs/restart/stretched_molecular_stop_results.json.gz",
+                 "molecular/results/lih_stretched.fcidump", "molecular/results/beh2_stretched.fcidump"],
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 3,
+      "watch": ["benchmarks/*rank_aware_stop*", "docs/restart/*rank_aware_stop*",
+                "tests/test_rank_stopping.py"]
+    },
+    {
       "commands": [
         [
           "benchmarks/check_target_acquisition.py",
