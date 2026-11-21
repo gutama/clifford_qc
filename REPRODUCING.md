@@ -924,6 +924,12 @@ See `benchmarks/run_molecular_interval_coverage.py` and
 `benchmarks/check_molecular_interval_coverage.py`; the protocol records the
 execution and replay commands. The molecular coverage full run is never a PR gate.
 
+The [adaptive molecular stopping study](docs/restart/MOLECULAR_ADAPTIVE_STOP.md)
+uses the same banks and tests finite-schedule stopping on fresh seeds. See
+`benchmarks/run_molecular_adaptive_stop.py` and
+`benchmarks/check_molecular_adaptive_stop.py` for reproduction and short checks;
+the full acquisition and bootstrap run is not a PR gate.
+
 `.github/workflows/ci.yml` runs on every pull request and on every push to
 `main`. Each value gate builds its environment out of the record it verifies
 rather than out of a hand-written pin:
