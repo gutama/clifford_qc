@@ -21,7 +21,10 @@ Benchmark campaigns, their declarations and their outcomes are recorded in
   `bootstrap_interval`: the estimate plus or minus the delta interval's `z`
   times the bootstrap spread `(q84 - q16) / 2`. The stop, the shots and every
   other reported value are unchanged; a failed replica is recorded, and the
-  option is refused with control variates. `bootstrap_spread` and
+  option now also supports certified control variates: each replica refits the
+  correction at its own Ritz vector and the interval is centred on the
+  corrected estimate. The combined policy has not been tested for empirical
+  coverage. `bootstrap_spread` and
   `bootstrap_spread_interval` build it from existing draws. On fresh seeds and
   under criteria fixed before the run it covered in 99% to 100% of runs on the
   held-out six-qubit bank, where the delta interval covered 84.5% to 93.5%.

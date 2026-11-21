@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import Sequence
 
 import numpy as np
 
@@ -14,6 +15,7 @@ from ..measurement.functionals import ritz_functional
 from ..measurement.session import SharedMeasurement, grouped_cache_fingerprint
 from ..selection import EvidenceLevel
 from .linalg import SubspaceResult
+from .symmetry_shifts import ShiftTerm, certify_bank_family, corrected_ritz_functional
 
 ASYMPTOTIC = EvidenceLevel.ASYMPTOTIC.value
 HEURISTIC = EvidenceLevel.HEURISTIC.value
@@ -85,7 +87,8 @@ def ritz_uncertainty(shared: SharedMeasurement, cache: GroupedWordCache,
 def bootstrap_ritz_samples(shared: SharedMeasurement, cache: GroupedWordCache, *,
                            root: int = 0, replicates: int = 200, seed: int = 0,
                            solver_kwargs: dict | None = None,
-                           result: SubspaceResult | None = None) -> np.ndarray:
+                           result: SubspaceResult | None = None,
+                           control_variates: Sequence[ShiftTerm] | None = None) -> np.ndarray:
     """The resampled Ritz values behind :func:`bootstrap_ritz`, in draw order.
 
     Each group's outcome histogram is resampled multinomially at its own shot
@@ -93,6 +96,13 @@ def bootstrap_ritz_samples(shared: SharedMeasurement, cache: GroupedWordCache, *
     describes. A caller that needs several intervals, or more than one interval
     construction, from one set of draws starts here. A failed replica raises,
     including ``ValueError`` if it no longer retains the requested root.
+
+    With ``control_variates``, certify the declared family on the bank, then
+    refit its coefficients using each resampled cache and that replica's Ritz
+    vector. This resamples the corrected estimator, not the raw eigenvalue or
+    a correction held fixed at the original fit. Only the ordinary thresholded
+    solve is supported for this option. It conditions on the observed setting
+    budgets, not a replay of an adaptive acquisition schedule.
     """
     if replicates < 2:
         raise ValueError("replicates must be at least two")
@@ -103,6 +113,14 @@ def bootstrap_ritz_samples(shared: SharedMeasurement, cache: GroupedWordCache, *
             if key not in recorded or value != recorded[key]:
                 raise ValueError(f"solver_kwargs conflict with the point estimator: {key}")
         kwargs = recorded
+    terms = None
+    if control_variates is not None:
+        if (kwargs.get("overlap_repair", "none") != "none"
+                or kwargs.get("pencil_angle") is not None
+                or kwargs.get("ratio_error_budget") is not None):
+            raise ValueError("control-variate bootstrap requires an ordinary thresholded solve")
+        terms = tuple(control_variates)
+        certify_bank_family(shared.bank, terms)
     rng = np.random.default_rng(seed)
     states = cache.group_states()
     samples: list[float] = []
@@ -124,11 +142,20 @@ def bootstrap_ritz_samples(shared: SharedMeasurement, cache: GroupedWordCache, *
         replica.add_batch(MeasurementBatch(n=shared.n, shots={}, plus_counts={},
                                            circuits=len(groups), groups=tuple(groups),
                                            state_key=cache.state_key))
-        energies = shared.solve(replica, **kwargs).energies
+        point = shared.solve(replica, **kwargs)
+        energies = point.energies
         if not -len(energies) <= root < len(energies):
             raise ValueError(f"bootstrap replica {len(samples)} retained {len(energies)} "
                              f"root(s); root {root} is unavailable")
-        samples.append(energies[root])
+        if terms is None:
+            samples.append(energies[root])
+        else:
+            correction, _ = corrected_ritz_functional(shared, replica, point, terms,
+                                                       root=root)
+            if not math.isfinite(correction.energy):
+                raise ValueError(f"bootstrap replica {len(samples)} has a nonfinite "
+                                 "corrected Ritz value")
+            samples.append(correction.energy)
     return np.array(samples)
 
 
