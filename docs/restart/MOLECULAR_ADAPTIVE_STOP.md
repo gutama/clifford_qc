@@ -132,3 +132,8 @@ or matched-RMSE baseline, and test resampling that replays the complete
 acquisition workflow. The present result supports continuing experiments
 with the opt-in corrected controller; it does not support changing the
 default stop to a claim of chemical accuracy or proving anytime validity.
+
+Follow-up: the [larger stretched molecular rank stress](STRETCHED_MOLECULAR_STOP.md)
+has now completed on fresh 10/12-qubit LiH/BeH2 banks. The existing controller
+met its estimated-SE target in every attempt but stopped with absolute error
+above target in 39/128 runs. Rank-aware stopping remains an open task.

@@ -74,10 +74,11 @@
                 "tests/test_molecular_adaptive_stop.py"]
     },
     {
-      "commands": [["benchmarks/check_stretched_molecular_stop.py", "--declaration-only"]],
+      "commands": [["benchmarks/check_stretched_molecular_stop.py", "--verify-history"]],
       "environment_record": "protocol_cost.json",
       "gate": "check_stretched_molecular_stop",
       "inputs": ["docs/restart/stretched_molecular_stop_declaration.json",
+                 "docs/restart/stretched_molecular_stop_results.json.gz",
                  "docs/restart/molecular_adaptive_stop_declaration.json",
                  "docs/restart/molecular_adaptive_stop_results.json.gz",
                  "molecular/results/lih_stretched.fcidump",
