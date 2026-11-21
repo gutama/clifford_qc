@@ -106,8 +106,96 @@ python benchmarks/check_rank_aware_stop.py --declaration-only --full-anchor
 python benchmarks/run_rank_aware_stop.py --execute --checkpoint-dir /tmp/guarded-stop --jobs 8
 python benchmarks/check_rank_aware_stop.py --report
 python benchmarks/check_rank_aware_stop.py --spot-replay
+python benchmarks/check_rank_aware_stop.py --verify-history
 ```
 
 ## Results
 
-Pending fresh evaluation. No evaluation outcomes exist in this declaration commit.
+The result-free declaration was published at
+`1661bfefec6d95621deaa96669801ef93e7e0d2d` before evaluation. The
+[compressed record](rank_aware_stop_results.json.gz) contains every one of
+128 acquisitions, 491 measured solves, 2,688 bootstrap solves and
+3,702,893,500 simulated physical shots. No acquisition or bootstrap failed.
+The independent parent occupation-space matrices and native frozen-core
+anchors agree, reproducing the previous exact full-rank projected energies
+(-7.763632943522596 Ha LiH, -15.200464376073494 Ha BeH2). All 96 adaptive
+attempts met their respective guards; all 32 fixed-budget attempts reached
+the schedule horizon. The fixed-budget terminal points are not credited as
+adaptive stops.
+
+The independent checker verified the full 128-attempt ledgers, the
+paired pilot fingerprints, all 3,179 recorded solve rank decisions, margin
+arithmetic and bootstrap seeds. All eight designated spot replays (replica
+zero of each molecule/policy) passed. Focused regression and CI-gate tests:
+290 passed, one older version-pinned replay skipped. Ruff, mypy, manuscript
+and reproduction-document checks passed. Routine CI performs only the short
+history, occupation-space anchor and ledger verification.
+
+### Precision stopping and cost
+
+| Molecule | Policy | True precision stops | False precision stops | Reduced-rank stops | Terminal error <= 1.6 mHa | Mean shots (M) | RMSE (mHa) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| LiH | SE only | 12/16 | 4/16 | 2 | 12/16 | 2.474 | 121.578 |
+| LiH | Rank/margin | 15/16 | 1/16 | 0 | 15/16 | 13.347 | 0.670 |
+| LiH | Bootstrap width | 16/16 | 0/16 | 0 | 16/16 | 18.870 | 0.339 |
+| LiH | Fixed budget | — | — | — | 16/16 | 58.912 | 0.134 |
+| BeH2 | SE only | 13/16 | 3/16 | 2 | 13/16 | 5.640 | 95.069 |
+| BeH2 | Rank/margin | 16/16 | 0/16 | 0 | 16/16 | 11.985 | 0.833 |
+| BeH2 | Bootstrap width | 16/16 | 0/16 | 0 | 16/16 | 29.963 | 0.533 |
+| BeH2 | Fixed budget | — | — | — | 16/16 | 90.240 | 0.193 |
+
+Both rank/margin cells pass the frozen descriptive feasibility criteria:
+LiH true stops 15/16 with one false stop versus four SE-only false stops;
+BeH2 true stops 16/16 with zero false versus three SE-only false stops.
+Across the two banks the guard reduces false stops from 7/32 to 1/32 and
+eliminates reduced-rank stops (4 to 0). The remaining LiH false stop has
+full confirmed rank but actual error 2.212 mHa. Thus rank stability addresses
+the catastrophic truncation mechanism without turning an estimated SE into
+an absolute error bound. With only 16 independent replicas per cell, even
+16/16 true precision stops has Wilson 95% interval 80.6–100%; 15/16 has
+71.7–98.9%. This is descriptive evidence, not proof of universal reliability.
+
+Rank-aware acquisition costs 5.40x (LiH) and 2.13x (BeH2) the SE-only mean
+shots, but reduces point RMSE by factors 181.5 and 114.2 respectively.
+Compared with the full fixed budget it uses 77.3% and 86.7% fewer shots;
+compared with width-only it uses 29.3% and 60.0% fewer shots, respectively.
+The rank-aware rounds allocate a total 27,154,750 and 18,330,000 shots
+specifically to the overlap margin across the two cells (included in shot
+cost, no extra shots on top of each declared round). This avoids continuing
+to buy only energy-sensitive measurements in a truncated space.
+
+### Interval and classical computation trade-offs
+
+| Molecule | Policy | 95% delta coverage | 95% bootstrap coverage | Median bootstrap full width (mHa) | Measured solves | Bootstrap solves |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| LiH | SE only | 13/16 | 15/16 | 16.391 | 41 | 256 |
+| LiH | Rank/margin | 15/16 | 16/16 | 2.377 | 59 | 256 |
+| LiH | Bootstrap width | 15/16 | 16/16 | 1.383 | 64 | 624 |
+| LiH | Fixed budget | 15/16 | 15/16 | 0.526 | 80 | 256 |
+| BeH2 | SE only | 14/16 | 14/16 | 7.287 | 48 | 256 |
+| BeH2 | Rank/margin | 16/16 | 16/16 | 3.697 | 54 | 256 |
+| BeH2 | Bootstrap width | 16/16 | 16/16 | 2.157 | 65 | 528 |
+| BeH2 | Fixed budget | 15/16 | 16/16 | 0.729 | 80 | 256 |
+
+All intervals were available. Report actual schedule-adjusted 95% intervals
+for adaptive policies and single-look 95% intervals for the fixed horizon.
+The width-only arm attained 32/32 true precision stops, with zero false
+stops, at greater mean shots than rank/margin and 1,152 bootstrap solves
+versus 512 terminal-only rank/margin solves. On these cases rank resolution
+is the cheaper first guard; width is useful when a narrow reported interval
+is essential, not a replacement for checking structural rank. In particular,
+a finite bootstrap can miss a rank regime and cannot certify it absent.
+
+### Scientific decision
+
+Adopt the two optional policy controls as research features, not defaults
+or certificates. The rank-aware policy passes this frozen near-cutoff
+stress validation and materially reduces catastrophic errors without full
+budget expenditure. Width-only attains every point error target in this
+small sample at higher cost; the combined rank-and-width API is tested
+mechanically, but has not been subjected to a distinct fresh-seed campaign.
+The next test should use naturally ill-conditioned, larger banks and noisy
+hardware models, with more outer and inner draws and a declared combined
+policy. If the full bank is structurally dependent, repair/reparameterize
+it before using the full-rank guard; a reduced-rank stopping policy would
+require a separately justified estimand and criterion.
