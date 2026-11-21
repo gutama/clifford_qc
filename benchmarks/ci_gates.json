@@ -60,6 +60,20 @@
                 "tests/test_molecular_interval_coverage.py"]
     },
     {
+      "commands": [["benchmarks/check_molecular_adaptive_stop.py", "--verify-history"]],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_molecular_adaptive_stop",
+      "inputs": ["docs/restart/molecular_adaptive_stop_declaration.json",
+                 "docs/restart/molecular_adaptive_stop_results.json.gz",
+                 "docs/restart/molecular_interval_coverage_declaration.json",
+                 "docs/restart/molecular_interval_coverage_results.json.gz"],
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 3,
+      "watch": ["benchmarks/*molecular_adaptive_stop*", "docs/restart/*molecular_adaptive_stop*",
+                "tests/test_molecular_adaptive_stop.py"]
+    },
+    {
       "commands": [
         [
           "benchmarks/check_target_acquisition.py",
