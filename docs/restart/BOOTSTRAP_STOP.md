@@ -83,7 +83,10 @@ found.looks[-1]["bootstrap_spread"]   # r
   interval is centred on the corrected point estimate, not the raw Ritz value.
   The schedule records `bootstrap.estimator = "refitted_control_variates"`.
   This combination was **not** included in the fresh-seed check below and
-  requires a new declared coverage study on symmetry-conserving banks.
+  requires a new declared coverage study on symmetry-conserving banks. The
+  [subsequent fixed-shot LiH/H4 study](MOLECULAR_INTERVAL_COVERAGE.md) now
+  reports coverage for those two compact molecular banks, but not at an
+  adaptive acquisition stop.
 - `bootstrap_spread(draws)` and `bootstrap_spread_interval(estimate, draws,
   delta=..., family=...)` in `clifford_qc.subspace.uncertainty` build the same
   interval from draws a caller already has.

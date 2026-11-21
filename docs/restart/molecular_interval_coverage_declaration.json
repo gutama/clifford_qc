@@ -1,0 +1,23 @@
+{
+  "schema": "clifford_qc.molecular_interval_coverage.v1",
+  "declared_date": "2026-11-21",
+  "case_source": "docs/restart/cross_domain_ratio_declaration.json",
+  "case_source_sha256": "29e418c07e59dba016db77554f5fbc23380c67a174a55a26af049c6f3d4087d8",
+  "cases": ["lih_heldout_molecule", "h4_heldout_molecule"],
+  "target": "exact_three_direction_projected_ground_energy",
+  "shots_per_qwc_group": [2000, 20000],
+  "outer_replicas": 64,
+  "bootstrap_replicas": 32,
+  "seed_root": 2026112107,
+  "seed_rule": "SeedSequence([seed_root, case_index, budget_index, replica, stream]).generate_state(1, uint64), stream=0 measurement, 1 paired bootstrap",
+  "solver": {"tau_s": 1e-10, "max_condition": 1000000000000.0, "norm_floor": 1e-14},
+  "pooling": "assigned",
+  "control_variates": {"one_body": true, "sz": 0.0},
+  "arms": ["raw", "refitted_cv"],
+  "intervals": ["delta_normal", "bootstrap_spread"],
+  "levels": [0.68, 0.95],
+  "primary_test": {"arm": "refitted_cv", "interval": "bootstrap_spread", "nominal": 0.95, "familywise_alpha": 0.05, "cells": 4, "rule": "one-sided exact binomial lower-tail test, Bonferroni per cell; failure to reject is not a calibration certificate"},
+  "failure_policy": "All declared outer replicas count in denominators. Any failed bootstrap draw invalidates that arm's entire bootstrap interval. Point solve failure invalidates both arms. Correction failure invalidates only refitted_cv. A failed delta interval does not invalidate a solved point or its bootstrap. Unexpected execution errors abort with completed rows preserved; never selectively rerun failed rows.",
+  "environment": {"python": "3.12.14", "numpy": "2.5.2", "scipy": "1.18.0", "threads": 1},
+  "limitations": "Ideal QWC shots on two reused three-direction molecular banks; not full CISD banks, not physical ground-energy intervals, not hardware. Only 32 inner draws: spread interval uses central 16th/84th quantiles, not percentile tails. 64 outer replicas per cell provide limited power. No adaptive stopping or promotion/advantage claim."
+}

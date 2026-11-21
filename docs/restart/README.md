@@ -53,6 +53,13 @@ On H4 targeting did most of the work, 10.5 times fewer shots to the tighter
 target, and the correction added a further 1.2 times. None of the declared
 spin banks qualifies: their generators break the symmetry.
 
+The [preregistered molecular interval coverage study](MOLECULAR_INTERVAL_COVERAGE.md)
+uses the three-direction LiH and H4 banks at matched fixed QWC shot budgets.
+The 256 paired replicas reject no primary 95% corrected-spread cell and
+have 22–46% narrower median intervals and 18–50% lower point RMSE. The 68%
+spread intervals under-cover descriptively; this is not an adaptive-stop or
+general calibration guarantee.
+
 The [preregistered noise-aware selection experiment](NOISE_AWARE_SELECTION.md)
 closed negative on its equal-shot held-out criterion. An independent H4 audit
 checks the published energy trajectory and Pauli support counts.
