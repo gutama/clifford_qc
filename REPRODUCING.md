@@ -930,6 +930,12 @@ uses the same banks and tests finite-schedule stopping on fresh seeds. See
 `benchmarks/check_molecular_adaptive_stop.py` for reproduction and short checks;
 the full acquisition and bootstrap run is not a PR gate.
 
+The [stretched molecular rank-instability stress study](docs/restart/STRETCHED_MOLECULAR_STOP.md)
+uses larger frozen-core LiH/BeH2 banks with an intentionally weak overlap mode.
+See `benchmarks/run_stretched_molecular_stop.py` and
+`benchmarks/check_stretched_molecular_stop.py`; only the short structural
+checker runs in regular CI.
+
 `.github/workflows/ci.yml` runs on every pull request and on every push to
 `main`. Each value gate builds its environment out of the record it verifies
 rather than out of a hand-written pin:

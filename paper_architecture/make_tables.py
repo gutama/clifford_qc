@@ -193,7 +193,7 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         "checks committed declaration/execution bindings, every observed attempt, physical costs and unconditional target attainment; full shot replay is explicit",
         ("check_sampled_ratio", "check_cross_domain_ratio", "check_interval_coverage",
          "check_target_acquisition", "check_bootstrap_stop", "check_molecular_interval_coverage",
-         "check_molecular_adaptive_stop"),
+         "check_molecular_adaptive_stop", "check_stretched_molecular_stop"),
     ),
     (
         "Value-rebuilt",

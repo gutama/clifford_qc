@@ -74,6 +74,21 @@
                 "tests/test_molecular_adaptive_stop.py"]
     },
     {
+      "commands": [["benchmarks/check_stretched_molecular_stop.py", "--declaration-only"]],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_stretched_molecular_stop",
+      "inputs": ["docs/restart/stretched_molecular_stop_declaration.json",
+                 "docs/restart/molecular_adaptive_stop_declaration.json",
+                 "docs/restart/molecular_adaptive_stop_results.json.gz",
+                 "molecular/results/lih_stretched.fcidump",
+                 "molecular/results/beh2_stretched.fcidump"],
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 3,
+      "watch": ["benchmarks/*stretched_molecular_stop*", "docs/restart/*stretched_molecular_stop*",
+                "tests/test_stretched_molecular_stop.py"]
+    },
+    {
       "commands": [
         [
           "benchmarks/check_target_acquisition.py",
