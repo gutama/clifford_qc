@@ -297,7 +297,7 @@ def ci_gate_policy() -> tuple[set[str], set[str], set[str]]:
     if "-m benchmarks.ci_gates" in text:
         from benchmarks.ci_gates import load_registry
         if not all(marker in text for marker in
-                   ("--tier core", "outputs.structural", "outputs.sampled", "schedule:")):
+                   ("--tier core", "outputs.records", "--gates", "schedule:")):
             raise SystemExit("CI registry is not wired to every execution tier")
         groups = {tier: set() for tier in ("core", "structural", "sampled", "environment")}
         for gate in load_registry(CI_REGISTRY):

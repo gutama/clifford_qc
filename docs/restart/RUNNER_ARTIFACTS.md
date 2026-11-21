@@ -110,15 +110,27 @@ fixture verifies inventory compatibility even in shallow clones and source archi
 | Event/change | Required work |
 | --- | --- |
 | Every PR and main push | Full pytest/lint, all deterministic gates and global environment consistency |
-| Affected restart source/data or runner/CI edits | Both applicable restart full-seed verification paths; runtime setup is exercised before merge |
+| Affected restart source/data or runner/CI edits | Affected spin replay; the expensive molecular full-seed replay is reported as deferred, with its independent short gate still mandatory |
 | Legacy sampled source/data changes | Report affected manual-only replay names; never silently run the frozen instrument automatically |
 | Weekly schedule | All deterministic gates and the restart full-seed verifications |
 | Explicit dispatch | All registered gates, including legacy manual-only sampled instruments |
+
+Structural checks with identical record-local pins share a bounded matrix
+job, so checkout, setup and input hashing run once per batch. Each check
+retains its original task timeout and its own execution receipt. Explicit
+execution declarations and sampled replays remain separate jobs. Core tests,
+the NumPy-only minimum-Python suite and the full bridge/chemistry suite run on
+PRs; the broader interpreter matrix runs on weekly verification or dispatch.
 
 Weekly verification is scheduled for Sunday 09:17 Asia/Jakarta. It never
 launches a new `--execute` campaign. Each main push has a unique concurrency
 identity, so later pushes cannot cancel or displace its replay obligations.
 Only superseded PR runs may be cancelled.
+
+The cross-domain full replay is declared `scheduled_only` in the registry (weekly
+or explicit dispatch). This changes scheduling, not the verifier or the evidence.
+The planner continues detecting affected molecular sources and prints the
+deferred gate instead of silently treating it as replayed.
 
 Job budgets start before checkout/setup. The runner receives the actual elapsed
 budget, limits remaining task time and reserves three minutes for finalisation

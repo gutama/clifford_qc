@@ -77,13 +77,36 @@ found.looks[-1]["bootstrap_spread"]   # r
 - If a resampled solve fails, `bootstrap_interval` is `None` and the last look
   records `bootstrap_failure`; the acquisition itself is still returned. A
   failed replica is never dropped to produce an interval.
-- It is refused with `control_variates`, because it would resample the
-  uncorrected Ritz value, not the corrected one the run reports.
+- With `control_variates`, every replica now re-solves the resampled pencil,
+  reconstructs the zero-mean sector functionals at that replica's Ritz
+  vector and refits their coefficients from its own joint histograms. The
+  interval is centred on the corrected point estimate, not the raw Ritz value.
+  The schedule records `bootstrap.estimator = "refitted_control_variates"`.
+  This combination was **not** included in the fresh-seed check below and
+  requires a new declared coverage study on symmetry-conserving banks.
 - `bootstrap_spread(draws)` and `bootstrap_spread_interval(estimate, draws,
   delta=..., family=...)` in `clifford_qc.subspace.uncertainty` build the same
   interval from draws a caller already has.
 - A spread many times `std_error` marks a stop whose retained rank the data do
   not settle. On these banks that was where the extra width went.
+
+For a symmetry-conserving bank, both options can be enabled together:
+
+```python
+found = acquire_ritz(shared, backend, pilot_shots_per_group=100,
+                     round_budgets=[1000, 2000], target_std_error=0.01,
+                     control_variates=certified_family,
+                     bootstrap_replicates=500, bootstrap_seed=7)
+```
+
+The resampling conditions on the final observed per-setting shot counts; it
+does not replay the adaptive allocation or stopping schedule. Re-fitting can
+account for some uncertainty of the correction that a fixed-coefficient
+delta interval misses, but does not establish finite-sample or optional-stop
+coverage. `bootstrap_ritz_samples(..., result=found.result,
+control_variates=certified_family)` exposes the corrected draws. No additional
+physical shots are required; the extra computation includes a covariance fit
+for each replica.
 
 ## Development screen
 

@@ -387,8 +387,9 @@ ruff check clifford_qc molecular tests benchmarks
 python -m mypy
 ```
 
-The suite runs on every supported Python version and with any subset of the
-extras: a test whose optional dependency is absent skips and names it, and
+CI runs the pinned suite, the minimum-Python NumPy-only suite and the full
+bridge/chemistry suite on every PR. The complete supported-Python matrix runs
+weekly and on explicit dispatch. A test whose optional dependency is absent skips and names it, and
 `python -m pip install -e '.[test]'` alone is enough to run the rest. Two kinds
 of test have a precondition in the environment rather than in the code, and
 skip with the reason when it does not hold:

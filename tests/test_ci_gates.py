@@ -82,10 +82,28 @@ def test_transport_change_runs_all_deterministic_gates(path):
     assert {"replay_sampled_ratio", "replay_cross_domain_ratio"} <= chosen
 
 
-def test_unavailable_git_ancestry_selects_full_replay_instead_of_skipping():
+def test_unavailable_git_ancestry_selects_all_eligible_replays_and_reports_deferred():
     result = ci.plan("pull_request", {})
     assert result["has_structural"] and result["has_sampled"]
-    assert "replay_cross_domain_ratio" in names(result["sampled"]["include"])
+    assert "replay_sampled_ratio" in names(result["sampled"]["include"])
+    assert "check_cross_domain_ratio" in names(result["structural"]["include"])
+    assert result['deferred_replays'] == ['replay_cross_domain_ratio']
+
+
+@pytest.mark.parametrize('event', ['pull_request', 'push'])
+@pytest.mark.parametrize('path', ['benchmarks/run_cross_domain_ratio.py',
+                                 'docs/restart/cross_domain_ratio_results.json.gz',
+                                 '.github/workflows/ci.yml'])
+def test_expensive_cross_domain_replay_is_deferred_even_when_affected(event, path, monkeypatch):
+    monkeypatch.setattr(ci, 'changed_paths', lambda *a: [path])
+    payload = {'pull_request': {'base': {'sha': 'a'*40}, 'head': {'sha': 'b'*40}},
+               'before': 'a'*40, 'after': 'b'*40}
+    result = ci.plan(event, payload)
+    assert 'check_cross_domain_ratio' in names(result['structural']['include'])
+    assert 'replay_cross_domain_ratio' not in names(result['sampled']['include'])
+    assert result['deferred_replays'] == ['replay_cross_domain_ratio']
+    assert 'replay_cross_domain_ratio' not in {
+        gate for row in result['records']['include'] for gate in row['gates'].split(',')}
 
 
 @pytest.mark.parametrize("event", ["schedule", "workflow_dispatch"])
@@ -116,7 +134,8 @@ def test_deleted_and_renamed_evidence_paths_are_both_routed(tmp_path):
     assert "replay_cross_domain_ratio" in names(ci.affected(ci.load_registry(), changed))
 
 
-@pytest.mark.parametrize("mutation", ["duplicate", "traversal", "missing_script", "unknown_tier", "manual_contract"])
+@pytest.mark.parametrize("mutation", ["duplicate", "traversal", "missing_script", "unknown_tier", "manual_contract",
+                                      "defer_structural", "defer_manual", "invalid_schedule_flag"])
 def test_registry_rejects_corruption(tmp_path, mutation):
     registry = json.loads(ci.REGISTRY.read_text())
     if mutation == "duplicate": registry["gates"].append(deepcopy(registry["gates"][0]))
@@ -125,6 +144,12 @@ def test_registry_rejects_corruption(tmp_path, mutation):
     elif mutation == "unknown_tier": registry["gates"][0]["tier"] = "quietly_skip"
     elif mutation == "manual_contract":
         next(g for g in registry['gates'] if g['gate']=='check_r3d_qr3_refinement')['manual_only'] = False
+    elif mutation == "defer_structural":
+        next(g for g in registry['gates'] if g['tier'] == 'structural')['scheduled_only'] = True
+    elif mutation == "defer_manual":
+        next(g for g in registry['gates'] if g.get('manual_only'))['scheduled_only'] = True
+    elif mutation == "invalid_schedule_flag":
+        next(g for g in registry['gates'] if g['gate'] == 'replay_cross_domain_ratio')['scheduled_only'] = 'true'
     path = tmp_path/"registry.json"
     path.write_text(json.dumps(registry))
     with pytest.raises(ValueError):
@@ -134,17 +159,17 @@ def test_registry_rejects_corruption(tmp_path, mutation):
 def test_workflow_uses_the_registry_and_retains_history_pins_failure_logs_and_schedule():
     text = (ci.ROOT/".github/workflows/ci.yml").read_text()
     assert 'cron:' in text
-    assert "--plan" in text and "fromJSON(needs.plan.outputs.structural)" in text
-    assert "fromJSON(needs.plan.outputs.sampled)" in text
+    assert "--plan" in text and "fromJSON(needs.plan.outputs.records)" in text
+    assert '--gates "$RECORD_GATES"' in text
     assert "python -m pytest --hypothesis-profile=ci" in text
     assert "--tier core" in text
-    # plan, the record-environment tests, both record matrices, and the two
-    # compatibility matrices: every job that runs the suite or a gate needs
+    # plan, the record-environment tests, the combined record matrix, and the
+    # two compatibility matrices: every job that runs the suite or a gate needs
     # history, since chronology checks walk it.
-    assert text.count("fetch-depth: 0") == 6
-    assert text.count("fail-fast: false") == 4
+    assert text.count("fetch-depth: 0") == 5
+    assert text.count("fail-fast: false") == 3
     assert "reference-record: ${{ matrix.environment_record }}" in text
-    assert text.count("actions/upload-artifact@v4") == 3
+    assert text.count("actions/upload-artifact@v4") == 2
     assert "pull_request_target" not in text
 
 
@@ -175,6 +200,7 @@ def test_every_advertised_python_version_is_tested_by_some_job():
     assert record in advertised
     assert tested | {record} == advertised
     assert record not in tested  # the pinned job already runs it
+    assert "if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'" in text
 
 
 def test_compatibility_jobs_state_their_extras_and_cover_both_ends_of_the_install():
@@ -259,7 +285,10 @@ def test_routine_edits_do_not_spend_sampled_replays(path):
 @pytest.mark.parametrize('event', ['pull_request', 'push', 'schedule'])
 def test_frozen_manual_only_replays_are_never_automatic(event):
     result = ci.plan(event, {})
-    assert names(result['sampled']['include']) == {'replay_sampled_ratio', 'replay_cross_domain_ratio'}
+    expected = {'replay_sampled_ratio'}
+    if event == 'schedule':
+        expected.add('replay_cross_domain_ratio')
+    assert names(result['sampled']['include']) == expected
     assert 'check_r3d_qr3_refinement' not in names(result['sampled']['include'])
     config = json.loads((ci.ROOT/'benchmarks/configs/r3d_qr3_refinement.json').read_text())
     assert config['reporting_contract']['sampled_ci_is_manual_dispatch_only'] is True
@@ -269,8 +298,44 @@ def test_main_runs_are_unique_and_uploads_run_after_cancellation():
     text = (ci.ROOT/'.github/workflows/ci.yml').read_text()
     assert "github.event_name == 'pull_request' && github.ref || github.run_id" in text
     assert "cancel-in-progress: ${{ github.event_name == 'pull_request' }}" in text
-    assert text.count('if: ${{ always() }}') == 3
-    assert text.count('CI_JOB_STARTED_EPOCH=$(date +%s)') == 3
+    assert text.count('if: ${{ always() }}') == 2
+    assert text.count('CI_JOB_STARTED_EPOCH=$(date +%s)') == 2
+
+
+@pytest.mark.parametrize('event', ['pull_request', 'schedule', 'workflow_dispatch'])
+def test_batches_preserve_all_gates_pins_and_timeouts(event):
+    from benchmarks.check_record_environment import agreed, survey
+
+    result = ci.plan(event, {})
+    expected = names(result['structural']['include']) | names(result['sampled']['include'])
+    rows = result['records']['include']
+    flat = [name for row in rows for name in row['gates'].split(',')]
+    assert len(flat) == len(expected) and set(flat) == expected
+    assert len(rows) < len(expected)
+    assert len({row['label'] for row in rows}) == len(rows)
+    registry = {g['gate']: g for g in ci.load_registry()}
+
+    def pins(record):
+        declarations, problems = survey(ci.ROOT/'benchmarks/reference_results', [record])
+        value = agreed(declarations, problems)
+        assert not problems
+        return value
+
+    for row in rows:
+        gates = [registry[name] for name in row['gates'].split(',')]
+        if len(gates) > 1:
+            assert all(g['tier'] == 'structural' and not g.get('execution_declaration') for g in gates)
+            assert all(pins(g['environment_record']) == pins(row['environment_record']) for g in gates)
+        else:
+            assert row['execution_declaration'] == gates[0].get('execution_declaration', '')
+        assert row['timeout'] == min(sum(g['timeout'] * len(g['commands']) for g in gates) + 15, 350)
+        assert row['job_timeout_seconds'] == row['timeout'] * 60
+
+
+def test_batch_cli_refuses_missing_or_duplicate_gate_names(tmp_path):
+    for batch in ['check_docs,check_docs', 'check_docs,missing_gate']:
+        with pytest.raises(SystemExit, match='2'):
+            ci.main(['--gates', batch, '--output', str(tmp_path/'run')])
 
 
 def test_executor_uses_per_gate_logs_and_elapsed_job_budget(tmp_path, monkeypatch):

@@ -1534,6 +1534,7 @@
       "environment_record": "protocol_cost.json",
       "execution_declaration": "docs/restart/cross_domain_ratio_declaration.json",
       "gate": "replay_cross_domain_ratio",
+      "scheduled_only": true,
       "inputs": [
         "docs/restart/cross_domain_ratio_declaration.json",
         "docs/restart/sampled_ratio_declaration.json",
