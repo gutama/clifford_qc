@@ -47,10 +47,11 @@
       ]
     },
     {
-      "commands": [["benchmarks/check_molecular_interval_coverage.py", "--declaration-only"]],
+      "commands": [["benchmarks/check_molecular_interval_coverage.py", "--verify-history"]],
       "environment_record": "protocol_cost.json",
       "gate": "check_molecular_interval_coverage",
       "inputs": ["docs/restart/molecular_interval_coverage_declaration.json",
+                  "docs/restart/molecular_interval_coverage_results.json.gz",
                   "docs/restart/cross_domain_ratio_declaration.json"],
       "max_output_bytes": 16777216,
       "tier": "structural",
