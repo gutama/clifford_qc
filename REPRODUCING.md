@@ -1048,6 +1048,9 @@ Sunday 09:17 Asia/Jakarta runs deterministic and restart full-seed verification.
 Every structural batch retains the sum of its constituent command timeout
 allowances (plus setup/upload headroom); distinct execution declarations and
 sampled replays retain independent jobs and receipts.
+The planner balances structural batches with the committed runtime profile
+(`benchmarks/ci_runtime_profile.json`), keeping the original job-count and
+timeout caps. Measured runtimes are scheduling hints, never evidence criteria.
 The legacy sampled instruments remain **manual-dispatch only**, preserving
 R3d's frozen reporting contract. The planner reports affected manual work
 separately. Tests, examples, documents and PHASE_STATUS updates do not trigger

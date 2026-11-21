@@ -73,7 +73,7 @@ def test_shared_unknown_or_archived_sources_fail_closed_to_all_campaigns(path):
     assert names(g for g in gates if g["tier"] != "environment") <= chosen
 
 
-@pytest.mark.parametrize("path", ["benchmarks/ci_gates.json", ".github/workflows/ci.yml",
+@pytest.mark.parametrize("path", ["benchmarks/ci_gates.json", "benchmarks/ci_runtime_profile.json", ".github/workflows/ci.yml",
                                   "benchmarks/experiment_runner.py"])
 def test_transport_change_runs_all_deterministic_gates(path):
     gates = ci.load_registry()
@@ -326,10 +326,56 @@ def test_batches_preserve_all_gates_pins_and_timeouts(event):
         if len(gates) > 1:
             assert all(g['tier'] == 'structural' and not g.get('execution_declaration') for g in gates)
             assert all(pins(g['environment_record']) == pins(row['environment_record']) for g in gates)
+            assert sum(ci.gate_minutes(g) for g in gates) <= ci.STRUCTURAL_BATCH_MINUTES
         else:
             assert row['execution_declaration'] == gates[0].get('execution_declaration', '')
         assert row['timeout'] == min(sum(g['timeout'] * len(g['commands']) for g in gates) + 15, 350)
         assert row['job_timeout_seconds'] == row['timeout'] * 60
+        assert row['estimated_seconds'] == sum(ci.gate_seconds(g, ci.runtime_estimates()) for g in gates)
+
+
+def test_real_timing_profile_balances_without_adding_jobs(monkeypatch):
+    balanced = ci.plan('pull_request', {})['records']['include']
+    monkeypatch.setattr(ci, 'balanced_batches', lambda members, estimates: ci.timeout_batches(members))
+    baseline = ci.plan('pull_request', {})['records']['include']
+    assert len(balanced) == len(baseline)
+    def common(rows):
+        return [row['estimated_seconds'] for row in rows if row['label'].startswith('structural-batch-')]
+    assert max(common(balanced)) <= max(common(baseline))
+    assert {gate for row in balanced for gate in row['gates'].split(',')} == {
+        gate for row in baseline for gate in row['gates'].split(',')}
+
+
+def _fixture_gate(name, minutes):
+    return {'gate': name, 'timeout': minutes, 'commands': [[name + '.py']]}
+
+
+def test_balancing_separates_heavy_checks_and_counts_unknown_conservatively():
+    gates = [_fixture_gate(name, 90) for name in ('a', 'b', 'c', 'd')]
+    estimates = {'a': 400, 'b': 300, 'c': 10, 'd': 1}
+    batches = ci.balanced_batches(gates, estimates)
+    assert len(batches) == 2
+    assert [names(batch) for batch in batches] == [{'a', 'd'}, {'b', 'c'}]
+    assert ci.gate_seconds(gates[0], {}) == 90 * 60
+    assert batches == ci.balanced_batches(gates, estimates)
+
+
+def test_balancing_falls_back_if_greedy_assignment_runs_out_of_timeout_capacity():
+    gates = [_fixture_gate(name, minutes) for name, minutes in
+             [('a', 90), ('b', 90), ('c', 60), ('d', 60), ('e', 60)]]
+    estimates = {'a': 100, 'b': 90, 'c': 80, 'd': 70, 'e': 60}
+    assert ci.balanced_batches(gates, estimates) == ci.timeout_batches(gates)
+
+
+@pytest.mark.parametrize('value', [0, -1, True, '45'])
+def test_invalid_timing_estimate_rejected(tmp_path, value):
+    path = tmp_path / ci.RUNTIME_PROFILE
+    path.parent.mkdir()
+    profile = {'schema': 'clifford_qc.ci_runtime_profile.v1', 'source_run_ids': [1],
+               'method': 'fixture', 'gate_seconds': {'check_example': value}}
+    path.write_text(json.dumps(profile))
+    with pytest.raises(ValueError, match='invalid CI runtime profile'):
+        ci.runtime_estimates(root=tmp_path)
 
 
 def test_batch_cli_refuses_missing_or_duplicate_gate_names(tmp_path):

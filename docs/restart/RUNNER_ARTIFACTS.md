@@ -122,6 +122,19 @@ execution declarations and sampled replays remain separate jobs. Core tests,
 the NumPy-only minimum-Python suite and the full bridge/chemistry suite run on
 PRs; the broader interpreter matrix runs on weekly verification or dispatch.
 
+Within each shared environment, longest-first placement balances **measured
+runtime**, constrained by the original 180-minute aggregate timeout cap and
+the original next-fit job count. The committed
+`benchmarks/ci_runtime_profile.json` uses the rounded-up maximum per-gate
+elapsed time observed in successful runs
+[592](https://github.com/gutama/clifford_qc/actions/runs/44904164990) and
+[593](https://github.com/gutama/clifford_qc/actions/runs/44906779979).
+The common six-job group had a predicted worst batch of 1,296 seconds under
+next-fit packing; the balanced prediction is 525 seconds. These estimates
+exclude runner setup and do not guarantee future timing. Unmeasured gates
+use their timeout as a conservative estimate; infeasible or worse predicted
+packing falls back to next-fit without dropping checks or adding jobs.
+
 Weekly verification is scheduled for Sunday 09:17 Asia/Jakarta. It never
 launches a new `--execute` campaign. Each main push has a unique concurrency
 identity, so later pushes cannot cancel or displace its replay obligations.

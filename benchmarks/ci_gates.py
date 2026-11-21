@@ -23,9 +23,10 @@ from benchmarks.experiment_runner import Task, run
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "benchmarks/ci_gates.json"
+RUNTIME_PROFILE = "benchmarks/ci_runtime_profile.json"
 TIERS = {"core", "structural", "sampled"}
 TRANSPORT = {"benchmarks/experiment_runner.py", "benchmarks/experiment_artifacts.py",
-             "benchmarks/ci_gates.py", "benchmarks/ci_gates.json"}
+             "benchmarks/ci_gates.py", "benchmarks/ci_gates.json", RUNTIME_PROFILE}
 # Amortize checkout, dependency setup and input hashing without reducing any
 # command's declared timeout. Leave room for installation and receipt upload.
 STRUCTURAL_BATCH_MINUTES = 180
@@ -245,12 +246,83 @@ def changed_paths(root, base, head):
     return raw.decode("utf-8").rstrip("\0").split("\0") if raw else []
 
 
+def runtime_estimates(*, root=ROOT):
+    """Read committed timing hints; these never affect scientific acceptance or timeouts."""
+    profile = read_json(local_path(root, RUNTIME_PROFILE))
+    if (not isinstance(profile, dict)
+            or set(profile) != {'schema', 'source_run_ids', 'method', 'gate_seconds'}
+            or profile['schema'] != 'clifford_qc.ci_runtime_profile.v1'
+            or not isinstance(profile['source_run_ids'], list) or not profile['source_run_ids']
+            or any(type(run_id) is not int or run_id <= 0 for run_id in profile['source_run_ids'])
+            or not isinstance(profile['method'], str) or not profile['method']
+            or not isinstance(profile['gate_seconds'], dict)
+            or any(not re.fullmatch(r'[a-z][a-z0-9_]*', name)
+                   or type(seconds) is not int or seconds < 1
+                   for name, seconds in profile['gate_seconds'].items())):
+        raise ValueError('invalid CI runtime profile')
+    return profile['gate_seconds']
+
+
+def gate_minutes(gate):
+    return gate['timeout'] * len(gate['commands'])
+
+
+def gate_seconds(gate, estimates):
+    # Treat a new, unmeasured gate conservatively until a timing is recorded.
+    return estimates.get(gate['gate'], gate_minutes(gate) * 60)
+
+
+def timeout_batches(members):
+    """Original next-fit packing: the conservative job-count baseline."""
+    batches, batch, minutes = [], [], 0
+    for gate in members:
+        cost = gate_minutes(gate)
+        if batch and minutes + cost > STRUCTURAL_BATCH_MINUTES:
+            batches.append(batch)
+            batch, minutes = [], 0
+        batch.append(gate)
+        minutes += cost
+    if batch:
+        batches.append(batch)
+    return batches
+
+
+def balanced_batches(members, estimates):
+    """Schedule the longest gates first, within the existing job-count/timeout caps.
+
+    Assign each gate to the least-loaded feasible batch using recorded runtime
+    hints. If the greedy assignment cannot fit in the original number of jobs,
+    or would worsen the predicted critical path, use the original packing.
+    The timing profile is advisory; it must never drop work or reduce allowance.
+    """
+    baseline = timeout_batches(members)
+    if len(baseline) < 2:
+        return baseline
+    batches = [[] for _ in baseline]
+    seconds = [0] * len(batches)
+    minutes = [0] * len(batches)
+    ordered = sorted(members, key=lambda gate: (-gate_seconds(gate, estimates),
+                                                -gate_minutes(gate), gate['gate']))
+    for gate in ordered:
+        cost = gate_minutes(gate)
+        feasible = [i for i in range(len(batches)) if minutes[i] + cost <= STRUCTURAL_BATCH_MINUTES]
+        if not feasible:
+            return baseline
+        index = min(feasible, key=lambda i: (seconds[i], minutes[i], i))
+        batches[index].append(gate)
+        seconds[index] += gate_seconds(gate, estimates)
+        minutes[index] += cost
+    original_max = max(sum(gate_seconds(gate, estimates) for gate in batch) for batch in baseline)
+    return batches if all(batches) and max(seconds) <= original_max else baseline
+
+
 def record_batches(gates, *, root=ROOT):
     """Batch structural gates with identical record-local environment pins.
 
     Explicit execution declarations and sampled replays stay isolated. The
     latter may be long-running and have independently meaningful receipts.
     A batch's allowance is the sum of its task allowances plus setup headroom.
+    Measured-runtime scheduling balances the eligible gates within that budget.
     """
     from benchmarks.check_record_environment import agreed, survey, pending
 
@@ -272,28 +344,19 @@ def record_batches(gates, *, root=ROOT):
             pins[record] = tuple(sorted(versions.items()))
         groups.setdefault(pins[record], []).append(gate)
 
-    batches = []
-    for members in groups.values():
-        batch, minutes = [], 0
-        for gate in members:
-            cost = gate['timeout'] * len(gate['commands'])
-            if batch and minutes + cost > STRUCTURAL_BATCH_MINUTES:
-                batches.append(batch)
-                batch, minutes = [], 0
-            batch.append(gate)
-            minutes += cost
-        if batch:
-            batches.append(batch)
+    estimates = runtime_estimates(root=root)
+    batches = [batch for members in groups.values() for batch in balanced_batches(members, estimates)]
     rows = []
     for index, batch in enumerate(batches + singles, 1):
         first = batch[0]
         # Existing single-gate bounds are retained for the isolated replays.
-        minutes = min(sum(g['timeout'] * len(g['commands']) for g in batch) + 15, 350)
+        minutes = min(sum(gate_minutes(g) for g in batch) + 15, 350)
         label = first['gate'] if len(batch) == 1 else f'structural-batch-{index:02d}'
         rows.append({'label': label, 'gates': ','.join(g['gate'] for g in batch),
                      'timeout': minutes, 'job_timeout_seconds': minutes * 60,
                      'execution_declaration': first.get('execution_declaration', ''),
-                     'environment_record': first['environment_record']})
+                     'environment_record': first['environment_record'],
+                     'estimated_seconds': sum(gate_seconds(g, estimates) for g in batch)})
     return rows
 
 
