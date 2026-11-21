@@ -237,7 +237,10 @@ this document to them.
 - Four small spin banks under one declared schedule, one fresh seed root, 200
   replicas per bank. With 200 runs a cell resolves coverage below 95% only if
   it falls to 91.5% or less. Molecular banks, other schedules and control
-  variates were not tested.
+  variates were not tested in this study. The subsequent [preregistered LiH/H4
+  adaptive stopping study](MOLECULAR_ADAPTIVE_STOP.md) tests both raw and
+  refitted control-variate policies under a separate schedule, on stable-rank
+  molecular banks.
 - The bootstrap only resamples the histograms that were observed. A direction
   that none of the resampled solves retains is invisible to it, and so is any
   error the data cannot show. The interval is `heuristic`, not a certificate.

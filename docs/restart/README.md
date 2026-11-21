@@ -60,6 +60,13 @@ have 22–46% narrower median intervals and 18–50% lower point RMSE. The 68%
 spread intervals under-cover descriptively; this is not an adaptive-stop or
 general calibration guarantee.
 
+The [preregistered adaptive molecular stopping study](MOLECULAR_ADAPTIVE_STOP.md)
+tests the same two banks under six predeclared looks and a 1.6 mHa estimated-SE
+target. All 256 acquisitions met the target; corrected schedule-adjusted
+95% bootstrap-spread coverage is 62/64 on LiH and 61/64 on H4, neither rejecting
+the primary endpoint. Mean shot cost is 16.4% and 34.7% lower with correction;
+H4 RMSE increases by 12.4%, so this is not a matched-accuracy result.
+
 The [preregistered noise-aware selection experiment](NOISE_AWARE_SELECTION.md)
 closed negative on its equal-shot held-out criterion. An independent H4 audit
 checks the published energy trajectory and Pauli support counts.

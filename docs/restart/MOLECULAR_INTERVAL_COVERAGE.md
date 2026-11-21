@@ -137,3 +137,7 @@ also useful; the spread bootstrap does not consistently improve coverage.
 There is no hardware, full-CISD-bank, adaptive-stopping or quantum advantage
 claim. A separately declared acquisition-stop study with wider bootstrap
 replication remains the next scientific step.
+
+Follow-up: the [separately preregistered adaptive stopping experiment](MOLECULAR_ADAPTIVE_STOP.md)
+has now completed on these same banks with fresh evaluation seeds and 64
+inner draws. It tests coverage and cost at the actual stopping look.
