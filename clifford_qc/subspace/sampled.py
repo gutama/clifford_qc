@@ -7,13 +7,20 @@ from types import MappingProxyType
 
 from ..measurement.cache import GroupedWordCache
 from ..measurement.functionals import quadratic_functional, ritz_functional, WordFunctional
-from ..measurement.planning import compile_block_measurement_plan
 from ..measurement.ratio import FrozenRatioPlan, hoeffding_radius, pilot_setting_plan
 from ..measurement.session import SharedMeasurement
+from ..measurement.weighted_planning import (
+    GROUPING_STRATEGIES,
+    evaluate_plan_variance,
+    plan_measurement,
+    ritz_sensitivity_weights,
+)
 from ..reference_states import (SampledReference, immutable_array, operator_identity,
                                 UnsupportedReferenceOperation, _digest)
 from ..sampled_reference import SampledObservations, settings_identity, validate_batch
 from .projection import MatrixElementBank, ProjectedProblem
+
+_KEEP = object()
 
 
 def require_joint_sampling(reference) -> str:
@@ -69,16 +76,31 @@ class SampledProjectedProvider:
     capabilities = frozenset({"sampled_projected_blocks", "frozen_ratio", "sampled_precision"})
 
     def __init__(self, reference, hamiltonian, generators, *, storage="packed",
-                 block_size=None, method="graph_state"):
+                 block_size=None, method="graph_state",
+                 grouping="largest_degree", grouping_weights=None, noise_gate=None):
+        if grouping not in GROUPING_STRATEGIES:
+            raise ValueError(f"grouping must be one of {GROUPING_STRATEGIES}")
+        if grouping == "largest_degree" and grouping_weights is not None:
+            raise ValueError("grouping_weights requires grouping='sorted_insertion'")
         self.reference_identity = require_joint_sampling(reference)
         self.reference = reference
         self.bank = MatrixElementBank(reference, hamiltonian, generators,
                                       storage=storage, coefficient_only=True)
         self.hamiltonian_identity = operator_identity(self.bank.hamiltonian)
         self.session = SharedMeasurement(self.bank, coefficient_storage=storage)
-        self.plan = compile_block_measurement_plan(
+        weights = (
+            self.session.matrix_functionals()
+            if grouping == "sorted_insertion" and grouping_weights is None
+            else grouping_weights
+        )
+        self.grouping = grouping
+        self.noise_gate = noise_gate
+        self._storage = storage
+        self._method = method
+        self.plan = plan_measurement(
             self.bank.n, [w.code for w in self.session.words],
-            self.bank.n if block_size is None else block_size, method=method)
+            self.bank.n if block_size is None else block_size,
+            weights=weights, strategy=grouping, method=method, noise_gate=noise_gate)
         self.circuit_identity = settings_identity(self.plan.settings)
         self.cache_identity = _digest([
             "sampled_projection.v1", self.reference_identity, self.hamiltonian_identity,
@@ -95,6 +117,41 @@ class SampledProjectedProvider:
         if (self.reference.metadata.identity != self.reference_identity
                 or settings_identity(self.plan.settings) != self.circuit_identity):
             raise ValueError("provider inputs changed; construct a new provider")
+
+    def plan_metrics(self, target=None, *, cache=None):
+        """Variance-first metrics (``R_hat``, optimal variance, 2Q cost) for this plan."""
+        self._check_identity()
+        return evaluate_plan_variance(
+            self.plan,
+            self.session.matrix_functionals() if target is None else target,
+            cache=cache,
+            strategy=self.grouping,
+            noise_gate=self.noise_gate,
+        )
+
+    def with_ritz_plan(self, ritz_vector, energy, *, block_size=None,
+                       overlap_functional=None, overlap_weight=0.0,
+                       noise_gate=_KEEP, method=None):
+        """Return a fresh provider grouped by first-order Ritz sensitivity.
+
+        Uses only the bank's algebraic coefficients and the supplied
+        ``(ritz_vector, energy)`` (for example, from an independent pilot); no
+        exact reference state is touched and ``self`` is left unchanged.
+        """
+        self._check_identity()
+        weights = ritz_sensitivity_weights(
+            self.bank, self.session.indices, ritz_vector, energy,
+            overlap_functional=overlap_functional, overlap_weight=overlap_weight)
+        generators = [self.bank.generator(i) for i in range(len(self.bank))]
+        return SampledProjectedProvider(
+            self.reference, self.bank.hamiltonian, generators,
+            storage=self._storage,
+            block_size=self.plan.block_size if block_size is None else block_size,
+            method=self._method if method is None else method,
+            grouping="sorted_insertion",
+            grouping_weights=weights,
+            noise_gate=self.noise_gate if noise_gate is _KEEP else noise_gate,
+        )
 
     def acquire_precision(self, config, *, seed, solve_options=None, delta=0.05):
         """Run rank-aware fixed-bank acquisition on the compiled sample plan."""

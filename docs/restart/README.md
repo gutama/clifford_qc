@@ -94,6 +94,16 @@ bootstrap costs. A single-seed integration smoke confirms normal stopping
 on H4/LiH and honest exhaustion on the near-cutoff stretched LiH/BeH2 banks;
 this is raw Ritz transport, not a new corrected-estimator coverage study.
 
+[Weighted and noise-gated measurement planning](WEIGHTED_MEASUREMENT.md) adds
+`plan_measurement` (defaulting to NumPy-only `method="graph_state"`),
+coefficient- and Ritz-weighted $k$-commuting sorted insertion, a GALIC-style
+per-setting `NoiseGatePolicy`, variance-first reporting (`R_hat`, optional
+covariance-aware `R`, and 2Q gate cost across rungs), and opt-in weighted or
+Ritz-replanned `SampledProjectedProvider` integration. Frozen historical
+`compile_block_measurement_plan` / `synthesize_block_settings` elimination
+defaults and default `SampledProjectedProvider` circuit identities are
+unchanged.
+
 The [preregistered noise-aware selection experiment](NOISE_AWARE_SELECTION.md)
 closed negative on its equal-shot held-out criterion. An independent H4 audit
 checks the published energy trajectory and Pauli support counts.
@@ -121,7 +131,8 @@ this study does not reopen the closed sampled cost hypotheses below.
 | Prepared determinant workflow | Yes | H4/LiH S/H, energies and selection/stopping compatibility | No ground-state oracle under default config | Reference representation changed; variational span unchanged |
 | MV compatibility adapter | Yes | Owned immutable snapshot and legacy trace comparisons | Exact density supplied explicitly | Compatibility only |
 | Sector actions and root recovery | Yes | Primary 2×4 excited-singlet recovery, spin-contamination controls, H4/LiH/Hubbard same-span checks | No spectral oracle during solving; independent assessment afterward | Finite numerical recovery; no ground-root guarantee or timing/RSS advantage claim |
-| Graph-state readout compilation | Opt-in | Exact signed Pauli conjugation, assigned joint distributions, no-Stim compilation/sampling, six frozen-bank partitions | No spectral oracle; exact simulator used only in validation and test sampling | Fewer logical two-qubit gates on five of six tested rungs; no matched-accuracy shot or hardware claim |
+| Graph-state readout compilation | Default in `plan_measurement` (opt-in on legacy replay helpers) | Exact signed Pauli conjugation, assigned joint distributions, no-Stim compilation/sampling, six frozen-bank partitions | No spectral oracle; exact simulator used only in validation and test sampling | Fewer logical two-qubit gates on five of six tested rungs; no matched-accuracy shot or hardware claim |
+| Weighted and noise-gated measurement planning | Yes | No-Stim default `graph_state` planning, exact/cached `R_hat` and `R`, GALIC 2Q-gate and fidelity-floor bounds, H4/BeH2 rung diagnostics, density-free `SampledProjectedProvider` Ritz replanning | No exact or density oracle during grouping/replanning; exact reference optional for offline covariance diagnostics | Higher state-independent `R_hat` than unweighted LDF on tested H4 rungs and bounded 2Q gate budgets on BeH2; illustrative variance diagnostics, not a preregistered accuracy or hardware campaign |
 | Signed stabilizer expectations | Yes | Pure full-rank canonical signed rows, all small Pauli words, projection compatibility and large-register allocation guard | Analytic stabilizer membership; no density or spectrum oracle | Avoids reference-density expansion; no general fermionic-sector guarantee |
 | Sampled projection and correlated ratio estimation | Yes | Complex/packed controls; nonidentity overlap and finite-sample denominator gate; original 3 spin inputs and separately declared TFIM/H4/LiH validation, each at 3 budgets × 128 replicas per arm | No exact oracle in consumer/allocation; ideal statevector shots and separate independent physical-sector assessment | Both all-input 20% cost hypotheses closed negative; new TFIM-only illustrative saving of 73% does not transfer to declared molecular accuracy |
 | Sampled precision acquisition | Yes | Identical-histogram controller replay for QWC and non-QWC plans; rank exhaustion and bootstrap/shot receipts; single-seed H4/LiH and stretched LiH/BeH2 smoke | No density or exact oracle in raw Ritz consumer | Primary rank-aware controller integrated; no new coverage or cost-advantage claim |
