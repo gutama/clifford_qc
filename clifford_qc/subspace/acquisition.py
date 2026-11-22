@@ -57,7 +57,7 @@ The previous coverage study did not include this combination.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from numbers import Integral, Real
 from typing import Any, Sequence
 
@@ -70,6 +70,7 @@ from ..measurement.grouping import shared_basis
 from ..measurement.session import SharedMeasurement
 from .coverage import delta_method_applies
 from .linalg import SubspaceResult
+from .rank_stopping import RankStopPolicy, rank_margin
 from .symmetry_shifts import (ControlVariateEstimate, ShiftTerm, certify_bank_family,
                               corrected_ritz_functional)
 from .uncertainty import (ASYMPTOTIC, Interval, bootstrap_ritz_samples,
@@ -241,7 +242,9 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
                  delta: float = 0.05,
                  control_variates: Sequence[ShiftTerm] | None = None,
                  bootstrap_replicates: int | None = None,
-                 bootstrap_seed: int = 0) -> RitzAcquisition:
+                 bootstrap_seed: int = 0,
+                 rank_stop: RankStopPolicy | None = None,
+                 max_bootstrap_half_width: float | None = None) -> RitzAcquisition:
     """Measure a pilot, then spend predeclared rounds toward the Ritz value.
 
     ``pilot_shots_per_group`` shots go uniformly to every setting. Each entry of
@@ -276,6 +279,14 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
     data and Ritz vector, and the reported interval is centred on the
     corrected point estimate. Coverage of the combined policy is unvalidated.
 
+    Optional ``rank_stop`` requires full declared bank rank and positive
+    statistical cutoff margins at consecutive looks. An unresolved rank
+    redirects part of targeted rounds to the weakest overlap margin.
+    ``max_bootstrap_half_width`` adds a schedule-adjusted bootstrap half-width
+    guard at eligible looks. Both need a declared SE target; the latter also
+    requires bootstrap replicates. Exhaustion returns diagnostics, not a
+    successful precision stop. Both guards remain heuristic.
+
     Only estimators the delta method accepts are supported, because both the
     allocation target and the interval are its Ritz functional. A look that
     cannot be solved raises :class:`AcquisitionError`, which carries the cache
@@ -308,6 +319,21 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
     if isinstance(bootstrap_seed, (bool, np.bool_)) or not isinstance(bootstrap_seed, Integral) \
             or bootstrap_seed < 0:
         raise ValueError("bootstrap_seed must be a nonnegative integer")
+    if rank_stop is not None:
+        if not isinstance(rank_stop, RankStopPolicy):
+            raise ValueError('rank_stop must be a RankStopPolicy')
+        if target_std_error is None or rank_stop.consecutive_looks > len(budgets)+1:
+            raise ValueError('rank_stop needs a target and enough predeclared looks')
+        if kwargs.get('calibrate_overlap', False):
+            raise ValueError('rank_stop requires fixed overlap cutoffs')
+    if max_bootstrap_half_width is not None:
+        if (isinstance(max_bootstrap_half_width, (bool, np.bool_)) or
+                not isinstance(max_bootstrap_half_width, Real) or
+                not math.isfinite(float(max_bootstrap_half_width)) or max_bootstrap_half_width <= 0):
+            raise ValueError('max_bootstrap_half_width must be positive and finite')
+        if bootstrap_replicates is None or target_std_error is None:
+            raise ValueError('bootstrap width guard needs a target and bootstrap_replicates')
+        max_bootstrap_half_width = float(max_bootstrap_half_width)
     terms: tuple[ShiftTerm, ...] | None = None
     if control_variates is not None:
         terms = tuple(control_variates)
@@ -320,6 +346,27 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
     stopped = "schedule_exhausted"
     point = None
     correction: ControlVariateEstimate | None = None
+    consecutive = 0
+    bootstrap = None
+
+    def bootstrap_at_look(look, point):
+        # Historical terminal-only runs keep their original seed. Width
+        # assessments get a deterministic independent seed per look.
+        seed = int(bootstrap_seed)
+        if max_bootstrap_half_width is not None:
+            seed = int(np.random.SeedSequence([seed, look['look']]).generate_state(1, np.uint64)[0])
+            look['bootstrap_seed'] = seed
+            look['bootstrap_attempted_replicates'] = bootstrap_replicates
+        try:
+            draws = bootstrap_ritz_samples(shared, cache, root=root, replicates=bootstrap_replicates,
+                                           seed=seed, result=point, control_variates=terms)
+            result = bootstrap_spread_interval(look['energy'], draws, delta=delta, family=family)
+        except _SOLVE_FAILURES as error:
+            look['bootstrap_failure'] = f"{type(error).__name__}: {error}"
+            return None
+        look['bootstrap_spread'] = result.std_error
+        return result
+
     for index in range(len(budgets) + 1):
         try:
             point = shared.solve(cache, **kwargs)
@@ -352,16 +399,54 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
             look.update(raw_energy=correction.raw_energy,
                         raw_std_error=correction.raw_std_error,
                         control_variates_used=len(correction.used))
+        rank_ok = True
+        rank_functional = None
+        if rank_stop is not None:
+            try:
+                diagnostic, rank_functional = rank_margin(shared, cache, point, rank_stop, family)
+            except _SOLVE_FAILURES as error:
+                raise AcquisitionError(f'look {index} rank margin failed: {error}', cache=cache,
+                                       looks=tuple(looks+[look])) from error
+            consecutive = consecutive+1 if diagnostic['resolved'] else 0
+            rank_ok = consecutive >= rank_stop.consecutive_looks
+            look['rank_guard'] = {**diagnostic, 'consecutive_resolved': consecutive, 'passed': rank_ok}
+        se_ok = target_std_error is not None and sigma <= target_std_error
+        bootstrap = None
+        width_ok = max_bootstrap_half_width is None
+        if max_bootstrap_half_width is not None and se_ok and rank_ok:
+            bootstrap = bootstrap_at_look(look, point)
+            width_ok = bootstrap is not None and (bootstrap.upper-bootstrap.lower)/2 <= max_bootstrap_half_width
+            look['bootstrap_width_passed'] = width_ok
         looks.append(look)
-        if target_std_error is not None and sigma <= target_std_error:
+        if se_ok and rank_ok and width_ok:
             stopped = "target_met"
             break
         if index == len(budgets):
             break
         if allocation == "uniform":
             plan = uniform_group_plan(shared.groups, budgets[index])
+        elif rank_stop is not None and not look['rank_guard']['resolved']:
+            # Half of each unresolved round targets overlap, the other half
+            # energy; all overlap if the energy SE already qualifies.
+            budget = budgets[index]
+            rank_budget = budget if se_ok else (budget+1)//2
+            energy_budget = budget-rank_budget
+            rank_plan = neyman_group_plan(shared.groups, cache, rank_functional, rank_budget) \
+                if rank_functional is not None else {}
+            if not rank_plan:
+                rank_plan = uniform_group_plan(shared.groups, rank_budget)
+            plan = dict(rank_plan)
+            if energy_budget:
+                energy_plan = neyman_group_plan(shared.groups, cache, functional, energy_budget)
+                if not energy_plan:
+                    energy_plan = uniform_group_plan(shared.groups, energy_budget)
+                for code, shots in energy_plan.items():
+                    plan[code] = plan.get(code, 0)+shots
+            look['next_rank_budget'] = rank_budget
         else:
             plan = neyman_group_plan(shared.groups, cache, functional, budgets[index])
+        if not plan and (rank_stop is not None or max_bootstrap_half_width is not None):
+            plan = uniform_group_plan(shared.groups, budgets[index])
         if not plan:
             # A deterministic Ritz functional: no shot can change the estimate.
             stopped = "deterministic"
@@ -372,6 +457,10 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
     schedule = {"pilot_shots_per_group": pilot, "round_budgets": list(budgets),
                 "target_std_error": target_std_error, "delta": float(delta),
                 "interval_family": family, "solver_kwargs": kwargs}
+    if rank_stop is not None:
+        schedule['rank_stop'] = asdict(rank_stop)
+    if max_bootstrap_half_width is not None:
+        schedule['max_bootstrap_half_width'] = max_bootstrap_half_width
     if terms is None:
         interval = ritz_uncertainty(shared, cache, point, root=root, delta=delta,
                                     family=family)
@@ -381,22 +470,12 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
         schedule["control_variates"] = [term.label for term in terms]
         interval = _corrected_interval(correction, delta, family)
         naive = _corrected_interval(correction, delta, 1)
-    bootstrap = None
     if bootstrap_replicates is not None:
         schedule["bootstrap"] = {"replicates": bootstrap_replicates, "seed": int(bootstrap_seed)}
         if terms is not None:
             schedule["bootstrap"]["estimator"] = "refitted_control_variates"
-        try:
-            draws = bootstrap_ritz_samples(shared, cache, root=root,
-                                           replicates=bootstrap_replicates,
-                                           seed=int(bootstrap_seed), result=point,
-                                           control_variates=terms)
-            bootstrap = bootstrap_spread_interval(looks[-1]["energy"], draws, delta=delta,
-                                                  family=family)
-        except _SOLVE_FAILURES as error:
-            looks[-1]["bootstrap_failure"] = f"{type(error).__name__}: {error}"
-        else:
-            looks[-1]["bootstrap_spread"] = bootstrap.std_error
+        if 'bootstrap_seed' not in looks[-1]:
+            bootstrap = bootstrap_at_look(looks[-1], point)
     return RitzAcquisition(
         result=point, cache=cache, interval=interval, naive_interval=naive,
         looks=tuple(looks), stopped=stopped, allocation=allocation, schedule=schedule,
@@ -412,5 +491,5 @@ def _corrected_interval(correction: ControlVariateEstimate, delta: float,
                     std_error=correction.std_error)
 
 
-__all__ = ["ALLOCATIONS", "AcquisitionError", "RitzAcquisition", "TIE_TOLERANCE",
+__all__ = ["ALLOCATIONS", "AcquisitionError", "RitzAcquisition", "RankStopPolicy", "TIE_TOLERANCE",
            "acquire_ritz", "neyman_group_plan", "uniform_group_plan"]

@@ -936,6 +936,12 @@ See `benchmarks/run_stretched_molecular_stop.py` and
 `benchmarks/check_stretched_molecular_stop.py`; only the short structural
 checker runs in regular CI.
 
+The [rank-aware stopping comparison](docs/restart/RANK_AWARE_STOP.md) tests
+the opt-in full-rank margin and bootstrap-width guards against SE-only and
+fixed-budget policies. See `benchmarks/run_rank_aware_stop.py` and
+`benchmarks/check_rank_aware_stop.py` for the frozen execution and cheap
+history/ledger check. Routine CI does not rerun the bootstrap campaign.
+
 `.github/workflows/ci.yml` runs on every pull request and on every push to
 `main`. Each value gate builds its environment out of the record it verifies
 rather than out of a hand-written pin:

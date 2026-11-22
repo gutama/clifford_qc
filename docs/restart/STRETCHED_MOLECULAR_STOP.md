@@ -198,3 +198,9 @@ cutoff, and compare to a bootstrap-width guard and a fixed-budget baseline.
 The next study should use fresh seeds and account for any extra look or
 bootstrap costs, including exhaustion. No change to the production stopping
 rule is made by this experiment.
+
+Follow-up: the [opt-in rank/margin and bootstrap-width guards](RANK_AWARE_STOP.md)
+have now been implemented and tested in a separate fresh-seed study. The
+rank/margin policy passed both preregistered feasibility cells; it eliminated
+reduced-rank stops and lowered false stops from 7/32 to 1/32, at extra shot
+cost compared with SE-only and lower cost than the full budget.
