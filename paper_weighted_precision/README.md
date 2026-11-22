@@ -19,6 +19,9 @@ density-free rank-aware `sampled_precision` controller in `clifford_qc`.
 - Every numeric table cell (`tables/*.tex`), inline prose macro
   (`tables/numbers.tex`), and vector figure (`paper_assets/*.pdf`) is generated
   directly from those frozen artifacts with zero hand-typed table values.
+  The figure manifest also binds the rendered PDF bytes. The Part A ledger
+  includes both 68% and 95% delta and bootstrap-spread intervals; the Part B
+  ledger reports physical-shot cost alongside bias and RMSE.
 
 ## Regenerating and Checking
 
@@ -28,12 +31,13 @@ python paper_weighted_precision/make_figures.py
 python paper_weighted_precision/check_manuscript.py --self-test
 ```
 
-To compile the REVTeX 4.2 manuscript with `pdflatex` and `bibtex`:
+To compile the manuscript, install REVTeX 4.2 (including `apsrev4-2.bst`)
+with your TeX distribution, then run:
 
 ```bash
 cd paper_weighted_precision
-pdflatex manuscript.tex
+pdflatex -halt-on-error -interaction=nonstopmode manuscript.tex
 bibtex manuscript
-pdflatex manuscript.tex
-pdflatex manuscript.tex
+pdflatex -halt-on-error -interaction=nonstopmode manuscript.tex
+pdflatex -halt-on-error -interaction=nonstopmode manuscript.tex
 ```

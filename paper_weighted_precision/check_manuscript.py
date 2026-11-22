@@ -12,7 +12,7 @@ Checks:
      from docs/restart/weighted_precision_results.json.gz byte-for-byte, and
      tables/manifest.json matches exact source and generator SHA-256 digests.
   8. Every PDF figure in paper_assets/ exists and paper_assets/manifest.json
-     matches exact generator and source SHA-256 digests.
+     matches exact generator, source, and rendered-asset SHA-256 digests.
   9. Required preregistration provenance and negative-result caveats appear in
      manuscript.tex, with no unguarded overclaim phrases.
 
@@ -147,8 +147,8 @@ def check_tex_text(tex_text: str, bib_text: str, *, base_dir: Path = HERE) -> li
     if unused_bib:
         errors.append(f"unused BibTeX entries: {unused_bib}")
 
-    # 4. \input and \includegraphics existence
-    for inp in re.findall(r"\\input\{([^}]+)\}", clean):
+    # 4. \input, \tableinput and \includegraphics existence
+    for inp in re.findall(r"\\(?:input|tableinput)\{([^}]+)\}", clean):
         target = base_dir / inp
         if not target.suffix:
             target = target.with_suffix(".tex")
@@ -159,13 +159,20 @@ def check_tex_text(tex_text: str, bib_text: str, *, base_dir: Path = HERE) -> li
         if not target.exists():
             errors.append(f"missing figure asset: {fig}")
 
+    numeric_macros = base_dir / "tables/numbers.tex"
+    if numeric_macros.exists():
+        definitions = set(re.findall(r"\\newcommand\{\\(wp[A-Za-z]+)\}", numeric_macros.read_text(encoding="utf-8")))
+        uses = set(re.findall(r"\\(wp[A-Za-z]+)\b", clean))
+        for name in sorted(uses - definitions):
+            errors.append(f"undefined numeric macro: {name}")
+
     # 5 & 6. Tabular column counts + no hand-typed numeric data rows
     tabular_count = 0
     for preamble, body in _tabulars(clean):
         tabular_count += 1
         expected_cols = _column_count(preamble)
         # Body itself (excluding \input fragments) must only contain headers / rules, no numeric data rows.
-        direct_body = re.sub(r"\\input\{[^}]+\}", "", body)
+        direct_body = re.sub(r"\\(?:input|tableinput)\{[^}]+\}", "", body)
         after_midrule = direct_body.split(r"\midrule", 1)[1] if r"\midrule" in direct_body else ""
         for raw_line in after_midrule.splitlines():
             line = raw_line.strip()
@@ -176,7 +183,7 @@ def check_tex_text(tex_text: str, bib_text: str, *, base_dir: Path = HERE) -> li
 
         # Check column counts across direct headers AND every \input fragment.
         sources = [direct_body]
-        for m in re.finditer(r"\\input\{([^}]+)\}", body):
+        for m in re.finditer(r"\\(?:input|tableinput)\{([^}]+)\}", body):
             target = base_dir / m.group(1)
             if not target.suffix:
                 target = target.with_suffix(".tex")
@@ -242,7 +249,7 @@ def check_artifacts() -> list[str]:
     else:
         actual_fman = json.loads(make_figures.MANIFEST_PATH.read_text(encoding="utf-8"))
         if actual_fman != expected_fman:
-            errors.append("paper_assets/manifest.json does not match current generator/sources")
+            errors.append("paper_assets/manifest.json does not match current generator/sources/PDF bytes")
     for fname in make_figures.FIGURE_NAMES:
         fpath = make_figures.ASSETS / fname
         if not fpath.exists() or fpath.stat().st_size == 0:
@@ -267,7 +274,7 @@ def run_self_test() -> None:
 
     # 3. Hand-typed numeric row must fail
     tampered_row = base_tex.replace(
-        r"\input{tables/protocol_banks.tex}",
+        r"\tableinput{tables/protocol_banks.tex}",
         "A & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 \\\\",
         1,
     )
@@ -281,6 +288,10 @@ def run_self_test() -> None:
     # 5. Unbalanced environment must fail
     errs_env = check_tex_text(base_tex + "\n\\begin{itemize}\n", base_bib)
     assert any("unclosed LaTeX" in e for e in errs_env), "failed to catch unclosed environment"
+
+    # 6. An undefined generated number must fail before TeX compilation.
+    errs_macro = check_tex_text(base_tex + "\n\\wpMissingNumber{}", base_bib)
+    assert any("undefined numeric macro" in e for e in errs_macro), "failed to catch undefined number"
 
 
 def main(argv: list[str] | None = None) -> int:

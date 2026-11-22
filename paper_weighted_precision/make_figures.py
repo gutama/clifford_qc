@@ -109,6 +109,7 @@ def build_manifest() -> dict[str, Any]:
         },
         "figures": {
             name: {
+                "sha256": _sha256_file(ASSETS / name) if (ASSETS / name).is_file() else None,
                 "sources": {
                     str(path.relative_to(ROOT)): _sha256_file(path) for path in sources
                 }
@@ -171,7 +172,7 @@ def fig1_shot_savings_and_grid(
         linewidth=0.4,
     )
 
-    for i, (c, k, ldf, si, rz, _) in enumerate(groups):
+    for i, (c, k, ldf, si, _rz, _) in enumerate(groups):
         ratio = si_vals[i] / ldf_vals[i]
         top_y = max(ldf_vals[i], si_vals[i])
         if abs(ratio - 1.0) < 1e-6:
@@ -194,19 +195,6 @@ def fig1_shot_savings_and_grid(
                 color="#333333",
                 bbox={"boxstyle": "round,pad=0.14", "fc": "#f5f5f5", "ec": "#dddddd", "lw": 0.4, "alpha": 0.94},
             )
-        if rz is not None and c == "beh2_8q":
-            rz_val = part_a_map[(c, rz)]["mean_total_shots"] / 1e6
-            ax_a.text(
-                i + w + 0.04,
-                rz_val * 1.24,
-                "2.5×",
-                ha="center",
-                va="bottom",
-                fontsize=6.1,
-                color=C_RITZ,
-                fontweight="bold",
-            )
-
     ax_a.set_yscale("log")
     ax_a.set_ylim(0.095, 28.0)
     ax_a.set_xticks(x)
@@ -292,7 +280,7 @@ def fig2_r_emp_vs_r_hat(
     p1b = summary["criteria"]["P1b_ritz_replan_vs_bank_fc"]["cells"]
 
     fig, (ax_a, ax_b) = plt.subplots(
-        1, 2, figsize=(7.2, 3.15), gridspec_kw={"width_ratios": [1.12, 1.0]}
+        1, 2, figsize=(7.2, 3.6), gridspec_kw={"width_ratios": [1.12, 1.0]}
     )
 
     case_style = {
@@ -302,10 +290,10 @@ def fig2_r_emp_vs_r_hat(
         "lih_10q_stretched": ("LiH (10q, str.)", C_WARN, "D"),
     }
 
-    grid = np.logspace(0.15, 1.88, 100)
+    grid = np.geomspace(1.3, 36.0, 100)
     ax_a.plot(grid, grid, color=C_GRAY, linestyle="--", linewidth=1.0, label="$R_{\\mathrm{emp}} = \\hat{R}$")
-    ax_a.fill_between(grid, grid, 130.0, color="#eaf7f0", alpha=0.35)
-    ax_a.fill_between(grid, 0.3, grid, color="#fdf0ec", alpha=0.30)
+    ax_a.fill_between(grid, grid, 36.0, color="#eaf7f0", alpha=0.35)
+    ax_a.fill_between(grid, 0.9, grid, color="#fdf0ec", alpha=0.30)
 
     seen_cases: set[str] = set()
     for r in part_a:
@@ -331,48 +319,41 @@ def fig2_r_emp_vs_r_hat(
     # Clean non-overlapping callouts
     lih_qwc = next(r for r in part_a if r["case"] == "lih_8q" and r["arm"] == "si_qwc")
     ax_a.annotate(
-        "LiH SI QWC\n($R/\\hat{R}=3.80$)",
+        f"LiH SI QWC\n($R/\\hat{{R}}={lih_qwc['median_r_emp_over_r_hat_ritz']:.2f}$)",
         xy=(lih_qwc["median_r_hat_ritz"], lih_qwc["median_r_emp_ritz"]),
-        xytext=(12.5, 42.0),
+        xytext=(2.2, 28.0),
         fontsize=6.3,
         color=C_LDF,
         fontweight="bold",
         ha="left",
         arrowprops={"arrowstyle": "->", "color": C_LDF, "lw": 0.9},
     )
-    beh2_ritz = next(r for r in part_a if r["case"] == "beh2_8q" and r["arm"] == "ritz_si_fc")
-    ax_a.annotate(
-        "BeH$_2$ Ritz-SI FC\n($R/\\hat{R}=0.35$)",
-        xy=(beh2_ritz["median_r_hat_ritz"], beh2_ritz["median_r_emp_ritz"]),
-        xytext=(24.0, 2.9),
-        fontsize=6.0,
-        color=C_SI,
-        ha="center",
-        arrowprops={"arrowstyle": "->", "color": C_SI, "lw": 0.9},
-    )
-    ax_a.text(1.85, 86.0, "Favorable state\ncovariance ($R > \\hat{R}$)", fontsize=6.0, color="#1d6f42", style="italic", va="top")
-    ax_a.text(46.0, 24.0, "Unfavorable\n($R < \\hat{R}$)", fontsize=6.0, color="#a03c1e", style="italic", ha="center")
+    ax_a.text(1.5, 13.0, "Empirical > proxy", fontsize=6.0, color="#1d6f42", style="italic")
+    ax_a.text(25.0, 2.2, "Empirical < proxy", fontsize=6.0, color="#a03c1e", style="italic", ha="center")
 
     ax_a.set_xscale("log")
     ax_a.set_yscale("log")
-    ax_a.set_xlim(1.6, 75.0)
-    ax_a.set_ylim(0.55, 115.0)
-    ax_a.set_xticks([2, 5, 10, 20, 50])
-    ax_a.set_xticklabels(["2", "5", "10", "20", "50"])
+    ax_a.set_xlim(1.3, 36.0)
+    ax_a.set_ylim(0.9, 36.0)
+    ax_a.set_xticks([2, 5, 10, 20])
+    ax_a.set_xticklabels(["2", "5", "10", "20"])
     ax_a.xaxis.set_minor_formatter(NullFormatter())
-    ax_a.set_xlabel("State-independent variance factor $\\hat{R}$ (Ritz functional)")
+    ax_a.set_xlabel("State-independent shot ratio $\\hat{R}$ (Ritz functional)")
     ax_a.set_ylabel("Empirical covariance-aware $R_{\\mathrm{emp}}$")
-    ax_a.set_title("(a) State-dependent covariance vs. $\\hat{R}$")
-    ax_a.legend(loc="lower right", frameon=True, framealpha=0.94, edgecolor="#cccccc", ncol=2, fontsize=6.0)
+    ax_a.set_title("(a) Terminal Ritz-shot ratio calibration")
+    handles, labels = ax_a.get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=5, frameon=False, fontsize=6.0)
 
     # Panel (b): P1b mean shot-cost ratios
     pair_order = [
         ("beh2_8q", "ritz_si_fc", "si_fc", "BeH$_2$: Ritz-FC / SI-FC", C_RITZ),
+        ("beh2_8q", "ritz_si_fc", "si_qwc", "BeH$_2$: Ritz-FC / SI-QWC", C_RITZ),
         ("beh2_8q", "si_fc", "si_qwc", "BeH$_2$: SI-FC / SI-QWC", C_SI),
         ("lih_8q", "ritz_si_fc", "si_fc", "LiH: Ritz-FC / SI-FC", C_RITZ),
         ("lih_8q", "ritz_si_fc", "si_qwc", "LiH: Ritz-FC / SI-QWC", C_LDF),
         ("lih_8q", "si_fc", "si_qwc", "LiH: SI-FC / SI-QWC", C_LDF),
         ("h4_8q", "ritz_si_fc", "si_fc", "H$_4$: Ritz-FC / SI-FC", C_RITZ),
+        ("h4_8q", "ritz_si_fc", "si_qwc", "H$_4$: Ritz-FC / SI-QWC", C_RITZ),
         ("h4_8q", "si_fc", "si_qwc", "H$_4$: SI-FC / SI-QWC", C_SI),
     ]
     p1b_map = {(c["case"], c["treatment"], c["comparator"]): c for c in p1b}
@@ -411,7 +392,7 @@ def fig2_r_emp_vs_r_hat(
     ax_b.text(3.4, -0.78, "Costlier →", fontsize=6.3, color=C_LDF, ha="right")
     ax_b.set_ylim(-1.0, len(pair_order) - 0.35)
 
-    fig.tight_layout(w_pad=1.6)
+    fig.tight_layout(w_pad=1.6, rect=(0, 0.075, 1, 1))
     _save(fig, "fig2_r_emp_vs_r_hat.pdf", preview_dir)
 
 
@@ -532,7 +513,7 @@ def fig3_stretched_rank_and_width(
         )
         wratio = width_rows[cname]["shot_ratio"]["mean_ratio"]
         bratio = width_rows[cname]["bootstrap_solve_ratio"]
-        exh_note = "\n(4/32 exh.)" if wide["exhausted"] else ""
+        exh_note = f"\n({wide['exhausted']}/{wide['attempts']} exh.)" if wide["exhausted"] else ""
         ax_b.text(
             label_xy[0],
             label_xy[1],
@@ -546,8 +527,6 @@ def fig3_stretched_rank_and_width(
 
     ax_b.scatter([], [], color=C_GRAY, marker="o", s=36, facecolors="white", linewidth=1.3, label="Rank-only (si_fc)")
     ax_b.scatter([], [], color=C_GRAY, marker="o", s=36, label="+ Width guard (si_fc_width)")
-    ax_b.axhline(1.6, color="#222222", linestyle=":", linewidth=0.9)
-    ax_b.text(0.50, 1.63, "Target SE (1.6 mHa)", fontsize=5.9, color="#444444")
     ax_b.set_xscale("log")
     ax_b.set_xlim(0.45, 14.5)
     ax_b.set_ylim(0.28, 1.82)
@@ -579,10 +558,10 @@ def fig4_noisy_bias_variance(
     fig, axes = plt.subplots(2, 3, figsize=(7.2, 4.65), sharey="row")
     mols = [("beh2_8q", "BeH$_2$ (8q)"), ("lih_8q", "LiH (8q)"), ("h4_8q", "H$_4$ (8q)")]
     arms = [
-        ("si_qwc", "QWC\n(0 CZ)", C_QWC),
-        ("si_fc_galic_tight", "GALIC tight\n(1 CZ)", C_RITZ),
-        ("si_fc_galic_moderate", "GALIC mod.\n(3 CZ)", C_WARN),
-        ("si_fc_unconstrained", "FC uncon.\n(7–16 CZ)", C_LDF),
+        ("si_qwc", "QWC", C_QWC),
+        ("si_fc_galic_tight", "Tight", C_RITZ),
+        ("si_fc_galic_moderate", "Moderate", C_WARN),
+        ("si_fc_unconstrained", "FC", C_LDF),
     ]
     x = np.arange(len(arms), dtype=float)
     w = 0.36
@@ -631,8 +610,11 @@ def fig4_noisy_bias_variance(
         ax.axhline(1.6, color="#222222", linestyle=":", linewidth=0.9)
         ax.set_title(f"{mtitle}: Pure 2Q noise ($r=3$)", fontsize=8.0)
         ax.set_xticks(x)
-        ax.set_xticklabels([a[1] for a in arms], fontsize=6.0)
-        ax.set_ylim(0, 20.5)
+        ax.set_xticklabels([
+            f"{label}\n({part_b_map[(cname, reg_key, key)]['cz_max']} CZ)"
+            for key, label, _ in arms
+        ], fontsize=6.0)
+        ax.set_ylim(-0.5, 20.5)
         if col_i == 0:
             ax.set_ylabel("Finite-shot RMSE & $|$bias$|$ (mHa)\n[numbers = false stops / 16]")
             handles = [
@@ -671,14 +653,17 @@ def fig4_noisy_bias_variance(
         ax.axhline(1.6, color="#222222", linestyle=":", linewidth=0.9)
         ax.set_title(f"{mtitle}: Full card ($p_{{\\mathrm{{ro}}}}=0.02$)", fontsize=8.0)
         ax.set_xticks(x)
-        ax.set_xticklabels([a[1] for a in arms], fontsize=6.0)
+        ax.set_xticklabels([
+            f"{label}\n({part_b_map[(cname, reg_key, key)]['cz_max']} CZ)"
+            for key, label, _ in arms
+        ], fontsize=6.0)
         ax.set_ylim(0, 180.0)
         if col_i == 0:
             ax.set_ylabel("RMSE & $|$bias$|$ (mHa)\n[16/16 false stops in all arms]")
         ax.text(
             1.5,
             172.0,
-            "Readout bias > 99.9% MSE (all arms)",
+            "Empirical bias² ≥ 99.9% of MSE",
             ha="center",
             va="top",
             fontsize=5.8,

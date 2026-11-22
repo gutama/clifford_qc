@@ -209,6 +209,7 @@ def render_part_a_full(summary: dict[str, Any]) -> str:
         b95 = r["coverage"]["bootstrap"]["95"]
         d95 = r["coverage"]["delta"]["95"]
         b68 = r["coverage"]["bootstrap"]["68"]
+        d68 = r["coverage"]["delta"]["68"]
         stops_col = f"${r['target_met']}/{r['attempts']}$"
         if r["exhausted"]:
             stops_col += f" (${r['exhausted']}$)"
@@ -220,6 +221,7 @@ def render_part_a_full(summary: dict[str, Any]) -> str:
             f"${b95['unconditional_covered']}/{b95['unconditional_n']}$ (${b95['median_width_mHa_among_stops']:.2f}$) & "
             f"${d95['unconditional_covered']}/{d95['unconditional_n']}$ (${d95['median_width_mHa_among_stops']:.2f}$) & "
             f"${b68['unconditional_covered']}/{b68['unconditional_n']}$ (${b68['median_width_mHa_among_stops']:.2f}$) & "
+            f"${d68['unconditional_covered']}/{d68['unconditional_n']}$ (${d68['median_width_mHa_among_stops']:.2f}$) & "
             f"${r['median_r_emp_over_r_hat_ritz']:.3f}$ \\\\"
         )
     return "\n".join(lines) + "\n"
@@ -320,6 +322,7 @@ def render_part_b_noisy(summary: dict[str, Any]) -> str:
             f"{case_col} & {reg_col} & {ARM_LABELS[r['arm']]} & "
             f"${r['settings']}$ (${r['cz_max']}$) & "
             f"${r['true_precision_stops']}/{r['false_precision_stops']}$ & "
+            f"${r['mean_total_shots'] / 1e6:.3f}$ & "
             f"{inf_b_str} & "
             f"${r['emp_bias_mHa']:+.3f} \\pm {r['emp_std_mHa']:.3f}$ & "
             f"${r['rmse_mHa']:.3f}$ & "

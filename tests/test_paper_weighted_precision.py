@@ -28,6 +28,18 @@ def test_figure_manifest_and_pdfs_are_current():
     for fname in make_figures.FIGURE_NAMES:
         fpath = make_figures.ASSETS / fname
         assert fpath.exists() and fpath.stat().st_size > 1000
+        assert manifest["figures"][fname]["sha256"] == make_figures._sha256_file(fpath)
+
+
+def test_figure_manifest_detects_changed_pdf_bytes(tmp_path, monkeypatch):
+    original = make_figures.build_manifest()
+    for fname in make_figures.FIGURE_NAMES:
+        (tmp_path / fname).write_bytes((make_figures.ASSETS / fname).read_bytes())
+    monkeypatch.setattr(make_figures, "ASSETS", tmp_path)
+    assert make_figures.build_manifest() == original
+    with (tmp_path / make_figures.FIGURE_NAMES[0]).open("ab") as handle:
+        handle.write(b"\n% changed PDF\n")
+    assert make_figures.build_manifest() != original
 
 
 def test_manuscript_gate_and_self_test_pass():

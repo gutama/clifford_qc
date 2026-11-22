@@ -5,7 +5,7 @@
       "sources": {}
     },
     "cost_bracket.pdf": {
-      "asset_git_blob_sha": "28c9705876d867ec2c9f3fce78ad04d100efb659",
+      "asset_git_blob_sha": "cbb5167f158e999329b858ad7d1524b409446e3a",
       "sources": {
         "benchmarks/reference_results/protocol_cost.json": "a1b5bea91d5924ae6c6878baf83e9d8b6b10ad107f4c3a2ab1644ddee1adff59"
       }
@@ -23,9 +23,9 @@
     },
     "layer_stack.pdf": {
       "architecture_sources_sha256": "c8b13cabf0b2d5616d175836a093f35c9929780f9c51d9d7b0cad798f1af6a06",
-      "asset_git_blob_sha": "1e73f3190faa495a38b417ca824ca1175ec4d486",
+      "asset_git_blob_sha": "3745ec63594f9b91b5bf779d0fdaff0ee054fc90",
       "sources": {
-        "paper_architecture/data/source_census.json": "1b97b53546e82f25fb9638e2720440a955e595aa431dd321052d7907b0eae306",
+        "paper_architecture/data/source_census.json": "3fd88328692fdd2612a0d5f42ecb6a384a66b40aa5ee661a00f1af10c9ed433a",
         "paper_architecture/make_tables.py": "b3bdf5dfeb60305995cba2bfaec53d8173a9fd8c7047e8e6318fb8bc5139d8a9"
       }
     }
