@@ -1,0 +1,33 @@
+{
+  "schema": "clifford_qc.stretched_molecular_stop.v1",
+  "declared_date": "2026-11-22",
+  "historical_bindings": {
+    "docs/restart/molecular_adaptive_stop_declaration.json": "1fce8aed4b6dec3b71e8e7cf6e11dd58d8d2979fc85e79a63cead955e17919ad",
+    "docs/restart/molecular_adaptive_stop_results.json.gz": "f71323c7f68737ca622dc53b17abaccaf992a58821affea116468cc3f77faf37"
+  },
+  "cases": [
+    {"name": "lih_stretched", "geometry": "Li-H 4.785 angstrom", "basis": "STO-3G", "n": 10, "n_electrons": 2, "fcidump": "molecular/results/lih_stretched.fcidump", "fcidump_sha256": "d21e0dcfc688352d0be6b351ccb50e4c511833299202e8e1ddf7cdddd353442d", "frozen_doubly_occupied": [0], "active_orbitals": [1,2,3,4,5], "pair_source": 0, "pair_targets": [1,2,3], "reference_bits": ["1100000000", "0011000000"], "theta": 0.3, "phi": 0.2, "weak_mix": 0.5, "solver": {"tau_s": 0.104, "max_condition": 1000000000000.0, "norm_floor": 1e-14}, "expected_groups": 1841, "expected_words": 10341},
+    {"name": "beh2_stretched", "geometry": "linear Be-H 2.652 angstrom each", "basis": "STO-3G", "n": 12, "n_electrons": 4, "fcidump": "molecular/results/beh2_stretched.fcidump", "fcidump_sha256": "8330b2e5e9cf78027466c152dc64be7e26d49a2537950c417e7030ef49a9d8cb", "frozen_doubly_occupied": [0], "active_orbitals": [1,2,3,4,5,6], "pair_source": 1, "pair_targets": [2,3,4], "reference_bits": ["111100000000", "110011000000"], "theta": 0.3, "phi": 0.2, "weak_mix": 0.5, "solver": {"tau_s": 0.104, "max_condition": 1000000000000.0, "norm_floor": 1e-14}, "expected_groups": 2820, "expected_words": 17001}
+  ],
+  "target": "exact_full_rank_four_direction_projected_ground_energy",
+  "stress_construction": "deliberately mixed first direction I+0.5*G (others G); fixed tau_s=0.104 just below exact weak normalized overlap 0.10416701207637513. Chosen on exact overlap and development runs, not a natural rank prevalence estimate. No exact target, spectrum or variance supplied to controller after setup other than this frozen cutoff.",
+  "development": "seed root 317; explored full parent 12/14-qubit five-direction banks and rejected them for local runtime, selected frozen-core 10/12-qubit four-direction banks; separate development scans confirmed actual 4->3 and 3->4 transitions with 250-shot pilots. No development rows included in evaluation.",
+  "grouping": "qwc_basis_cover deterministic scalable cover, assigned pooling; two-determinant exact joint QWC probability plans and exact integer parity-prefill for matrix assembly, validated against native MV sampler/matrix paths on development-only small cases",
+  "control_variates": "certified N-Ne, (N-Ne)N, diagonal (N-Ne)Epp, Sz-m, (Sz-m)N; no off-diagonal one-body terms; use readable members only",
+  "cumulative_average_shots_per_group": [250, 500, 2000, 8000, 32000],
+  "target_std_error_Ha": 0.0016,
+  "outer_replicas": 32,
+  "bootstrap_replicas": 16,
+  "seed_root": 2026112209,
+  "seed_rule": "SeedSequence([seed_root, case_index, replica, stream]).generate_state(1,uint64); stream 0 measurement, stream 1 bootstrap; same seed per arm (equal pilot only)",
+  "arms": [{"key": "targeted_raw", "allocation": "ritz_targeted", "control_variates": false}, {"key": "targeted_cv", "allocation": "ritz_targeted", "control_variates": true}],
+  "delta": 0.05,
+  "levels": [0.68, 0.95],
+  "primary_test": {"arm": "targeted_cv", "method": "bootstrap_spread_schedule", "level": 0.95, "familywise_alpha": 0.05, "cells": 2, "rule": "one-sided exact binomial lower-tail test for undercoverage; per-molecule Bonferroni alpha 0.025; all attempts counted"},
+  "stress_min_changed_trajectories_per_case": 4,
+  "stress_rule": "A case qualifies as a trajectory-instability stress test only if at least four of its 64 arm trajectories exhibit a retained-rank change between measured looks. Paired arms are not independent for this descriptive count. Report terminal reduced-rank and any-change strata; no post hoc exclusion or re-tuning.",
+  "secondary": "All previous adaptive-stop endpoints, rank trajectory, signed overlap cutoff margin, bootstrap mixed-rank count, unconditional and rank-stratified coverage, target-met but absolute error >1.6 mHa (false precision stops), interval width, RMSE, and shots. Rank strata descriptive only; report every attempt. No inferential superiority claim.",
+  "failure_policy": "All declared attempts count; acquisition failure uncovered and unsuccessful; bootstrap failure invalidates its spread interval but not delta/stop; exhausted interval still evaluated but not target attainment. Unexpected errors abort and preserve completed rows. No selective retries.",
+  "environment": {"python": "3.12.14", "numpy": "2.5.2", "scipy": "1.18.0", "threads": 1},
+  "limitations": "Frozen-core active-space four-direction stress banks, not full-CISD results or naturally occurring near-dependence; cutoff deliberately set near exact weak mode. Ideal joint QWC shots. Small 32 outer and 16 inner samples limit power and quantile precision. Bootstrap conditions on final histograms and does not replay adaptive allocation/stopping; asymptotic and heuristic intervals only, no hardware or anytime-valid claim. Estimated SE is not chemical accuracy."
+}

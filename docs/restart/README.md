@@ -67,6 +67,14 @@ target. All 256 acquisitions met the target; corrected schedule-adjusted
 the primary endpoint. Mean shot cost is 16.4% and 34.7% lower with correction;
 H4 RMSE increases by 12.4%, so this is not a matched-accuracy result.
 
+The [declared stretched molecular rank stress](STRETCHED_MOLECULAR_STOP.md)
+uses ten- and twelve-qubit frozen-core LiH/BeH2 banks with an engineered
+near-cutoff mode. Rank changes in 55/128 acquisition trajectories; all runs
+meet the 1.6 mHa estimated-SE target, but 39/128 exceed it in absolute error
+(including all 24 reduced-rank stops). Corrected 95% schedule spread does
+not reject either primary coverage endpoint, at a median width of 531.6 mHa
+on LiH. Coverage is not a precision-stop validation in this regime.
+
 The [preregistered noise-aware selection experiment](NOISE_AWARE_SELECTION.md)
 closed negative on its equal-shot held-out criterion. An independent H4 audit
 checks the published energy trajectory and Pauli support counts.
