@@ -6,7 +6,7 @@ from clifford_qc.backends.finite_shot import FiniteShotBackend
 from clifford_qc.measurement.session import SharedMeasurement
 from clifford_qc.multivector import MV
 from clifford_qc.states import ket_density
-from clifford_qc.subspace import MatrixElementBank
+from clifford_qc.subspace import MatrixElementBank, acquire_ritz_precision
 from clifford_qc.subspace.acquisition import RankStopPolicy, acquire_ritz
 from clifford_qc.subspace.linalg import normalize_overlap
 from clifford_qc.subspace.rank_stopping import normalized_mode_functional
@@ -118,3 +118,79 @@ def test_bad_guard_options_preflight(options):
     with pytest.raises(ValueError):
         acquire_ritz(bank(), NoShots(), pilot_shots_per_group=4, round_budgets=[10, 10],
                      target_std_error=.1, **options)
+
+
+def precision(shared, **kwargs):
+    return acquire_ritz_precision(shared, FiniteShotBackend(19), pilot_shots_per_group=400,
+                                  round_budgets=[1500, 3000], target_std_error=10., **kwargs)
+
+
+def test_primary_controller_matches_explicit_rank_policy_without_bootstrap(monkeypatch):
+    from clifford_qc.subspace import acquisition
+    def unexpected(*args, **kwargs):
+        pytest.fail('rank-only primary controller must not run bootstrap')
+    monkeypatch.setattr(acquisition, 'bootstrap_ritz_samples', unexpected)
+    shared = bank()
+    primary = precision(shared, solver_kwargs={'tau_s': .001})
+    explicit = run(shared, rank_stop=RankStopPolicy(), solver_kwargs={'tau_s': .001})
+    assert primary.looks == explicit.looks and primary.schedule == explicit.schedule
+    assert primary.result.measurement_fingerprint == explicit.result.measurement_fingerprint
+    assert primary.interval == explicit.interval
+    assert primary.bootstrap_interval is None
+    assert primary.stopped == 'target_met' and len(primary.looks) == 2
+    # Historical API remains SE-only if no rank policy is explicitly given.
+    historical = run(shared, solver_kwargs={'tau_s': .001})
+    assert len(historical.looks) == 1 and 'rank_stop' not in historical.schedule
+
+
+def test_primary_controller_abstains_on_stable_reduced_rank():
+    found = precision(bank(), solver_kwargs={'tau_s': .8})
+    assert found.stopped == 'schedule_exhausted'
+    assert len(found.looks) == 3
+    assert all(l['retained_rank'] == 1 and not l['rank_guard']['passed'] for l in found.looks)
+
+
+def test_primary_controller_width_is_explicit_and_shares_rank_prefix(monkeypatch):
+    from clifford_qc.subspace import acquisition
+    calls = []
+    def draws(*args, **kwargs):
+        calls.append(kwargs['seed'])
+        return [-10., 10.] if len(calls) == 1 else [0., 0.]
+    monkeypatch.setattr(acquisition, 'bootstrap_ritz_samples', draws)
+    shared = bank()
+    rank_only = precision(shared, solver_kwargs={'tau_s': .001})
+    width = precision(shared, solver_kwargs={'tau_s': .001},
+                      max_bootstrap_half_width=.01, bootstrap_replicates=2, bootstrap_seed=29)
+    assert rank_only.bootstrap_interval is None
+    assert width.stopped == 'target_met' and len(width.looks) == 3
+    assert len(calls) == 2 and calls[0] != calls[1]
+    assert 'bootstrap_seed' not in width.looks[0]
+    assert not width.looks[1]['bootstrap_width_passed'] and width.looks[2]['bootstrap_width_passed']
+    for plain, guarded in zip(rank_only.looks, width.looks):
+        assert plain['energy'] == guarded['energy'] and plain['rank_guard'] == guarded['rank_guard']
+    assert width.shots == rank_only.shots+3000
+
+
+def test_primary_actual_terminal_bootstrap_diagnostic_vs_width_guard():
+    shared = bank()
+    diagnostic = precision(shared, solver_kwargs={'tau_s': .001}, bootstrap_replicates=8)
+    guarded = precision(shared, solver_kwargs={'tau_s': .001}, bootstrap_replicates=8,
+                        max_bootstrap_half_width=10.)
+    assert diagnostic.stopped == guarded.stopped == 'target_met'
+    assert diagnostic.bootstrap_interval is not None and guarded.bootstrap_interval is not None
+    assert diagnostic.shots == guarded.shots
+    assert 'bootstrap_width_passed' not in diagnostic.looks[-1]
+    assert guarded.looks[-1]['bootstrap_width_passed']
+
+
+@pytest.mark.parametrize('options', [{'rank_stop': None}, {'rank_stop': 'se_only'},
+                                     {'max_bootstrap_half_width': .0016},
+                                     {'rank_stop': RankStopPolicy(4)},
+                                     {'solver_kwargs': {'calibrate_overlap': True}}])
+def test_primary_controller_refuses_missing_guard_or_budget_before_sampling(options):
+    class NoShots:
+        def sample_grouped_from_state(self, *args, **kwargs):
+            pytest.fail('invalid primary policy consumed shots')
+    with pytest.raises(ValueError):
+        acquire_ritz_precision(bank(), NoShots(), pilot_shots_per_group=4,
+                               round_budgets=[10, 10], target_std_error=.1, **options)

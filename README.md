@@ -212,6 +212,37 @@ workers, resumable runs, historical results, and reports. Install
 `python -m molecular.run --molecules lih --max-additions 2 --complete-sd off`.
 New runs write to `molecular/runs/`; committed evidence remains in `molecular/results/`.
 
+### Fixed-bank precision acquisition
+
+Use `acquire_ritz_precision` as the primary measured Ritz controller for an
+independent, fixed subspace bank. It checks the estimated standard error and
+requires the full rank to be statistically separated from the overlap
+cutoff at two consecutive looks; a low-SE but truncated solve cannot qualify.
+For a measured `SharedMeasurement` and sampling backend:
+
+```python
+from clifford_qc.subspace import acquire_ritz_precision
+
+groups = len(shared.groups)
+result = acquire_ritz_precision(
+    shared, backend, pilot_shots_per_group=250,
+    round_budgets=[250*groups, 1500*groups, 6000*groups, 24000*groups],
+    target_std_error=0.0016,  # Ha for molecular energies
+)
+if result.stopped == "target_met":
+    print(result.energy, result.interval)
+```
+
+For precision work that additionally needs a narrow reported bootstrap
+interval, predeclare `max_bootstrap_half_width=0.0016` and a resampling
+budget such as `bootstrap_replicates=64` in the call. The width guard runs
+only at SE/rank-eligible looks and incurs extra classical solves and possibly
+extra acquisition rounds. By default the primary controller runs no bootstrap.
+An exhausted schedule is not a successful precision stop. These are heuristic
+guards for projected energy, not chemical-accuracy or finite-sample guarantees.
+The lower-level `acquire_ritz` retains its historical semantics for explicit
+SE-only and fixed-budget comparisons. See the [rank-aware study and usage](docs/restart/RANK_AWARE_STOP.md).
+
 ### Residuals and folded roots
 
 A projected solve has zero projected residual by construction. The true
@@ -318,6 +349,7 @@ After installation, run these scripts from the repository root:
 | [acase_adaptive.py](examples/acase_adaptive.py) | Adaptive growth and fixed-basis comparisons |
 | [acase_effective_model.py](examples/acase_effective_model.py) | Effective-Hamiltonian import, correlations, and response |
 | [acase_finite_shot.py](examples/acase_finite_shot.py) | Shared measurements and finite-shot subspaces |
+| [acase_precision_acquisition.py](examples/acase_precision_acquisition.py) | Primary rank-aware acquisition and opt-in bootstrap half-width guard |
 | [acase_finite_shot_response.py](examples/acase_finite_shot_response.py) | Response bootstrap and its heuristic intervals |
 | [acase_materials.py](examples/acase_materials.py) | Lattice models, projected observables, and excited states |
 | [acase_sector_backend.py](examples/acase_sector_backend.py) | Sector statevectors and matrix-free reference calculations |

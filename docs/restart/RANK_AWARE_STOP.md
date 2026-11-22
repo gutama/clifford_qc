@@ -1,25 +1,47 @@
-# Rank-aware precision stopping (opt-in)
+# Rank-aware precision stopping
 
 The [stretched rank stress test](STRETCHED_MOLECULAR_STOP.md) showed that a
 precise Ritz value in a truncated space can be grossly wrong for the declared
-full space. The existing estimated-SE-only stop remains the default.
-The opt-in `RankStopPolicy` guards against that failure mode, and the separate
-bootstrap-width guard can be used alone or together with it.
+full space. The recommended public controller for new fixed-bank precision
+work is `acquire_ritz_precision`, which always requires `RankStopPolicy`, with
+two consecutive separated full-rank looks by default. The lower-level
+`acquire_ritz` retains its original behavior for declared comparisons and
+historical replay. Width is an optional additional constraint, not a
+replacement for rank confirmation in the primary API.
 
 ```python
-from clifford_qc.subspace.acquisition import RankStopPolicy, acquire_ritz
+from clifford_qc.subspace import RankStopPolicy, acquire_ritz_precision
 
-result = acquire_ritz(shared, backend,
+result = acquire_ritz_precision(shared, backend,
     pilot_shots_per_group=250, round_budgets=round_budgets,
     target_std_error=0.0016, solver_kwargs=solver_kwargs,
-    control_variates=family, rank_stop=RankStopPolicy(consecutive_looks=2),
-    bootstrap_replicates=64, max_bootstrap_half_width=0.0016)
+    control_variates=family)
 if result.stopped == "target_met":
-    print(result.energy, result.bootstrap_interval)
+    print(result.energy, result.interval)
 else:
     # An unresolved guard or exhausted budget is not precision attainment.
     print(result.stopped, result.looks[-1])
 ```
+
+For tighter uncertainty control, add `max_bootstrap_half_width=0.0016` and
+`bootstrap_replicates=64` to the same call, with a predeclared resampling
+seed if desired. The two guards then act together. Do not choose a width
+after inspecting the acquired data. Without a width or a diagnostic
+`bootstrap_replicates` request, no resampling is performed. A custom
+`RankStopPolicy` can change consecutive looks or margin delta; passing
+`None` is refused because that would silently disable rank confirmation.
+
+| Requirement | Entry point | Additional work |
+| --- | --- | --- |
+| Routine precision | `acquire_ritz_precision(...)` | Rank/margin diagnostics and overlap-targeted shots |
+| Tight reported interval | `acquire_ritz_precision(..., max_bootstrap_half_width=w, bootstrap_replicates=B)` | Bootstrap only at eligible looks; possible extra rounds |
+| Terminal uncertainty diagnostic only | `acquire_ritz_precision(..., bootstrap_replicates=B)` | One terminal bootstrap, no stop-width constraint |
+| Deliberate legacy SE-only / fixed budget | `acquire_ritz(...)` | Historical behavior, not primary precision stopping |
+
+This is a fixed-bank controller. It is distinct from `acquire_to_accuracy`,
+which balances basis expansion and refinement and has a different estimand.
+Do not impose a full-rank criterion on a changing or structurally dependent
+bank without first establishing the intended independent span.
 
 The full declared bank must be independent: repeated agreement on a smaller
 rank does not qualify. The controller requires its full rank and positive
@@ -188,8 +210,7 @@ a finite bootstrap can miss a rank regime and cannot certify it absent.
 
 ### Scientific decision
 
-Adopt the two optional policy controls as research features, not defaults
-or certificates. The rank-aware policy passes this frozen near-cutoff
+The rank-aware policy passes this frozen near-cutoff
 stress validation and materially reduces catastrophic errors without full
 budget expenditure. Width-only attains every point error target in this
 small sample at higher cost; the combined rank-and-width API is tested
@@ -199,3 +220,64 @@ hardware models, with more outer and inner draws and a declared combined
 policy. If the full bank is structurally dependent, repair/reparameterize
 it before using the full-rank guard; a reduced-rank stopping policy would
 require a separately justified estimand and criterion.
+
+**Adoption:** use `acquire_ritz_precision` for new fixed-bank precision
+acquisitions, with rank/margin as the primary policy and width as a
+separately priced, optional guard. This is an API/workflow choice based on
+the observed trade-off, not a new statistical certification claim. Existing
+published campaigns continue calling the explicitly configured lower-level
+API with their frozen semantics.
+
+### Public-controller integration smoke
+
+The new entry point was exercised on both existing stretched banks with one
+fresh matched pilot seed per molecule, SE target 1.6 mHa, the same five-look
+schedule and CV family, and either no bootstrap or a 1.6 mHa half-width
+guard using 16 draws per assessment. These are integration checks, not a
+new preregistered coverage or comparative statistical study. Every attempt
+reached `target_met` at full confirmed rank four.
+
+| Molecule | Policy | Physical shots | Looks | SE (mHa) | Absolute error (mHa) | Bootstrap half-width (mHa) | Bootstrap solves |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| LiH | Primary rank-only | 3,682,000 | 3 | 0.507 | 0.408 | — | 0 |
+| LiH | Rank + width | 3,682,000 | 3 | 0.507 | 0.408 | 1.353 | 16 |
+| BeH2 | Primary rank-only | 5,640,000 | 3 | 0.962 | 1.482 | — | 0 |
+| BeH2 | Rank + width | 22,560,000 | 4 | 0.453 | 0.462 | 1.247 | 32 |
+
+The LiH guard passed at the rank-only stop; the BeH2 guard required another
+round and a second bootstrap assessment. This illustrates why the extra
+constraint is explicit. These two samples do not establish its general
+accuracy, cost or coverage.
+
+To reproduce these smoke checks in the pinned numerical environment, use
+the prior bank producer and the independent occupation-space anchor. The
+comparison does not change the historical records:
+
+```python
+import numpy as np
+from benchmarks.run_stretched_molecular_stop import declaration, build_system
+from benchmarks.check_stretched_molecular_stop import independent_anchor
+from benchmarks.run_rank_aware_stop import SolveAudit
+from clifford_qc.subspace import acquire_ritz_precision
+
+d = declaration()
+for ci, case in enumerate(d['cases']):
+    shared, cv, backend, meta = build_system(case, d)
+    target = independent_anchor(case)[-2]
+    seed, bs = (int(np.random.SeedSequence([2026112229, ci, i])
+                    .generate_state(1, np.uint64)[0]) for i in (0, 1))
+    for width in (False, True):
+        shared.solve_trace = []
+        audit = SolveAudit(shared)
+        backend.reseed(seed)
+        opts = dict(max_bootstrap_half_width=.0016, bootstrap_replicates=16,
+                    bootstrap_seed=bs) if width else {}
+        r = acquire_ritz_precision(
+            audit, backend, pilot_shots_per_group=250,
+            round_budgets=[x*meta['groups'] for x in (250, 1500, 6000, 24000)],
+            target_std_error=.0016, solver_kwargs=case['solver'],
+            control_variates=cv, **opts)
+        print(case['name'], width, r.stopped, r.shots, len(r.looks),
+              r.result.effective_rank, 1000*r.std_error, 1000*abs(r.energy-target),
+              r.bootstrap_interval, sum(s['kind']=='bootstrap' for s in audit.trace))
+```

@@ -368,7 +368,10 @@ three ways:
 
 ## Target-aware acquisition
 
-[`acquire_ritz`](../../clifford_qc/subspace/acquisition.py) measures a uniform
+[`acquire_ritz_precision`](../../clifford_qc/subspace/acquisition.py) is the
+preferred entry point for independent fixed-bank precision acquisition. It
+uses the [rank/margin controller](RANK_AWARE_STOP.md) built on `acquire_ritz`.
+The underlying engine measures a uniform
 pilot of every setting, solves, and spends each further round by Neyman
 allocation on the current Ritz functional `c*(H - E S)c`: shots in proportion
 to the square root of each setting's per-shot variance. `allocation="uniform"`
@@ -377,10 +380,10 @@ accepts are supported, since the allocation target and the interval are both
 its Ritz functional.
 
 ```python
-from clifford_qc.subspace.acquisition import acquire_ritz
+from clifford_qc.subspace import acquire_ritz_precision
 
 groups = len(shared.groups)
-found = acquire_ritz(shared, backend, pilot_shots_per_group=100,
+found = acquire_ritz_precision(shared, backend, pilot_shots_per_group=100,
                      round_budgets=[100 * groups, 200 * groups, 400 * groups],
                      target_std_error=0.02)
 print(found.stopped, found.shots, found.interval.lower, found.interval.upper)
@@ -389,13 +392,17 @@ for look in found.looks:
 ```
 
 **Stopping semantics.** The pilot size, the round budgets and the target are
-fixed before any shot. The rule "stop when the estimated standard error is at
-most the target" is evaluated only at those predeclared looks.
+fixed before any shot. The primary policy requires the estimated SE at most
+the target and two consecutive full-rank separated looks. A declared
+`max_bootstrap_half_width` with `bootstrap_replicates` adds a third condition.
+The rule is evaluated only at those predeclared looks.
 `found.interval` splits its error budget over every look at which the run
 could have stopped, so it is valid over the schedule to the extent the
 Gaussian delta method is valid at each look. It is asymptotic, not
 anytime-valid and not a certificate. `found.naive_interval` ignores the other
-looks. Without a target every round is spent and the two coincide.
+looks. The lower-level `acquire_ritz` retains the historical SE-only rule
+when no rank policy is supplied; without a target every round is spent and
+the two coincide.
 
 That condition failed in the declared study wherever the solve's truncation
 changed between looks. A solve that drops a direction reports a small standard
@@ -531,7 +538,7 @@ only from the two declared studies.
 | Fixed-angle rotation and estimator policy | Implemented, opt-in | Independent-angle evaluation and external equal-data replay; data-selected angle inference remains pending |
 | Covariance-aware constrained ratio | Implemented, opt-in, measured path only | Budget fixed before evaluation; a histogram-retaining campaign with tails, failures and below-ground rates; coverage of the rerun-search bootstrap |
 | Interval coverage instrument and declared study | Implemented and [run as declared](INTERVAL_COVERAGE.md) on three four-qubit banks | Molecular banks and realistic noise need their own declared study; a budget rule for the constrained ratio that transfers between systems |
-| Target-aware acquisition | Implemented, opt-in, and [run as declared](TARGET_ACQUISITION.md) on spin banks; [adaptive LiH/H4 validation](MOLECULAR_ADAPTIVE_STOP.md) found all 256 runs met a 1.6 mHa estimated-SE target with stable rank. [Rank/margin and width guards](RANK_AWARE_STOP.md) now opt-in: rank/margin passes both fresh stretched-bank criteria, 31/32 true stops vs 25/32 SE-only | [Stretched LiH/BeH2 rank stress](STRETCHED_MOLECULAR_STOP.md) demonstrated catastrophic reduced-rank SE stops. Natural near-dependence, larger banks, combined guard and realistic-noise tests remain open; neither guard guarantees precision. |
+| Target-aware acquisition | [Run as declared](TARGET_ACQUISITION.md) on spin banks; [adaptive LiH/H4 validation](MOLECULAR_ADAPTIVE_STOP.md) met the SE target with stable rank. [Primary `acquire_ritz_precision`](RANK_AWARE_STOP.md) requires rank/margin, optional width: rank/margin passes both fresh stretched-bank criteria, 31/32 true stops vs 25/32 SE-only | [Stretched LiH/BeH2 rank stress](STRETCHED_MOLECULAR_STOP.md) demonstrated catastrophic reduced-rank SE stops. Natural near-dependence, larger banks, combined guard campaign and realistic-noise tests remain open; neither guard guarantees precision. |
 | Symmetry-shift control variates | [Implemented, opt-in](SYMMETRY_SHIFTS.md): certified sector-annihilating shift families, fitted shifts, after-the-fact control variates and `acquire_ritz(control_variates=...)`, with [refitted bootstrap intervals](BOOTSTRAP_STOP.md) | [Declared LiH/H4 fixed-shot study](MOLECULAR_INTERVAL_COVERAGE.md): 95% corrected-spread coverage not rejected in four cells, 22–46% narrower intervals and 18–50% lower point RMSE; 68% spread undercovers descriptively. [Adaptive validation](MOLECULAR_ADAPTIVE_STOP.md) finds 16–35% mean shot savings, but H4 RMSE rises. [Stretched stress](STRETCHED_MOLECULAR_STOP.md) finds 9–26% savings in mean shots to the SE target, not matched precision; primary spread coverage not rejected but LiH CV median width 531.6 mHa. |
 | Symmetry pool reduction | [Implemented, opt-in](SYMMETRY_POOLS.md): spin-free closed-shell singles/doubles and explicit real-Abelian point-group characters | Global symmetry and independent singlet-CISD span tests; bounded molecular-bank audit. Cumulative selection-cache shots at matched error, open-shell couplings and a declared sampled study remain pending |
 | SoA kernel work | Pending | Invariant tests, real structured-bank timings, full selection-cache costs at matched error |
