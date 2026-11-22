@@ -41,6 +41,18 @@ from .cost import (
 )
 from .compiled import CompiledMeasurementSampler, CompiledSetting
 from .planning import CompiledMeasurementPlan, compile_block_measurement_plan
+from .weighted_planning import (
+    GROUPING_STRATEGIES,
+    GroupingMetrics,
+    NoiseGatePolicy,
+    WEIGHT_AGGREGATIONS,
+    compare_block_rungs,
+    evaluate_plan_variance,
+    plan_measurement,
+    ritz_sensitivity_weights,
+    sorted_insertion_partition,
+    word_weights,
+)
 from .cliques import (
     CliqueMeasurementPlan, CompiledClique, anticommuting_clique_cover,
     compile_anticommuting_clique, compile_clique_measurement_plan,
@@ -56,6 +68,10 @@ __all__ = ["WordCache", "GroupedWordCache", "CommutatorBank", "simultaneous_z_ra
            "setting_duration_us", "setting_fidelity"]
 __all__ += ["CompiledSetting", "CompiledMeasurementSampler"]
 __all__ += ["CompiledMeasurementPlan", "compile_block_measurement_plan"]
+__all__ += ["GROUPING_STRATEGIES", "GroupingMetrics", "NoiseGatePolicy",
+            "WEIGHT_AGGREGATIONS", "compare_block_rungs", "evaluate_plan_variance",
+            "plan_measurement", "ritz_sensitivity_weights",
+            "sorted_insertion_partition", "word_weights"]
 __all__ += ["CliqueMeasurementPlan", "CompiledClique", "anticommuting_clique_cover",
             "compile_anticommuting_clique", "compile_clique_measurement_plan"]
 __all__ += ["block_wise_commute", "block_commuting_partition",

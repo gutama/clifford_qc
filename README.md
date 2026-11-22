@@ -249,6 +249,17 @@ on a `SampledProjectedProvider`. The same primary controller targets compiled
 joint-shot settings, retains the observations and actual resource ledger, and
 can opt into the bootstrap-width guard. See the [unified workflow guide](docs/restart/UNIFIED_WORKFLOW.md).
 
+For new measurement plans, `clifford_qc.measurement.plan_measurement` defaults
+to the NumPy-only `method="graph_state"` readout compiler (no Stim required),
+supports coefficient- and Ritz-sensitivity-weighted $k$-commuting sorted
+insertion (`sorted_insertion_partition`, `ritz_sensitivity_weights`) and
+GALIC-style per-setting two-qubit gate budgets (`NoiseGatePolicy`), and reports
+variance-first shot ratios (`evaluate_plan_variance`, `compare_block_rungs`).
+`SampledProjectedProvider` exposes opt-in `grouping="sorted_insertion"`,
+`noise_gate`, `plan_metrics()`, and `with_ritz_plan(...)` without changing
+frozen default circuit identities or elimination replay helpers. See the
+[weighted measurement guide](docs/restart/WEIGHTED_MEASUREMENT.md).
+
 ### Residuals and folded roots
 
 A projected solve has zero projected residual by construction. The true
@@ -357,6 +368,7 @@ After installation, run these scripts from the repository root:
 | [acase_finite_shot.py](examples/acase_finite_shot.py) | Shared measurements and finite-shot subspaces |
 | [acase_precision_acquisition.py](examples/acase_precision_acquisition.py) | Primary rank-aware acquisition and opt-in bootstrap half-width guard |
 | [sampled_precision_molecules.py](examples/sampled_precision_molecules.py) | Density-free unified precision workflow, opt-in molecular integration smoke |
+| [measurement_planning_upgrade.py](examples/measurement_planning_upgrade.py) | NumPy-only graph-state default, weighted $k$-commuting rungs, GALIC noise gate, and Ritz replanning |
 | [acase_finite_shot_response.py](examples/acase_finite_shot_response.py) | Response bootstrap and its heuristic intervals |
 | [acase_materials.py](examples/acase_materials.py) | Lattice models, projected observables, and excited states |
 | [acase_sector_backend.py](examples/acase_sector_backend.py) | Sector statevectors and matrix-free reference calculations |

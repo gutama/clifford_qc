@@ -84,10 +84,11 @@ is constructed and how its matrix elements are measured
 The conditioning of \(S\) is central because finite-shot perturbations are
 amplified near its null space
 \cite{epperly2022theory,lee2024sampling,zhang2024measurement}.  Recent
-Davidson, partitioned, and overlap-adaptive variants make basis construction
-more flexible, but do not remove this measurement problem
+Davidson, partitioned, overlap-adaptive, and shadow-based subspace variants
+make basis construction and finite-shot post-processing more flexible, but do
+not remove this measurement problem
 \cite{tkachenko2024davidson,oleary2025partitioned,feniou2023overlapadapt,
-miura2026assqd}.
+miura2026assqd,boyd2025shadow,fischer2026shadow}.
 
 The experimental primitive is a prepared-state measurement shot.  A basis
 with few vectors can still require many state contexts, settings, or
@@ -259,16 +260,21 @@ Qubit-wise commuting (QWC) groups are shallow but can be numerous
 Two Pauli words are \(k\)-compatible when
 \begin{equation}
  [P|_{B_{k,b}},Q|_{B_{k,b}}]=0
- \quad\text{for every }B_{k,b}.
+ \quad\text{for every }B_{k,b},
  \label{eq:block-commuting}
 \end{equation}
+which coincides on contiguous blocks with the \(k\)-commutativity hierarchy of
+Ref.~\cite{dalfavero2025kcommutativity}.
 The endpoints are QWC at \(k=1\) and full Pauli commutation at \(k=n\).
 Each compatible group is diagonalized by block-local stabilizer Clifford
 circuits \cite{crawford2021efficient,miller2024hardware}.  We verify that every
 word, not only an independent stabilizer basis, maps to a \(Z\)-only word.
-The coloring is constructive rather than optimal.  The hierarchy leaves the
-subspace and \(W\) unchanged while trading fewer settings for more logical
-CX gates and depth.
+The coloring is constructive rather than optimal; variance-weighted sorted
+insertion \cite{crawford2021efficient,dalfavero2025kcommutativity} and
+noise-gated hybrid grouping \cite{burns2024galic} address the separate
+variance-versus-bias trade-off beyond raw setting counts.  The frozen hierarchy
+record leaves the subspace and \(W\) unchanged while trading fewer settings for
+more logical CX gates and depth.
 
 \subsection{Finite-shot assembly and regularization}
 \label{sec:finite-shot-method}

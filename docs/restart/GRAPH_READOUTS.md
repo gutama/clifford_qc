@@ -20,13 +20,18 @@ print(plan.synthesis.logical_two_qubit_per_sweep)
 ```
 
 `groups=` can supply a frozen partition; it is checked for complete exact-once
-assignment and block-wise commutation. Omitting `method` retains
-`method="elimination"`, including its optional Stim requirement and historical
-resource fields. `synthesize_block_settings(..., method="graph_state")` exposes
-the graph resource ledger directly. Both ledgers provide
-`logical_two_qubit_per_sweep`, `two_qubit_per_setting` and
-`two_qubit_depth_per_setting`; inspect `gate_counts` to distinguish CX from CZ.
-No graph count is mislabeled as a CX count.
+assignment and block-wise commutation. For new planning workflows, prefer
+`plan_measurement` (see [weighted and noise-gated measurement planning](WEIGHTED_MEASUREMENT.md)),
+which defaults to NumPy-only `method="graph_state"` with no Stim requirement
+and adds weighted sorted insertion and GALIC-style noise gating. Omitting
+`method` in `compile_block_measurement_plan` or `synthesize_block_settings`
+retains `method="elimination"`, including its optional Stim requirement and
+historical resource fields, so frozen records replay unchanged.
+`synthesize_block_settings(..., method="graph_state")` exposes the graph
+resource ledger directly. Both ledgers provide `logical_two_qubit_per_sweep`,
+`two_qubit_per_setting` and `two_qubit_depth_per_setting`; inspect
+`gate_counts` to distinguish CX from CZ. No graph count is mislabeled as a CX
+count.
 
 The graph plan uses the existing `CompiledMeasurementSampler` and
 `GroupedWordCache`. It has immutable native H/S/SDG/CZ circuits and signed

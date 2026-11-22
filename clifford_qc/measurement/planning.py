@@ -6,8 +6,12 @@ universe and block size into a partition, verified Clifford settings, signed
 readout maps, and the synthesis ledger used for resource accounting.
 
 ``stim`` remains an optional dependency.  Importing :mod:`clifford_qc.measurement`
-does not load it; the default elimination compiler requires it. Explicit
-``method="graph_state"`` compilation and signed readouts use NumPy alone.
+does not load it; :func:`compile_block_measurement_plan` retains its historical
+``method="elimination"`` default (which requires ``stim``) for frozen record
+replay.  For new workflows use
+:func:`~clifford_qc.measurement.weighted_planning.plan_measurement`, which
+defaults to NumPy-only ``method="graph_state"`` compilation and supports
+weighted :math:`k`-commuting sorted insertion and GALIC-style noise gating.
 """
 
 from __future__ import annotations

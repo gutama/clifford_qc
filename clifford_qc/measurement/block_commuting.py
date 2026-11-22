@@ -1,9 +1,10 @@
-"""Dyadic block-commuting measurement grouping.
+"""Dyadic block-commuting (``k``-commuting) measurement grouping.
 
 Two Pauli words share a measurement setting under this rule when their
-restrictions to every contiguous ``k``-qubit block commute. The rule is a
-one-parameter family spanning the two endpoints the measurement literature
-usually treats as separate protocols:
+restrictions to every contiguous ``k``-qubit block commute -- the
+``k``-commutativity relation of DalFavero et al. (Phys. Rev. A 112, 2025,
+arXiv:2312.11840). The rule is a one-parameter family spanning the two
+endpoints the measurement literature usually treats as separate protocols:
 
 ``k = 1``
     Each block is a single qubit, and two single-qubit Paulis commute exactly

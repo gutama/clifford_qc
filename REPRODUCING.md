@@ -965,6 +965,17 @@ OPENBLAS_NUM_THREADS=1 python examples/sampled_precision_molecules.py
 OPENBLAS_NUM_THREADS=1 python examples/sampled_precision_molecules.py --stretched
 ```
 
+For variance-first, Ritz-weighted, and GALIC noise-gated measurement planning
+on top of the NumPy-only `graph_state` default compiler (see the [weighted
+measurement guide](docs/restart/WEIGHTED_MEASUREMENT.md)), run the focused
+regression suite and illustrative H4/BeH2/TFIM4 script (no Stim or SciPy
+required):
+
+```bash
+python -m pytest -q tests/test_weighted_measurement_planning.py
+python examples/measurement_planning_upgrade.py
+```
+
 `.github/workflows/ci.yml` runs on every pull request and on every push to
 `main`. Each value gate builds its environment out of the record it verifies
 rather than out of a hand-written pin:
