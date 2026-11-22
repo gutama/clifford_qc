@@ -979,12 +979,18 @@ python examples/measurement_planning_upgrade.py
 The [preregistered weighted measurement and adaptive precision study](docs/restart/WEIGHTED_PRECISION.md)
 combines weighted $k$-commuting grouping, paid-pilot Ritz replanning, and
 GALIC-style gate-level noisy readout validation (`benchmarks/noisy_readout_sim.py`)
-under the density-free `sampled_precision` controller. See
-`benchmarks/run_weighted_precision.py` and `benchmarks/check_weighted_precision.py`;
-routine CI runs only the fast structural declaration gate:
+under the density-free `sampled_precision` controller. Executed at the frozen
+declaration commit `73e48cc6f9fce7d0d0a568f5edf88ae441816423` under the pinned
+stack (`python 3.12.14`, `numpy 2.5.2`, `scipy 1.18.0`, single-threaded BLAS),
+the committed record `docs/restart/weighted_precision_results.json.gz` retains
+all 1,408 acquisitions (3,144,593,750 shots; 0 failures; 4 `beh2_8q`
+`si_fc_width` exhaustions). See `benchmarks/run_weighted_precision.py` and
+`benchmarks/check_weighted_precision.py`; routine CI audits history, manifests,
+all 36 independent Part B noisy anchors, and all 1,408 rows:
 
 ```bash
-python benchmarks/check_weighted_precision.py --declaration-only
+python benchmarks/check_weighted_precision.py --verify-history
+python benchmarks/check_weighted_precision.py --report --spot-replay --full-anchor --verify-history
 python -m pytest -q tests/test_noisy_readout_sim.py tests/test_weighted_precision.py
 ```
 

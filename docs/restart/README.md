@@ -102,10 +102,17 @@ covariance-aware `R`, and 2Q gate cost across rungs), and opt-in weighted or
 Ritz-replanned `SampledProjectedProvider` integration. Frozen historical
 `compile_block_measurement_plan` / `synthesize_block_settings` elimination
 defaults and default `SampledProjectedProvider` circuit identities are
-unchanged. The result-free [weighted measurement and adaptive precision
-preregistration](WEIGHTED_PRECISION.md) declares the combined ideal-shot and
-gate-level noisy-readout evaluation on the molecular banks; no evaluation seeds
-have been run yet.
+unchanged. The preregistered [weighted measurement and adaptive precision
+study](WEIGHTED_PRECISION.md) completed all 1,408 acquisitions (3.14 billion
+simulated physical shots; zero failures; four exhaustions in the opt-in
+`beh2_8q` width-guard arm). Weighted SI passed 8/9 P1a cells with 2.5–13.6×
+fewer mean shots than unweighted LDF (single discrete-grid tie on `lih_8q`
+$k=8$), paid-pilot `ritz_si_fc` cut `beh2_8q` a further 2.5× while `lih_8q`
+`si_qwc` beat both FC arms by 2.5× due to state-dependent covariance, P2 passed
+both stretched 10q arms (`16/16` true stops, `0` false, 30% lower mean shots
+for `si_k2` vs. `ldf_qwc`), and P3 passed all 6/6 pure-2Q noise cells (tight
+GALIC cut bias 5.3–13.4× and RMSE 2.4–7.1×) while `sc_card_full` showed
+readout-flip bias (`+61.8` to `+134.9 mHa`) dominates every arm including QWC.
 
 The [preregistered noise-aware selection experiment](NOISE_AWARE_SELECTION.md)
 closed negative on its equal-shot held-out criterion. An independent H4 audit
