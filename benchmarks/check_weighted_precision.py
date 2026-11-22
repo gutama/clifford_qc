@@ -7,8 +7,10 @@ Supports:
 - ``--full-anchor``: additionally cross-checks native Pauli-bank word counts
   and exact expectation matrices against the independent occupation-space
   matrices.
-- ``--report``: audits every committed Part A and Part B row, infinite-shot
-  noisy bias anchor, shot billing, interval arithmetic, and primary criteria.
+- ``--report``: audits every committed Part A and Part B row, independently
+  recomputes all 36 noisy infinite-shot anchors, enforces shot/schedule/guard
+  accounting, computes unconditional and stop-conditional 68%/95% coverage and
+  widths, and evaluates the frozen P1a--P3 endpoints and shot-ratio CIs.
 - ``--spot-replay``: replays designated replica-0 attempts from scratch and
   checks exact agreement with the committed record.
 - ``--verify-history``: enforces strict Git chronology between declaration
@@ -17,6 +19,7 @@ Supports:
 from __future__ import annotations
 
 import argparse
+from dataclasses import asdict
 import json
 import math
 from pathlib import Path
@@ -24,7 +27,7 @@ import re
 from statistics import NormalDist
 import subprocess
 import sys
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 
@@ -40,6 +43,7 @@ from benchmarks.noisy_readout_sim import (  # noqa: E402
 )
 from clifford_qc.measurement import DeviceCard, NoiseGatePolicy  # noqa: E402
 from clifford_qc.sampled_reference import PreparedSampledReference  # noqa: E402
+from clifford_qc.subspace import RankStopPolicy  # noqa: E402
 
 
 def require(condition: bool, message: str) -> None:
@@ -132,7 +136,11 @@ def validate_declaration_structure(d: dict[str, Any]) -> dict[str, Any]:
     seen_seeds: set[int] = set()
     for part, ci, ai, reg_idx, rep in jobs:
         part_id = 0 if part == "A" else 1
-        streams = (0, 1, 2) if (part == "A" and d["part_a_arms"][ai]["grouping"] == "ritz_replan") else (0, 1)
+        streams = (
+            (0, 1, 2)
+            if (part == "A" and d["part_a_arms"][ai]["grouping"] == "ritz_replan")
+            else (0, 1)
+        )
         for stream in streams:
             s = producer.derived_seed(d["seed_root"], part_id, ci, ai, reg_idx, rep, stream)
             require(s not in seen_seeds, f"seed collision detected for {(part, ci, ai, reg_idx, rep, stream)}")
@@ -214,15 +222,230 @@ def anchors(d: dict[str, Any], *, full: bool = False) -> list[dict[str, Any]]:
     return systems
 
 
+def verify_noisy_anchors(
+    record: dict[str, Any],
+    d: dict[str, Any],
+    systems: list[dict[str, Any]],
+    *,
+    case_inputs_fn: Callable[[dict[str, Any]], tuple[Any, Any, np.ndarray]] | None = None,
+) -> dict[tuple[int, str, str], dict[str, Any]]:
+    """Independently recompute and audit every declared Part B noisy anchor."""
+    build_inputs = producer.build_case_inputs if case_inputs_fn is None else case_inputs_fn
+    expected_keys = {
+        (ci, regime["key"], arm["key"])
+        for ci, case in enumerate(d["cases"])
+        if "B" in case["parts"]
+        for regime in d["part_b_noise_regimes"]
+        for arm in d["part_b_arms"]
+    }
+    raw_anchors = record.get("noisy_anchors")
+    require(isinstance(raw_anchors, list), "record missing noisy_anchors list")
+    by_key: dict[tuple[int, str, str], dict[str, Any]] = {}
+    for entry in raw_anchors:
+        key = (int(entry["case"]), str(entry["regime"]), str(entry["arm"]))
+        require(key in expected_keys and key not in by_key, f"unexpected or duplicate noisy anchor: {key}")
+        by_key[key] = entry
+    require(set(by_key) == expected_keys, f"incomplete noisy anchors: got {len(by_key)} of {len(expected_keys)}")
+
+    card = DeviceCard.load(ROOT / d["device_card"])
+    for ci, case in enumerate(d["cases"]):
+        if "B" not in case["parts"]:
+            continue
+        n = int(case["n"])
+        exact_e = float(systems[ci]["independent_target"])
+        h, generators, state = build_inputs(case)
+        # Recompile each unique (block_size, grouping, max_logical_2q) plan independently.
+        plan_cache: dict[tuple[int, str, int | None], Any] = {}
+        for regime in d["part_b_noise_regimes"]:
+            nmodel = ReadoutNoiseModel(
+                p_1q=regime["p_1q"],
+                p_2q=regime["p_2q"],
+                routing_2q_multiplier=regime["routing_2q_multiplier"],
+                p_readout=regime["p_readout"],
+                label=regime["key"],
+            )
+            nsim = NoisyReadoutSimulator(state, n, nmodel)
+            nref = PreparedSampledReference(n, f"{case['name']}-{regime['key']}-check", nsim.draw)
+            for arm in d["part_b_arms"]:
+                key = (ci, regime["key"], arm["key"])
+                recorded = by_key[key]
+                require(recorded["case_name"] == case["name"], f"noisy anchor case_name mismatch: {key}")
+                bs = n if arm["block_size"] == "full" else int(arm["block_size"])
+                tier = arm["gate_tier"]
+                gate: NoiseGatePolicy | None = None
+                if tier == "tight":
+                    gate = NoiseGatePolicy(
+                        two_qubit_error=regime["p_2q"],
+                        max_relative_bias=regime["galic_tight_eps"],
+                        routing_2q_multiplier=regime["routing_2q_multiplier"],
+                        device_card=card,
+                    )
+                elif tier == "moderate":
+                    gate = NoiseGatePolicy(
+                        two_qubit_error=regime["p_2q"],
+                        max_relative_bias=regime["galic_moderate_eps"],
+                        routing_2q_multiplier=regime["routing_2q_multiplier"],
+                        device_card=card,
+                    )
+                elif tier != "none":
+                    raise ValueError(f"unknown gate_tier {tier!r}")
+
+                ck = (bs, arm["grouping"], None if gate is None else gate.max_logical_two_qubit_gates)
+                if ck not in plan_cache:
+                    plan_cache[ck] = producer.build_arm_provider(
+                        nref,
+                        h,
+                        generators,
+                        n,
+                        block_size=bs,
+                        grouping=arm["grouping"],
+                        noise_gate=gate,
+                    )
+                prov = plan_cache[ck]
+                # Re-evaluate metrics under this regime's exact gate policy.
+                from clifford_qc.measurement import evaluate_plan_variance
+
+                bm = evaluate_plan_variance(
+                    prov.plan,
+                    prov.session.matrix_functionals(),
+                    strategy=arm["grouping"],
+                    noise_gate=gate,
+                )
+                nexps = nsim.exact_word_expectations(prov.plan.settings)
+                ne, nrank, nevals = producer.exact_projected_from_expectations(
+                    prov, nexps, case["solver"]
+                )
+
+                require(recorded["noise_model"] == nmodel.as_dict(), f"noise_model mismatch: {key}")
+                require(
+                    recorded["noise_gate"] == (None if gate is None else gate.as_dict()),
+                    f"noise_gate mismatch: {key}",
+                )
+                require(recorded["settings"] == bm.n_settings, f"noisy anchor settings mismatch: {key}")
+                require(close(recorded["r_hat"], bm.r_hat, rel_tol=1e-7, abs_tol=1e-9), f"noisy anchor r_hat mismatch: {key}")
+                require(recorded["cz_total"] == int(bm.two_qubit_gates_total), f"noisy anchor cz_total mismatch: {key}")
+                require(recorded["cz_max"] == int(bm.two_qubit_gates_max), f"noisy anchor cz_max mismatch: {key}")
+                require(
+                    recorded["admissible_settings"] == bm.noise_gate_admissible_settings,
+                    f"noisy anchor admissible_settings mismatch: {key}",
+                )
+                if gate is not None:
+                    require(
+                        recorded["admissible_settings"] == recorded["settings"],
+                        f"gated noisy anchor contains inadmissible settings: {key}",
+                    )
+                    if gate.max_logical_two_qubit_gates is not None:
+                        require(
+                            recorded["cz_max"] <= gate.max_logical_two_qubit_gates,
+                            f"gated noisy anchor exceeds max_logical_two_qubit_gates: {key}",
+                        )
+                require(
+                    close(recorded["noisy_exact_energy_Ha"], ne, abs_tol=1e-9),
+                    f"noisy_exact_energy_Ha mismatch: {key}",
+                )
+                require(
+                    close(recorded["bias_Ha"], ne - exact_e, abs_tol=1e-9),
+                    f"bias_Ha mismatch: {key}",
+                )
+                require(recorded["noisy_rank"] == int(nrank), f"noisy_rank mismatch: {key}")
+                require(
+                    bool(np.allclose(recorded["noisy_overlap_spectrum"], nevals, atol=1e-9, rtol=0.0)),
+                    f"noisy_overlap_spectrum mismatch: {key}",
+                )
+    return by_key
+
+
+def _check_rank_guard(
+    guard: dict[str, Any],
+    look: dict[str, Any],
+    case: dict[str, Any],
+    required_rank: int,
+    consecutive_required: int,
+    prev_streak: int,
+) -> tuple[bool, bool, int]:
+    """Validate rank_guard diagnostics and return (resolved, rank_ok, new_streak)."""
+    require(isinstance(guard, dict), "missing rank_guard dictionary")
+    require(
+        guard.get("required_rank") == required_rank and guard.get("evidence") == "heuristic",
+        "rank_guard metadata mismatch",
+    )
+    live_rank = guard.get("live_rank")
+    require(isinstance(live_rank, int) and 0 <= live_rank <= required_rank, "invalid live_rank")
+    comparisons = guard.get("comparisons")
+    require(isinstance(comparisons, list), "invalid rank_guard comparisons")
+    if comparisons:
+        require(len(comparisons) == 3, "rank_guard must report 3 cutoff comparisons")
+        weakest = float(guard["weakest"])
+        require(math.isfinite(weakest), "nonfinite rank_guard weakest")
+        expected_names = ("absolute", "relative", "condition")
+        for comp, name in zip(comparisons, expected_names, strict=True):
+            require(comp["cutoff"] == name, f"unexpected rank_guard cutoff name: {comp['cutoff']!r}")
+            thresh = float(comp["threshold"])
+            radius = float(comp["radius"])
+            margin = float(comp["margin"])
+            lower = float(comp["lower_margin"])
+            require(
+                all(math.isfinite(x) for x in (thresh, radius, margin, lower)) and radius >= 0.0,
+                "invalid rank_guard comparison scalars",
+            )
+            if name == "absolute":
+                require(close(thresh, float(case["solver"]["tau_s"])), "absolute cutoff threshold mismatch")
+            elif name == "relative":
+                require(close(thresh, float(case["solver"].get("relative_tau", 0.0))), "relative cutoff threshold mismatch")
+            require(close(margin, weakest - thresh), "rank_guard margin arithmetic mismatch")
+            require(close(lower, margin - radius), "rank_guard lower_margin arithmetic mismatch")
+        min_lower = min(float(c["lower_margin"]) for c in comparisons)
+        require(close(float(guard["lower_margin"]), min_lower), "rank_guard minimum lower_margin mismatch")
+        resolved = (int(look["retained_rank"]) == required_rank) and (min_lower > 0.0)
+    else:
+        require(guard.get("lower_margin") is None, "empty comparisons with non-None lower_margin")
+        resolved = False
+    new_streak = prev_streak + 1 if resolved else 0
+    rank_ok = new_streak >= consecutive_required
+    require(
+        guard.get("resolved") is resolved
+        and guard.get("consecutive_resolved") == new_streak
+        and guard.get("passed") is rank_ok,
+        "rank_guard decision/streak mismatch",
+    )
+    return resolved, rank_ok, new_streak
+
+
 def check_row(
     row: dict[str, Any],
     d: dict[str, Any],
     case: dict[str, Any],
     system: dict[str, Any],
+    *,
+    expected_plan: dict[str, Any] | None = None,
+    pilot_settings: int | None = None,
 ) -> None:
+    """Strictly audit one recorded attempt's seeds, shot billing, schedule, guards, and intervals."""
     part = row["part"]
+    require(part in ("A", "B"), f"unknown part: {part!r}")
     part_id = 0 if part == "A" else 1
     ci, ai, reg_idx, rep = row["case"], row["arm_index"], row["regime_index"], row["replica"]
+    require(row.get("case_name") == case["name"], "row case_name mismatch")
+
+    if part == "A":
+        require(0 <= ai < len(d["part_a_arms"]), "invalid Part A arm_index")
+        arm = d["part_a_arms"][ai]
+        require(row["arm"] == arm["key"], "Part A row arm label mismatch")
+        require(case["name"] in arm["cases"], "Part A arm not declared for case")
+        require(row["regime"] == "ideal" and reg_idx == 0, "Part A regime mismatch")
+        is_replan = arm["grouping"] == "ritz_replan"
+        width_guard = bool(arm["width_guard"])
+    else:
+        require("B" in case["parts"], "Part B not declared for case")
+        require(0 <= ai < len(d["part_b_arms"]), "invalid Part B arm_index")
+        require(0 <= reg_idx < len(d["part_b_noise_regimes"]), "invalid Part B regime_index")
+        arm = d["part_b_arms"][ai]
+        regime = d["part_b_noise_regimes"][reg_idx]
+        require(row["arm"] == arm["key"], "Part B row arm label mismatch")
+        require(row["regime"] == regime["key"], "Part B row regime label mismatch")
+        is_replan = False
+        width_guard = False
+
     require(
         row["acq_seed"] == producer.derived_seed(d["seed_root"], part_id, ci, ai, reg_idx, rep, 0),
         "acq_seed mismatch",
@@ -231,100 +454,326 @@ def check_row(
         row["boot_seed"] == producer.derived_seed(d["seed_root"], part_id, ci, ai, reg_idx, rep, 1),
         "boot_seed mismatch",
     )
-    is_replan = part == "A" and d["part_a_arms"][ai]["grouping"] == "ritz_replan"
+
+    n_settings = row.get("settings")
+    require(isinstance(n_settings, int) and n_settings >= 1, "invalid row settings count")
+    if expected_plan is not None and not is_replan:
+        require(n_settings == int(expected_plan["settings"]), "row settings mismatch with compiled plan")
+        if "cz_total" in expected_plan and "cz_total" in row:
+            require(int(row["cz_total"]) == int(expected_plan["cz_total"]), "row cz_total mismatch")
+        if "cz_max" in expected_plan and "cz_max" in row:
+            require(int(row["cz_max"]) == int(expected_plan["cz_max"]), "row cz_max mismatch")
+
     if is_replan:
         require(
             row["pilot_seed"] == producer.derived_seed(d["seed_root"], part_id, ci, ai, reg_idx, rep, 2),
             "pilot_seed mismatch",
         )
-        require(row["pilot_shots"] >= 0, "negative pilot_shots")
+        resolved_pilot_settings = pilot_settings
+        if resolved_pilot_settings is None and "part_a_plans" in system:
+            pilot_arm_key = arm["pilot_arm"]
+            if pilot_arm_key in system["part_a_plans"]:
+                resolved_pilot_settings = int(system["part_a_plans"][pilot_arm_key]["settings"])
+        if resolved_pilot_settings is not None:
+            pilot_pg0 = max(2, int(case["replan_pilot_total_shots"]) // resolved_pilot_settings)
+            expected_pilot_shots = pilot_pg0 * resolved_pilot_settings
+            if row["failure"] is None:
+                require(row["pilot_shots"] == expected_pilot_shots, "paid pilot_shots mismatch")
+            else:
+                require(row["pilot_shots"] in (0, expected_pilot_shots), "failed replan pilot_shots mismatch")
+        else:
+            require(row["pilot_shots"] > 0 if row["failure"] is None else row["pilot_shots"] >= 0, "invalid pilot_shots")
     else:
-        require(row["pilot_seed"] is None and row["pilot_shots"] == 0, "unexpected pilot on non-replan arm")
+        require(
+            row["pilot_seed"] is None and row["pilot_shots"] == 0 and row.get("pilot_fingerprint") is None,
+            "unexpected pilot fields on non-replan arm",
+        )
 
-    require(row["total_shots"] == row["pilot_shots"] + row["acquisition_shots"], "shot sum mismatch")
+    require(
+        isinstance(row["pilot_shots"], int)
+        and isinstance(row["acquisition_shots"], int)
+        and isinstance(row["total_shots"], int)
+        and row["pilot_shots"] >= 0
+        and row["acquisition_shots"] >= 0
+        and row["total_shots"] == row["pilot_shots"] + row["acquisition_shots"],
+        "shot sum mismatch",
+    )
     require(row["device_seconds"] >= 0.0 and math.isfinite(row["device_seconds"]), "invalid device_seconds")
 
     if row["failure"] is not None:
-        require(row["status"] == "failed" and row["estimate"] is None, "invalid failure row")
+        null_fields = (
+            "estimate",
+            "std_error",
+            "delta_interval",
+            "naive_interval",
+            "bootstrap_interval",
+            "final_fingerprint",
+            "schedule",
+        )
+        require(
+            row["status"] == "failed" and all(row[k] is None for k in null_fields),
+            "invalid failure row",
+        )
         return
 
-    totals = case["cumulative_total_shots"]
+    totals = [int(x) for x in case["cumulative_total_shots"]]
     family = len(totals)
+    if is_replan:
+        rem_totals = [max(2 * n_settings, tot - row["pilot_shots"]) for tot in totals]
+        exp_pilot_pg, exp_rounds = producer.make_schedule(n_settings, rem_totals)
+    else:
+        exp_pilot_pg, exp_rounds = producer.make_schedule(n_settings, totals)
+
+    exp_cum: list[int] = [exp_pilot_pg * n_settings]
+    for budget in exp_rounds:
+        exp_cum.append(exp_cum[-1] + budget)
+    require(all(x > 0 for x in exp_cum), "expected cumulative shots must be positive")
+
+    # Validate recorded schedule against declared schedule rule.
+    expected_schedule: dict[str, Any] = {
+        "pilot_shots_per_group": exp_pilot_pg,
+        "round_budgets": list(exp_rounds),
+        "target_std_error": float(d["target_std_error_Ha"]),
+        "delta": float(d["delta"]),
+        "interval_family": family,
+        "solver_kwargs": case["solver"],
+        "rank_stop": asdict(RankStopPolicy(**d["rank_policy"])),
+        "bootstrap": {"replicates": int(case["bootstrap_replicas"]), "seed": row["boot_seed"]},
+    }
+    if width_guard:
+        expected_schedule["max_bootstrap_half_width"] = float(d["bootstrap_half_width_Ha"])
+    require(row["schedule"] == expected_schedule, "recorded schedule differs from declared schedule")
+
     looks = row["looks"]
     require(1 <= len(looks) <= family, "invalid look count")
     require(is_sha256(row["final_fingerprint"]), "invalid final_fingerprint")
     if is_replan:
         require(is_sha256(row["pilot_fingerprint"]), "invalid pilot_fingerprint")
-    last = looks[-1]
-    require(last["stopped"] and close(last["energy"], row["estimate"]) and close(last["std_error"], row["std_error"]), "terminal look mismatch")
-    require(row["status"] in ("target_met", "schedule_exhausted", "deterministic"), "unknown status")
 
-    # Verify rank guard metadata on every look.
-    streak = 0
+    # Enforce per-look cumulative shots, rank guard arithmetic, and bootstrap width guard.
     target_se = float(d["target_std_error_Ha"])
-    width_guard = part == "A" and bool(d["part_a_arms"][ai]["width_guard"])
+    delta = float(d["delta"])
+    consec_req = int(d["rank_policy"]["consecutive_looks"])
+    boot_reps = int(case["bootstrap_replicas"])
+    streak = 0
+    eligible: list[bool] = []
     for idx, look in enumerate(looks):
         require(look["look"] == idx, "look index mismatch")
-        guard = look.get("rank_guard")
-        require(guard is not None and guard["required_rank"] == system["rank"], "missing/bad rank_guard")
-        resolved = bool(guard["resolved"])
-        streak = streak + 1 if resolved else 0
-        rank_ok = streak >= int(d["rank_policy"]["consecutive_looks"])
-        require(guard["consecutive_resolved"] == streak and guard["passed"] == rank_ok, "rank streak mismatch")
+        require(look["shots"] == exp_cum[idx], f"look {idx} cumulative shots mismatch: {look['shots']} != {exp_cum[idx]}")
+        require(1 <= int(look["retained_rank"]) <= int(system["rank"]), "invalid retained_rank")
+        require(
+            math.isfinite(float(look["energy"]))
+            and math.isfinite(float(look["std_error"]))
+            and float(look["std_error"]) >= 0.0,
+            "invalid look energy or std_error",
+        )
+        resolved, rank_ok, streak = _check_rank_guard(
+            look.get("rank_guard"), look, case, int(system["rank"]), consec_req, streak
+        )
         se_ok = float(look["std_error"]) <= target_se
-        width_ok = True
-        if width_guard and se_ok and rank_ok:
-            require("bootstrap_width_passed" in look, "missing width guard check")
-            width_ok = bool(look["bootstrap_width_passed"])
-        if idx < len(looks) - 1:
-            require(not look["stopped"] and not (se_ok and rank_ok and width_ok), "missed earlier stop")
+        if not resolved and idx < len(looks) - 1:
+            expected_rank_budget = int(exp_rounds[idx]) if se_ok else (int(exp_rounds[idx]) + 1) // 2
+            require(look.get("next_rank_budget") == expected_rank_budget, "next_rank_budget mismatch")
+        else:
+            require("next_rank_budget" not in look, "unexpected next_rank_budget")
 
-    if row["status"] == "target_met":
-        require(float(last["std_error"]) <= target_se and bool(last["rank_guard"]["passed"]), "premature target_met")
-    elif row["status"] == "schedule_exhausted":
-        require(len(looks) == family, "premature schedule_exhausted")
+        if width_guard and "bootstrap_seed" in look:
+            exp_bseed = int(np.random.SeedSequence([row["boot_seed"], idx]).generate_state(1, np.uint64)[0])
+            require(
+                look["bootstrap_seed"] == exp_bseed
+                and look.get("bootstrap_attempted_replicates") == boot_reps,
+                "width-guard bootstrap seed or replicate count mismatch",
+            )
+        if width_guard and se_ok and rank_ok:
+            require("bootstrap_seed" in look and "bootstrap_width_passed" in look, "missing width guard assessment")
+            if "bootstrap_spread" in look:
+                spread_val = float(look["bootstrap_spread"])
+                require(math.isfinite(spread_val) and spread_val >= 0.0, "invalid look bootstrap_spread")
+                width_ok = z_score(1.0 - delta, family) * spread_val <= float(d["bootstrap_half_width_Ha"]) + 1e-13
+            else:
+                require("bootstrap_failure" in look, "width check missing both bootstrap_spread and bootstrap_failure")
+                width_ok = False
+            require(look["bootstrap_width_passed"] is width_ok, "bootstrap_width_passed decision mismatch")
+        else:
+            require("bootstrap_width_passed" not in look, "spurious bootstrap_width_passed on ineligible look")
+            width_ok = not width_guard
+
+        eligible.append(se_ok and rank_ok and width_ok)
+        if idx < len(looks) - 1:
+            require(not look["stopped"] and not eligible[-1], "missed earlier eligible stop")
+
+    last = looks[-1]
+    require(
+        last["stopped"] is True
+        and close(last["energy"], row["estimate"])
+        and close(last["std_error"], row["std_error"]),
+        "terminal look mismatch",
+    )
+    require(
+        row["acquisition_shots"] == exp_cum[len(looks) - 1],
+        f"acquisition_shots {row['acquisition_shots']} != declared look total {exp_cum[len(looks) - 1]}",
+    )
+    require(
+        row["total_shots"] == row["pilot_shots"] + row["acquisition_shots"],
+        "terminal total_shots mismatch",
+    )
+    require(
+        row["measured_solves"] >= len(looks) + (1 if is_replan else 0),
+        "measured_solves undercounted",
+    )
+    require(row["status"] in ("target_met", "schedule_exhausted"), f"unexpected terminal status: {row['status']!r}")
+    require((row["status"] == "target_met") == eligible[-1], "terminal status inconsistent with stop eligibility")
+    if row["status"] == "schedule_exhausted":
+        require(len(looks) == family and not eligible[-1], "premature or invalid schedule_exhausted")
 
     # Verify delta & bootstrap interval formulas.
-    delta = float(d["delta"])
     naive = row["naive_interval"]
-    scale = (naive["upper"] - naive["lower"]) / (2.0 * z_score(1.0 - delta, 1))
+    scale = (float(naive["upper"]) - float(naive["lower"])) / (2.0 * z_score(1.0 - delta, 1))
     require(math.isfinite(scale) and scale >= 0.0, "invalid delta scale")
+    require(close(naive["std_error"], row["std_error"]) and close(row["delta_interval"]["std_error"], row["std_error"]), "delta SE mismatch")
     check_interval(naive, row["estimate"], scale, delta, 1, "asymptotic")
     check_interval(row["delta_interval"], row["estimate"], scale, delta, family, "asymptotic")
     if row["bootstrap_interval"] is not None:
         spread = float(last["bootstrap_spread"])
+        require(close(row["bootstrap_interval"]["std_error"], spread), "bootstrap spread mismatch")
         check_interval(row["bootstrap_interval"], row["estimate"], spread, delta, family, "heuristic")
     else:
         require("bootstrap_failure" in last, "missing bootstrap_interval without bootstrap_failure")
 
 
+def _interval_scale(row: dict[str, Any], kind: str, delta: float) -> float | None:
+    if row["failure"] is not None:
+        return None
+    if kind == "delta":
+        naive = row["naive_interval"]
+        if naive is None:
+            return None
+        return (float(naive["upper"]) - float(naive["lower"])) / (2.0 * z_score(1.0 - delta, 1))
+    boot = row["bootstrap_interval"]
+    if boot is None:
+        return None
+    return float(boot["std_error"])
+
+
+def _coverage_block(
+    rows: list[dict[str, Any]],
+    exact: float,
+    family: int,
+    delta: float,
+    levels: tuple[float, ...],
+) -> dict[str, Any]:
+    """Compute unconditional (target_met / all attempts) and stop-conditional coverage & widths."""
+    n = len(rows)
+    met = [r for r in rows if r["failure"] is None and r["status"] == "target_met"]
+    nonfailed = [r for r in rows if r["failure"] is None]
+    out: dict[str, Any] = {}
+    for kind in ("delta", "bootstrap"):
+        out[kind] = {}
+        for level in levels:
+            z = z_score(level, family)
+            met_widths: list[float] = []
+            covered = 0
+            for r in met:
+                sc = _interval_scale(r, kind, delta)
+                if sc is None:
+                    continue
+                rad = z * sc
+                met_widths.append(2.0 * rad)
+                if r["estimate"] - rad <= exact <= r["estimate"] + rad:
+                    covered += 1
+            all_widths = [
+                2.0 * z * sc
+                for r in nonfailed
+                for sc in [_interval_scale(r, kind, delta)]
+                if sc is not None
+            ]
+            key = f"{int(round(level * 100))}"
+            out[kind][key] = {
+                "unconditional_covered": covered,
+                "unconditional_n": n,
+                "unconditional_coverage": (covered / n) if n else 0.0,
+                "unconditional_wilson95": wilson_interval(covered, n),
+                "unconditional_p_lower": exact_binomial_cdf(covered, n, level) if n else 1.0,
+                "conditional_covered": covered,
+                "conditional_n": len(met),
+                "conditional_coverage": (covered / len(met)) if met else None,
+                "median_width_mHa_among_stops": (
+                    float(np.median(met_widths) * 1000.0) if met_widths else None
+                ),
+                "median_width_mHa_all_nonfailed": (
+                    float(np.median(all_widths) * 1000.0) if all_widths else None
+                ),
+            }
+    return out
+
+
+def bootstrap_shot_ratio_ci(
+    treat_shots: list[int],
+    comp_shots: list[int],
+    *,
+    seed_root: int,
+    comp_index: int,
+    replicates: int,
+    alpha: float,
+) -> dict[str, Any]:
+    """Deterministic percentile bootstrap CI for median and mean shot ratios over all attempts."""
+    t_arr = np.asarray(treat_shots, dtype=float)
+    c_arr = np.asarray(comp_shots, dtype=float)
+    require(t_arr.size >= 1 and c_arr.size >= 1, "empty shot sample for ratio CI")
+    require(bool(np.all(c_arr > 0.0)), "nonpositive comparator shots")
+    rng = np.random.default_rng(np.random.SeedSequence([int(seed_root), int(comp_index)]))
+    idx_t = rng.integers(0, t_arr.size, size=(int(replicates), t_arr.size))
+    idx_c = rng.integers(0, c_arr.size, size=(int(replicates), c_arr.size))
+    t_boot = t_arr[idx_t]
+    c_boot = c_arr[idx_c]
+    med_ratios = np.median(t_boot, axis=1) / np.median(c_boot, axis=1)
+    mean_ratios = np.mean(t_boot, axis=1) / np.mean(c_boot, axis=1)
+    lo_q, hi_q = 100.0 * (alpha / 2.0), 100.0 * (1.0 - alpha / 2.0)
+    return {
+        "median_ratio": float(np.median(t_arr) / np.median(c_arr)),
+        "median_ci": [float(np.percentile(med_ratios, lo_q)), float(np.percentile(med_ratios, hi_q))],
+        "mean_ratio": float(np.mean(t_arr) / np.mean(c_arr)),
+        "mean_ci": [float(np.percentile(mean_ratios, lo_q)), float(np.percentile(mean_ratios, hi_q))],
+        "p_mean_ge_one": float(np.mean(mean_ratios >= 1.0)),
+        "p_median_ge_one": float(np.mean(med_ratios >= 1.0)),
+    }
+
+
 def summarize(record: dict[str, Any], d: dict[str, Any], systems: list[dict[str, Any]]) -> dict[str, Any]:
+    """Compute unconditional & stop-conditional cell summaries plus frozen P1a--P3 verdicts."""
     target = float(d["target_std_error_Ha"])
+    delta = float(d["delta"])
+    analysis = d["analysis"]
+    levels = tuple(float(x) for x in analysis["coverage_levels"])
+
     part_a_summary: list[dict[str, Any]] = []
+    part_a_rows_by_key: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for ci, case in enumerate(d["cases"]):
         exact = float(systems[ci]["independent_target"])
         rank = int(systems[ci]["rank"])
+        family = len(case["cumulative_total_shots"])
         for arm in d["part_a_arms"]:
             if case["name"] not in arm["cases"]:
                 continue
             rows = [r for r in record["rows"] if r["part"] == "A" and r["case"] == ci and r["arm"] == arm["key"]]
+            part_a_rows_by_key[(case["name"], arm["key"])] = rows
             n = len(rows)
-            succ = [r for r in rows if r["failure"] is None]
-            met = [r for r in succ if r["status"] == "target_met"]
-            errors = [r["estimate"] - exact for r in succ]
-            true_1s = sum(abs(r["estimate"] - exact) <= target for r in met)
+            nonfailed = [r for r in rows if r["failure"] is None]
+            met = [r for r in nonfailed if r["status"] == "target_met"]
+            errors_all = [r["estimate"] - exact for r in nonfailed]
+            errors_met = [r["estimate"] - exact for r in met]
+            true_1s = sum(abs(e) <= target for e in errors_met)
             false_1s = len(met) - true_1s
-            within_2s = sum(abs(r["estimate"] - exact) <= 2.0 * target for r in met)
-            boot_cov = sum(
-                r["bootstrap_interval"] is not None
-                and r["bootstrap_interval"]["lower"] <= exact <= r["bootstrap_interval"]["upper"]
-                for r in succ
-            )
-            delta_cov = sum(
-                r["delta_interval"] is not None
-                and r["delta_interval"]["lower"] <= exact <= r["delta_interval"]["upper"]
-                for r in succ
-            )
+            within_2s = sum(abs(e) <= 2.0 * target for e in errors_met)
+            cov = _coverage_block(rows, exact, family, delta, levels)
+            cal_ratios = [
+                r["r_emp_ritz"] / r["r_hat_ritz"]
+                for r in nonfailed
+                if r.get("r_emp_ritz") is not None
+                and r.get("r_hat_ritz") is not None
+                and float(r["r_hat_ritz"]) > 0.0
+                and math.isfinite(float(r["r_emp_ritz"]))
+            ]
             part_a_summary.append(
                 {
                     "case": case["name"],
@@ -336,35 +785,37 @@ def summarize(record: dict[str, Any], d: dict[str, Any], systems: list[dict[str,
                     "within_2sigma_stops": within_2s,
                     "reduced_rank_stops": sum(r["looks"][-1]["retained_rank"] < rank for r in met),
                     "exhausted": sum(r["status"] == "schedule_exhausted" for r in rows),
-                    "failed": n - len(succ),
-                    "median_total_shots": float(np.median([r["total_shots"] for r in rows])),
-                    "mean_total_shots": float(np.mean([r["total_shots"] for r in rows])),
-                    "rmse_mHa": float(np.sqrt(np.mean(np.square(errors))) * 1000.0) if errors else None,
-                    "bias_mHa": float(np.mean(errors) * 1000.0) if errors else None,
-                    "boot95_covered": boot_cov,
-                    "boot95_p_lower": exact_binomial_cdf(boot_cov, n, 0.95),
-                    "delta95_covered": delta_cov,
+                    "failed": n - len(nonfailed),
+                    "median_total_shots": float(np.median([r["total_shots"] for r in rows])) if rows else None,
+                    "mean_total_shots": float(np.mean([r["total_shots"] for r in rows])) if rows else None,
+                    "median_device_seconds": float(np.median([r["device_seconds"] for r in rows])) if rows else None,
+                    "total_measured_solves": sum(int(r["measured_solves"]) for r in rows),
+                    "total_bootstrap_solves": sum(int(r["bootstrap_solves"]) for r in rows),
+                    "rmse_mHa_all_nonfailed": float(np.sqrt(np.mean(np.square(errors_all))) * 1000.0) if errors_all else None,
+                    "rmse_mHa_among_stops": float(np.sqrt(np.mean(np.square(errors_met))) * 1000.0) if errors_met else None,
+                    "bias_mHa_among_stops": float(np.mean(errors_met) * 1000.0) if errors_met else None,
+                    "coverage": cov,
                     "median_r_hat_ritz": (
-                        float(np.median([r["r_hat_ritz"] for r in succ if r["r_hat_ritz"] is not None]))
-                        if any(r["r_hat_ritz"] is not None for r in succ)
+                        float(np.median([r["r_hat_ritz"] for r in nonfailed if r.get("r_hat_ritz") is not None]))
+                        if any(r.get("r_hat_ritz") is not None for r in nonfailed)
                         else None
                     ),
                     "median_r_emp_ritz": (
-                        float(np.median([r["r_emp_ritz"] for r in succ if r["r_emp_ritz"] is not None]))
-                        if any(r["r_emp_ritz"] is not None for r in succ)
+                        float(np.median([r["r_emp_ritz"] for r in nonfailed if r.get("r_emp_ritz") is not None]))
+                        if any(r.get("r_emp_ritz") is not None for r in nonfailed)
                         else None
                     ),
+                    "median_r_emp_over_r_hat_ritz": float(np.median(cal_ratios)) if cal_ratios else None,
                 }
             )
 
-    anchor_by_key = {
-        (a["case"], a["regime"], a["arm"]): a for a in record.get("noisy_anchors", [])
-    }
+    anchor_by_key = {(a["case"], a["regime"], a["arm"]): a for a in record.get("noisy_anchors", [])}
     part_b_summary: list[dict[str, Any]] = []
     for ci, case in enumerate(d["cases"]):
         if "B" not in case["parts"]:
             continue
         exact = float(systems[ci]["independent_target"])
+        family = len(case["cumulative_total_shots"])
         for regime in d["part_b_noise_regimes"]:
             for arm in d["part_b_arms"]:
                 rows = [
@@ -376,12 +827,21 @@ def summarize(record: dict[str, Any], d: dict[str, Any], systems: list[dict[str,
                     and r["arm"] == arm["key"]
                 ]
                 n = len(rows)
-                succ = [r for r in rows if r["failure"] is None]
-                met = [r for r in succ if r["status"] == "target_met"]
-                errors = [r["estimate"] - exact for r in succ]
-                true_1s = sum(abs(r["estimate"] - exact) <= target for r in met)
+                nonfailed = [r for r in rows if r["failure"] is None]
+                met = [r for r in nonfailed if r["status"] == "target_met"]
+                errors_all = [r["estimate"] - exact for r in nonfailed]
+                errors_met = [r["estimate"] - exact for r in met]
+                true_1s = sum(abs(e) <= target for e in errors_met)
                 false_1s = len(met) - true_1s
                 na = anchor_by_key.get((ci, regime["key"], arm["key"]), {})
+                emp_bias_mha = float(np.mean(errors_all) * 1000.0) if errors_all else None
+                emp_std_mha = float(np.std(errors_all, ddof=0) * 1000.0) if errors_all else None
+                rmse_mha = float(np.sqrt(np.mean(np.square(errors_all))) * 1000.0) if errors_all else None
+                bias_sq_share = (
+                    float((emp_bias_mha**2) / (rmse_mha**2))
+                    if emp_bias_mha is not None and rmse_mha is not None and rmse_mha > 0.0
+                    else None
+                )
                 part_b_summary.append(
                     {
                         "case": case["name"],
@@ -391,20 +851,277 @@ def summarize(record: dict[str, Any], d: dict[str, Any], systems: list[dict[str,
                         "target_met": len(met),
                         "true_precision_stops": true_1s,
                         "false_precision_stops": false_1s,
-                        "exact_inf_bias_mHa": (
-                            None if "bias_Ha" not in na else float(na["bias_Ha"] * 1000.0)
-                        ),
-                        "emp_bias_mHa": float(np.mean(errors) * 1000.0) if errors else None,
-                        "rmse_mHa": float(np.sqrt(np.mean(np.square(errors))) * 1000.0) if errors else None,
-                        "median_total_shots": float(np.median([r["total_shots"] for r in rows])),
-                        "median_device_seconds": float(np.median([r["device_seconds"] for r in rows])),
+                        "exhausted": sum(r["status"] == "schedule_exhausted" for r in rows),
+                        "failed": n - len(nonfailed),
+                        "exact_inf_bias_mHa": None if "bias_Ha" not in na else float(na["bias_Ha"] * 1000.0),
+                        "emp_bias_mHa": emp_bias_mha,
+                        "emp_std_mHa": emp_std_mha,
+                        "rmse_mHa": rmse_mha,
+                        "bias_sq_share": bias_sq_share,
+                        "coverage": _coverage_block(rows, exact, family, delta, levels),
+                        "median_total_shots": float(np.median([r["total_shots"] for r in rows])) if rows else None,
+                        "mean_total_shots": float(np.mean([r["total_shots"] for r in rows])) if rows else None,
+                        "median_device_seconds": float(np.median([r["device_seconds"] for r in rows])) if rows else None,
                         "cz_max": na.get("cz_max"),
+                        "settings": na.get("settings"),
                     }
                 )
-    return {"part_a": part_a_summary, "part_b": part_b_summary}
+
+    criteria = evaluate_criteria(d, part_a_summary, part_a_rows_by_key, part_b_summary)
+    return {"part_a": part_a_summary, "part_b": part_b_summary, "criteria": criteria}
 
 
-def check_record(record: dict[str, Any], *, verify_history: bool = False, full: bool = False) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def evaluate_criteria(
+    d: dict[str, Any],
+    part_a_summary: list[dict[str, Any]],
+    part_a_rows_by_key: dict[tuple[str, str], list[dict[str, Any]]],
+    part_b_summary: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Deterministically evaluate frozen P1a, P1b, P2, P3, and width-guard endpoints."""
+    analysis = d["analysis"]
+    b_reps = int(analysis["shot_ratio_bootstrap_replicates"])
+    b_seed = int(analysis["shot_ratio_bootstrap_seed"])
+    alpha = float(analysis["shot_ratio_alpha"])
+
+    a_map = {(s["case"], s["arm"]): s for s in part_a_summary}
+    b_map = {(s["case"], s["regime"], s["arm"]): s for s in part_b_summary}
+    comp_idx = 0
+
+    # P1a: weighted SI vs unweighted LDF across 8q cases x k in {1, 2, 8}.
+    cases_8q = [c["name"] for c in d["cases"] if c["kind"] == "molecule_8q"]
+    p1a_pairs = (("si_qwc", "ldf_qwc", 1), ("si_k2", "ldf_k2", 2), ("si_fc", "ldf_fc", 8))
+    p1a_cells: list[dict[str, Any]] = []
+    n_p1a = len(cases_8q) * len(p1a_pairs)
+    bonf_cov_alpha = 0.05 / max(1, n_p1a)
+    for cname in cases_8q:
+        for treat, comp, k_val in p1a_pairs:
+            if (cname, treat) not in a_map or (cname, comp) not in a_map:
+                continue
+            ts = a_map[(cname, treat)]
+            ratio = bootstrap_shot_ratio_ci(
+                [r["total_shots"] for r in part_a_rows_by_key[(cname, treat)]],
+                [r["total_shots"] for r in part_a_rows_by_key[(cname, comp)]],
+                seed_root=b_seed,
+                comp_index=comp_idx,
+                replicates=b_reps,
+                alpha=alpha,
+            )
+            comp_idx += 1
+            cov95 = ts["coverage"]["bootstrap"]["95"]
+            median_tied = close(ratio["median_ratio"], 1.0, rel_tol=1e-9, abs_tol=1e-9)
+            cost_ok = (ratio["median_ratio"] <= 0.80) or (median_tied and ratio["mean_ratio"] < 1.0)
+            min_stops = int(math.ceil(30.0 * ts["attempts"] / 32.0)) if ts["attempts"] < 32 else 30
+            passed = (
+                cost_ok
+                and ts["target_met"] >= min_stops
+                and ts["reduced_rank_stops"] == 0
+                and cov95["unconditional_p_lower"] >= bonf_cov_alpha
+            )
+            p1a_cells.append(
+                {
+                    "case": cname,
+                    "k": k_val,
+                    "treatment": treat,
+                    "comparator": comp,
+                    "target_met": ts["target_met"],
+                    "attempts": ts["attempts"],
+                    "reduced_rank_stops": ts["reduced_rank_stops"],
+                    "boot95_p_lower": cov95["unconditional_p_lower"],
+                    "bonferroni_alpha": bonf_cov_alpha,
+                    "shot_ratio": ratio,
+                    "cost_ok": cost_ok,
+                    "passed": passed,
+                }
+            )
+    # Apply Holm-Bonferroni step-down on mean-ratio p-values across P1a cells.
+    ordered = sorted(range(len(p1a_cells)), key=lambda i: p1a_cells[i]["shot_ratio"]["p_mean_ge_one"])
+    holm_active = True
+    for rank_i, idx in enumerate(ordered):
+        threshold = alpha / max(1, len(p1a_cells) - rank_i)
+        sig = holm_active and (p1a_cells[idx]["shot_ratio"]["p_mean_ge_one"] <= threshold)
+        if not sig:
+            holm_active = False
+        p1a_cells[idx]["holm_mean_ratio_lt_one"] = sig
+
+    # P1b: paid-pilot ritz_si_fc vs si_fc and si_qwc (+ si_fc vs si_qwc).
+    p1b_cells: list[dict[str, Any]] = []
+    for cname in cases_8q:
+        for treat, comp in (("ritz_si_fc", "si_fc"), ("ritz_si_fc", "si_qwc"), ("si_fc", "si_qwc")):
+            if (cname, treat) not in a_map or (cname, comp) not in a_map:
+                continue
+            ts = a_map[(cname, treat)]
+            ratio = bootstrap_shot_ratio_ci(
+                [r["total_shots"] for r in part_a_rows_by_key[(cname, treat)]],
+                [r["total_shots"] for r in part_a_rows_by_key[(cname, comp)]],
+                seed_root=b_seed,
+                comp_index=comp_idx,
+                replicates=b_reps,
+                alpha=alpha,
+            )
+            comp_idx += 1
+            p1b_cells.append(
+                {
+                    "case": cname,
+                    "treatment": treat,
+                    "comparator": comp,
+                    "shot_ratio": ratio,
+                    "rmse_mHa_among_stops": ts["rmse_mHa_among_stops"],
+                    "boot95_unconditional": ts["coverage"]["bootstrap"]["95"]["unconditional_coverage"],
+                    "boot95_conditional": ts["coverage"]["bootstrap"]["95"]["conditional_coverage"],
+                    "median_r_emp_over_r_hat_ritz": ts["median_r_emp_over_r_hat_ritz"],
+                }
+            )
+
+    # Width-guard overhead: si_fc_width vs si_fc.
+    width_overhead: list[dict[str, Any]] = []
+    for cname in cases_8q:
+        if (cname, "si_fc_width") in a_map and (cname, "si_fc") in a_map:
+            ws = a_map[(cname, "si_fc_width")]
+            bs = a_map[(cname, "si_fc")]
+            ratio = bootstrap_shot_ratio_ci(
+                [r["total_shots"] for r in part_a_rows_by_key[(cname, "si_fc_width")]],
+                [r["total_shots"] for r in part_a_rows_by_key[(cname, "si_fc")]],
+                seed_root=b_seed,
+                comp_index=comp_idx,
+                replicates=b_reps,
+                alpha=alpha,
+            )
+            comp_idx += 1
+            width_overhead.append(
+                {
+                    "case": cname,
+                    "shot_ratio": ratio,
+                    "bootstrap_solve_ratio": (
+                        ws["total_bootstrap_solves"] / bs["total_bootstrap_solves"]
+                        if bs["total_bootstrap_solves"]
+                        else None
+                    ),
+                    "width_true_stops": ws["true_precision_stops"],
+                    "base_true_stops": bs["true_precision_stops"],
+                }
+            )
+
+    # P2: stretched 10q rank transfer.
+    p2_cells: list[dict[str, Any]] = []
+    st_cases = [c["name"] for c in d["cases"] if c["kind"] == "molecule_10q_stretched"]
+    for cname in st_cases:
+        for arm_key in ("si_k2", "ritz_si_k2"):
+            if (cname, arm_key) not in a_map:
+                continue
+            s = a_map[(cname, arm_key)]
+            passed = (
+                s["true_precision_stops"] >= 12
+                and s["false_precision_stops"] <= 1
+                and s["reduced_rank_stops"] == 0
+            )
+            ratios: dict[str, Any] = {}
+            for comp in ("ldf_qwc", "si_qwc"):
+                if (cname, comp) in part_a_rows_by_key:
+                    ratios[f"vs_{comp}"] = bootstrap_shot_ratio_ci(
+                        [r["total_shots"] for r in part_a_rows_by_key[(cname, arm_key)]],
+                        [r["total_shots"] for r in part_a_rows_by_key[(cname, comp)]],
+                        seed_root=b_seed,
+                        comp_index=comp_idx,
+                        replicates=b_reps,
+                        alpha=alpha,
+                    )
+                    comp_idx += 1
+            p2_cells.append(
+                {
+                    "case": cname,
+                    "arm": arm_key,
+                    "true_precision_stops": s["true_precision_stops"],
+                    "false_precision_stops": s["false_precision_stops"],
+                    "reduced_rank_stops": s["reduced_rank_stops"],
+                    "passed": passed,
+                    "shot_ratios": ratios,
+                }
+            )
+
+    # P3: GALIC noise gate bias & false-stop protection.
+    p3_cells: list[dict[str, Any]] = []
+    p3_diagnostics: list[dict[str, Any]] = []
+    target_mha = float(d["target_std_error_Ha"]) * 1000.0
+    for cname in cases_8q:
+        for regime in d["part_b_noise_regimes"]:
+            rkey = regime["key"]
+            if (cname, rkey, "si_fc_unconstrained") not in b_map or (cname, rkey, "si_fc_galic_tight") not in b_map:
+                continue
+            unc = b_map[(cname, rkey, "si_fc_unconstrained")]
+            tight = b_map[(cname, rkey, "si_fc_galic_tight")]
+            mod = b_map.get((cname, rkey, "si_fc_galic_moderate"))
+            qwc = b_map.get((cname, rkey, "si_qwc"))
+            if rkey == "sc_card_full":
+                p3_diagnostics.append(
+                    {
+                        "case": cname,
+                        "regime": rkey,
+                        "qwc_inf_bias_mHa": None if qwc is None else qwc["exact_inf_bias_mHa"],
+                        "tight_inf_bias_mHa": tight["exact_inf_bias_mHa"],
+                        "moderate_inf_bias_mHa": None if mod is None else mod["exact_inf_bias_mHa"],
+                        "unconstrained_inf_bias_mHa": unc["exact_inf_bias_mHa"],
+                    }
+                )
+                continue
+            bias_ok = (
+                tight["exact_inf_bias_mHa"] is not None
+                and unc["exact_inf_bias_mHa"] is not None
+                and abs(tight["exact_inf_bias_mHa"]) < abs(unc["exact_inf_bias_mHa"])
+            )
+            rmse_ok = (
+                tight["rmse_mHa"] is not None
+                and unc["rmse_mHa"] is not None
+                and tight["rmse_mHa"] < unc["rmse_mHa"]
+            )
+            unc_biased = unc["exact_inf_bias_mHa"] is not None and abs(unc["exact_inf_bias_mHa"]) > target_mha
+            false_stop_ok = (
+                (tight["false_precision_stops"] < unc["false_precision_stops"])
+                if unc_biased
+                else True
+            )
+            p3_cells.append(
+                {
+                    "case": cname,
+                    "regime": rkey,
+                    "tight_inf_bias_mHa": tight["exact_inf_bias_mHa"],
+                    "unconstrained_inf_bias_mHa": unc["exact_inf_bias_mHa"],
+                    "moderate_inf_bias_mHa": None if mod is None else mod["exact_inf_bias_mHa"],
+                    "tight_rmse_mHa": tight["rmse_mHa"],
+                    "unconstrained_rmse_mHa": unc["rmse_mHa"],
+                    "tight_false_stops": tight["false_precision_stops"],
+                    "unconstrained_false_stops": unc["false_precision_stops"],
+                    "bias_ok": bias_ok,
+                    "rmse_ok": rmse_ok,
+                    "false_stop_ok": false_stop_ok,
+                    "passed": bias_ok and rmse_ok and false_stop_ok,
+                }
+            )
+
+    return {
+        "P1a_weighted_vs_unweighted": {
+            "cells": p1a_cells,
+            "all_passed": bool(p1a_cells) and all(c["passed"] for c in p1a_cells),
+        },
+        "P1b_ritz_replan_vs_bank_fc": {"cells": p1b_cells},
+        "P2_stretched_rank_transfer": {
+            "cells": p2_cells,
+            "all_passed": bool(p2_cells) and all(c["passed"] for c in p2_cells),
+        },
+        "P3_galic_noise_gate": {
+            "cells": p3_cells,
+            "sc_card_full_diagnostics": p3_diagnostics,
+            "all_passed": bool(p3_cells) and all(c["passed"] for c in p3_cells),
+        },
+        "width_guard_overhead": width_overhead,
+    }
+
+
+def check_record(
+    record: dict[str, Any],
+    *,
+    verify_history: bool = False,
+    full: bool = False,
+) -> tuple[dict[str, Any], list[dict[str, Any]], int]:
     d = producer.declaration()
     validate_declaration_structure(d)
     require(record["schema"] == producer.SCHEMA and record["declaration"] == d, "declaration mismatch")
@@ -455,6 +1172,9 @@ def check_record(record: dict[str, Any], *, verify_history: bool = False, full: 
             bool(np.allclose(actual["overlap_spectrum"], anchor["overlap_spectrum"], atol=1e-9, rtol=0.0)),
             f"overlap spectrum mismatch for {case['name']}",
         )
+        anchor["part_a_plans"] = actual.get("part_a_plans", {})
+
+    verified_noisy = verify_noisy_anchors(record, d, systems)
 
     expected = set(producer.expected_job_keys(d))
     seen: set[tuple[str, int, int, int, int]] = set()
@@ -462,9 +1182,17 @@ def check_record(record: dict[str, Any], *, verify_history: bool = False, full: 
         key = (row["part"], row["case"], row["arm_index"], row["regime_index"], row["replica"])
         require(key in expected and key not in seen, f"unexpected or duplicate row: {key}")
         seen.add(key)
-        check_row(row, d, d["cases"][row["case"]], systems[row["case"]])
+        ci = row["case"]
+        exp_plan: dict[str, Any] | None = None
+        if row["part"] == "A":
+            arm = d["part_a_arms"][row["arm_index"]]
+            if arm["grouping"] != "ritz_replan":
+                exp_plan = systems[ci]["part_a_plans"].get(arm["key"])
+        else:
+            exp_plan = verified_noisy[(ci, row["regime"], row["arm"])]
+        check_row(row, d, d["cases"][ci], systems[ci], expected_plan=exp_plan)
     require(seen == expected, "incomplete record")
-    return d, systems
+    return d, systems, len(verified_noisy)
 
 
 def spot_replay(record: dict[str, Any], d: dict[str, Any]) -> int:
@@ -581,11 +1309,13 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     record = read_json(args.record)
-    d, systems = check_record(record, verify_history=args.verify_history, full=args.full_anchor)
+    d, systems, noisy_count = check_record(
+        record, verify_history=args.verify_history, full=args.full_anchor
+    )
     out: dict[str, Any] = {
         "status": "record_ok",
         "rows_verified": len(record["rows"]),
-        "noisy_anchors_verified": len(record.get("noisy_anchors", [])),
+        "noisy_anchors_verified": noisy_count,
     }
     if args.spot_replay:
         out["spot_replays_verified"] = spot_replay(record, d)

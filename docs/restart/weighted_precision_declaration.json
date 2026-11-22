@@ -203,6 +203,16 @@
     "Unconditional and stop-conditional 68% and 95% coverage and median widths for delta and schedule-adjusted bootstrap-spread intervals",
     "Bootstrap-width guard overhead (si_fc_width vs si_fc)"
   ],
+  "analysis": {
+    "coverage_levels": [0.68, 0.95],
+    "shot_ratio_bootstrap_replicates": 2000,
+    "shot_ratio_bootstrap_seed": 2026112399,
+    "shot_ratio_alpha": 0.05,
+    "shot_ratio_holm_bonferroni": true,
+    "unconditional_coverage_rule": "Unconditional coverage numerator counts only eligible status=='target_met' stops whose schedule-adjusted interval contains the independent exact projected energy; denominator is all declared attempts (failures and schedule_exhausted count as uncovered). Stop-conditional coverage is reported separately with denominator equal to target_met count.",
+    "shot_ratio_rule": "Deterministic percentile bootstrap CI (2000 resamples via SeedSequence([shot_ratio_bootstrap_seed, comparison_index])) over all declared attempts (including failures and exhaustions) for median_total_shots(treatment)/median_total_shots(comparator) and mean_total_shots(treatment)/mean_total_shots(comparator), with Holm-Bonferroni family adjustment across the 9 P1a cells."
+  },
+  "manifest_policy": "Require a completely clean Git worktree (no modified or untracked files) before execution and bind every tracked .py file under clifford_qc/ and benchmarks/ at the declaration commit, plus declaration, historical_bindings, case FCIDUMPs, and targeted test files, verified both before and after execution.",
   "failure_policy": "All attempts, physical shots (including replanning pilots), and measured/bootstrap solves are counted unconditionally. Exhaustions and numerical failures never count as true precision stops and count as uncovered in unconditional coverage. Atomic checkpoints preserve every completed row; unexpected errors abort without selective retries.",
   "environment": {
     "python": "3.12.14",

@@ -68,6 +68,17 @@ systematic bias and sampling variance.
   unconstrained FC has $|\text{bias}| > 1.6\,\text{mHa}$. Under `sc_card_full`,
   explicitly report readout-dominated bias across all arms including QWC.
 
+All criterion verdicts, 68% and 95% unconditional/stop-conditional coverage and
+median widths, and deterministic 2,000-resample shot-ratio bootstrap CIs
+(with Holm–Bonferroni adjustment across P1a, seed `2026112399`) are frozen in
+`benchmarks/check_weighted_precision.py` and `analysis` before evaluation.
+Unconditional coverage counts only eligible `status == "target_met"` stops in
+the numerator over all declared attempts in the denominator (exhaustions and
+failures count as uncovered); stop-conditional coverage is reported separately.
+Execution requires a completely clean Git worktree and binds every tracked
+`.py` file under `clifford_qc/` and `benchmarks/` at the declaration commit,
+and `check_record` independently recomputes all 36 Part B noisy anchors.
+
 ## Reproduction
 
 Run only at the pinned result-free declaration commit under the declared

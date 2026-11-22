@@ -54,18 +54,8 @@ RESULT = "docs/restart/weighted_precision_results.json.gz"
 SCHEMA = "clifford_qc.weighted_precision_results.v1"
 DECLARATION_SCHEMA = "clifford_qc.weighted_precision_declaration.v1"
 
-SCIENTIFIC_SOURCES = (
+EXTRA_MANIFEST_FILES = (
     DECLARATION,
-    "benchmarks/noisy_readout_sim.py",
-    "benchmarks/run_weighted_precision.py",
-    "benchmarks/check_weighted_precision.py",
-    "clifford_qc/measurement/weighted_planning.py",
-    "clifford_qc/measurement/graph_state.py",
-    "clifford_qc/measurement/planning.py",
-    "clifford_qc/subspace/sampled.py",
-    "clifford_qc/subspace/sampled_acquisition.py",
-    "clifford_qc/subspace/acquisition.py",
-    "clifford_qc/subspace/rank_stopping.py",
     "tests/test_noisy_readout_sim.py",
     "tests/test_weighted_precision.py",
 )
@@ -80,6 +70,23 @@ def digest(data: bytes) -> str:
 
 def git(*args: str) -> bytes:
     return subprocess.check_output(["git", *args], cwd=ROOT)
+
+
+def require_clean_worktree(*, allow_paths: set[str] | None = None) -> None:
+    """Refuse execution if any tracked or untracked file dirties the checkout."""
+    allowed = set() if allow_paths is None else set(allow_paths)
+    status = git("status", "--porcelain", "--untracked-files=all").decode("utf-8")
+    dirty: list[str] = []
+    for line in status.splitlines():
+        if not line.strip():
+            continue
+        rel = line[3:].split(" -> ")[-1].strip()
+        if rel not in allowed:
+            dirty.append(line)
+    if dirty:
+        raise ValueError(
+            "execution requires a clean Git worktree; dirty entries: " + "; ".join(dirty[:5])
+        )
 
 
 def current_environment() -> dict[str, Any]:
@@ -106,6 +113,15 @@ def declaration(path: Path | None = None) -> dict[str, Any]:
         raise ValueError("declaration compiler/storage/pooling contract changed")
     if d.get("seed_root") == d.get("development_seed_root"):
         raise ValueError("evaluation seed_root must differ from development_seed_root")
+    analysis = d.get("analysis")
+    if not isinstance(analysis, dict):
+        raise ValueError("declaration missing frozen analysis block")
+    if analysis.get("coverage_levels") != [0.68, 0.95]:
+        raise ValueError("declaration analysis.coverage_levels must be [0.68, 0.95]")
+    if int(analysis.get("shot_ratio_bootstrap_replicates", 0)) < 100:
+        raise ValueError("declaration analysis.shot_ratio_bootstrap_replicates must be >= 100")
+    if analysis.get("shot_ratio_bootstrap_seed") in (None, d.get("seed_root"), d.get("development_seed_root")):
+        raise ValueError("declaration analysis.shot_ratio_bootstrap_seed must be a distinct integer")
     for rel, expected in d["historical_bindings"].items():
         if digest((ROOT / rel).read_bytes()) != expected:
             raise ValueError(f"historical binding changed: {rel}")
@@ -123,8 +139,19 @@ def declaration(path: Path | None = None) -> dict[str, Any]:
 
 
 def manifest(commit: str, d: dict[str, Any], *, live: bool = False) -> dict[str, str]:
+    """Bind the complete tracked clifford_qc/ and benchmarks/ Python tree plus inputs."""
+    tracked_py = {
+        path
+        for path in git("ls-tree", "-r", "--name-only", commit, "--", "clifford_qc", "benchmarks")
+        .decode("utf-8")
+        .splitlines()
+        if path.endswith(".py")
+    }
+    if not tracked_py:
+        raise ValueError("failed to enumerate tracked clifford_qc/ and benchmarks/ sources")
     paths = sorted(
-        set(SCIENTIFIC_SOURCES)
+        tracked_py
+        | set(EXTRA_MANIFEST_FILES)
         | set(d["historical_bindings"])
         | {c["fcidump"] for c in d["cases"]}
     )
@@ -536,6 +563,7 @@ def execute(d: dict[str, Any], args: argparse.Namespace) -> None:
         raise ValueError("execute only at the pinned, result-free declaration commit")
     if (ROOT / RESULT).exists():
         raise ValueError("result already exists")
+    require_clean_worktree()
     bindings = manifest(commit, d, live=True)
     meta = {
         "schema": SCHEMA,
@@ -547,6 +575,8 @@ def execute(d: dict[str, Any], args: argparse.Namespace) -> None:
     }
 
     folder = args.checkpoint_dir.resolve()
+    if folder == ROOT or ROOT in folder.parents:
+        raise ValueError("checkpoint_dir must live outside the repository checkout")
     folder.mkdir(parents=True, exist_ok=args.resume)
     with (folder / "active.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -742,6 +772,7 @@ def execute(d: dict[str, Any], args: argparse.Namespace) -> None:
                             print(f"{len(completed)}/{len(expected)} completed", flush=True)
             _WORKER_STATE.clear()
 
+        require_clean_worktree()
         if manifest(commit, d, live=True) != bindings:
             raise ValueError("source changed during evaluation")
         write_json(
