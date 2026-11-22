@@ -75,14 +75,17 @@ meet the 1.6 mHa estimated-SE target, but 39/128 exceed it in absolute error
 not reject either primary coverage endpoint, at a median width of 531.6 mHa
 on LiH. Coverage is not a precision-stop validation in this regime.
 
-The [rank-aware stopping comparison](RANK_AWARE_STOP.md) implements opt-in
+The [rank-aware stopping comparison](RANK_AWARE_STOP.md) supports
 full-rank confirmation and covariance-aware cutoff-margin acquisition, plus
 a separate bootstrap half-width guard. On fresh seeds of the stressed banks,
 rank/margin passed both feasibility criteria (31/32 true precision stops,
 one false, versus 25/32 true and seven false for SE-only). It uses 77–87%
 fewer shots than the fixed-budget arm. Width-only yielded 32/32 true stops
-with greater shot and bootstrap cost. Defaults and evidence labels are
-unchanged; these are engineered stress banks, not general certificates.
+with greater shot and bootstrap cost. `acquire_ritz_precision` is now the
+preferred fixed-bank precision entry point and defaults to rank/margin;
+bootstrap width requires an explicit target and draw budget. The historical
+`acquire_ritz` engine defaults and evidence labels are unchanged; these are
+engineered stress banks, not general certificates.
 
 The [preregistered noise-aware selection experiment](NOISE_AWARE_SELECTION.md)
 closed negative on its equal-shot held-out criterion. An independent H4 audit

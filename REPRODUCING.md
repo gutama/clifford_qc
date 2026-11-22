@@ -942,6 +942,17 @@ fixed-budget policies. See `benchmarks/run_rank_aware_stop.py` and
 `benchmarks/check_rank_aware_stop.py` for the frozen execution and cheap
 history/ledger check. Routine CI does not rerun the bootstrap campaign.
 
+For new independent fixed-bank precision acquisitions use the public
+`acquire_ritz_precision` entry point. Its default rank-aware policy incurs
+no bootstrap draws; opt into the tighter interval guard with both a width
+target and a resampling budget. The examples are small and need no chemistry
+extras:
+
+```bash
+python examples/acase_precision_acquisition.py
+python examples/acase_precision_acquisition.py --bootstrap-half-width 0.02 --bootstrap-replicates 64
+```
+
 `.github/workflows/ci.yml` runs on every pull request and on every push to
 `main`. Each value gate builds its environment out of the record it verifies
 rather than out of a hand-written pin:

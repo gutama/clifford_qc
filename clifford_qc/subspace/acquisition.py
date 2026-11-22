@@ -52,6 +52,11 @@ whose truncation the data do not settle.
 With control variates, each replica also refits the certified family at its
 own solved Ritz vector, so the bootstrap describes the corrected estimator.
 The previous coverage study did not include this combination.
+
+For new fixed-bank precision work use :func:`acquire_ritz_precision`, which
+requires rank confirmation by default and adds a bootstrap-width guard only
+with an explicit width target and resampling budget. :func:`acquire_ritz`
+retains its historical defaults for declared comparisons and replay.
 """
 
 from __future__ import annotations
@@ -491,5 +496,50 @@ def _corrected_interval(correction: ControlVariateEstimate, delta: float,
                     std_error=correction.std_error)
 
 
+def acquire_ritz_precision(shared: SharedMeasurement, backend, *,
+                           pilot_shots_per_group: int,
+                           round_budgets: Sequence[int],
+                           target_std_error: float,
+                           allocation: str = "ritz_targeted",
+                           solver_kwargs: dict | None = None, root: int = 0,
+                           delta: float = 0.05,
+                           control_variates: Sequence[ShiftTerm] | None = None,
+                           rank_stop: RankStopPolicy = RankStopPolicy(),
+                           max_bootstrap_half_width: float | None = None,
+                           bootstrap_replicates: int | None = None,
+                           bootstrap_seed: int = 0) -> RitzAcquisition:
+    """Preferred precision controller for a declared independent Ritz bank.
+
+    By default, require the SE target *and* full retained rank with positive
+    statistical cutoff margins at two consecutive looks. Ritz-targeted rounds
+    redirect shots toward an unresolved overlap margin. A stable truncated
+    bank is not a successful stop. If rank cannot be resolved within the
+    declared budget, return a diagnostic estimate with ``schedule_exhausted``.
+
+    For tighter uncertainty control, explicitly set ``max_bootstrap_half_width``
+    (in the same units as the energy) and ``bootstrap_replicates``. Bootstrap
+    width is then checked only at eligible rank/SE looks; all three guards
+    must pass. Neither bootstrap resampling nor its extra solves are incurred
+    by default. Supplying replicates alone requests the terminal diagnostic
+    without a width constraint. The caller should predeclare the width and
+    computational budget, rather than select them after inspecting the data.
+
+    This is the rank-aware policy validated on engineered stretched molecular
+    banks, not a chemical-accuracy guarantee or finite-sample confidence
+    sequence. The combined width/rank policy is more conservative but its
+    generalization has not been established. Use :func:`acquire_ritz` for
+    explicit SE-only/fixed-budget comparisons and legacy record replay.
+    """
+    if not isinstance(rank_stop, RankStopPolicy):
+        raise ValueError('precision acquisition requires a RankStopPolicy; use acquire_ritz for SE-only stopping')
+    return acquire_ritz(
+        shared, backend, pilot_shots_per_group=pilot_shots_per_group,
+        round_budgets=round_budgets, allocation=allocation,
+        target_std_error=target_std_error, solver_kwargs=solver_kwargs, root=root,
+        delta=delta, control_variates=control_variates, rank_stop=rank_stop,
+        max_bootstrap_half_width=max_bootstrap_half_width,
+        bootstrap_replicates=bootstrap_replicates, bootstrap_seed=bootstrap_seed)
+
+
 __all__ = ["ALLOCATIONS", "AcquisitionError", "RitzAcquisition", "RankStopPolicy", "TIE_TOLERANCE",
-           "acquire_ritz", "neyman_group_plan", "uniform_group_plan"]
+           "acquire_ritz", "acquire_ritz_precision", "neyman_group_plan", "uniform_group_plan"]
