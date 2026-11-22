@@ -66,7 +66,7 @@ class SampledProjectedProvider:
     The numerical consumer uses the same stable small-matrix solver as the
     exact provider. Rank, retained frame and c are learned from the pilot.
     """
-    capabilities = frozenset({"sampled_projected_blocks", "frozen_ratio"})
+    capabilities = frozenset({"sampled_projected_blocks", "frozen_ratio", "sampled_precision"})
 
     def __init__(self, reference, hamiltonian, generators, *, storage="packed",
                  block_size=None, method="graph_state"):
@@ -95,6 +95,12 @@ class SampledProjectedProvider:
         if (self.reference.metadata.identity != self.reference_identity
                 or settings_identity(self.plan.settings) != self.circuit_identity):
             raise ValueError("provider inputs changed; construct a new provider")
+
+    def acquire_precision(self, config, *, seed, solve_options=None, delta=0.05):
+        """Run rank-aware fixed-bank acquisition on the compiled sample plan."""
+        from .sampled_acquisition import run_sampled_precision
+        return run_sampled_precision(self, config, seed=seed,
+                                     solve_options=solve_options, delta=delta)
 
     def reconstruct(self, observations, *, delta=0.05):
         if not 0 < delta < 1:

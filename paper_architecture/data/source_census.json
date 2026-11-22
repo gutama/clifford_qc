@@ -250,21 +250,21 @@
         "modules": 9
       },
       "orchestration": {
-        "lines": 836,
+        "lines": 910,
         "modules": 3
       },
       "subspace": {
-        "lines": 21787,
-        "modules": 54
+        "lines": 22043,
+        "modules": 55
       },
       "surface": {
         "lines": 39,
         "modules": 1
       }
     },
-    "package_lines": 40781,
-    "package_modules": 134,
-    "test_lines": 51459,
-    "test_modules": 208
+    "package_lines": 41111,
+    "package_modules": 135,
+    "test_lines": 51688,
+    "test_modules": 209
   }
 }

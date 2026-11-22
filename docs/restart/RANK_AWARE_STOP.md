@@ -228,6 +228,13 @@ the observed trade-off, not a new statistical certification claim. Existing
 published campaigns continue calling the explicitly configured lower-level
 API with their frozen semantics.
 
+The same raw-Ritz controller is now integrated in the [density-free unified
+sampled precision workflow](UNIFIED_WORKFLOW.md), using compiled joint-shot
+settings without an exact reference or density. Its receipts distinguish
+confirmed physical shots, unconfirmed requests and bootstrap solve attempts.
+The sector-control-variate certification used in this historical experiment
+is not available on the sampled-only path.
+
 ### Public-controller integration smoke
 
 The new entry point was exercised on both existing stretched banks with one

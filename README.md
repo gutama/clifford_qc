@@ -243,6 +243,12 @@ guards for projected energy, not chemical-accuracy or finite-sample guarantees.
 The lower-level `acquire_ritz` retains its historical semantics for explicit
 SE-only and fixed-budget comparisons. See the [rank-aware study and usage](docs/restart/RANK_AWARE_STOP.md).
 
+For density-free sampled execution, pass a `PrecisionAcquisitionConfig` to
+`run_workflow(..., path="sampled_precision", precision_config=config, seed=...)`
+on a `SampledProjectedProvider`. The same primary controller targets compiled
+joint-shot settings, retains the observations and actual resource ledger, and
+can opt into the bootstrap-width guard. See the [unified workflow guide](docs/restart/UNIFIED_WORKFLOW.md).
+
 ### Residuals and folded roots
 
 A projected solve has zero projected residual by construction. The true
@@ -350,6 +356,7 @@ After installation, run these scripts from the repository root:
 | [acase_effective_model.py](examples/acase_effective_model.py) | Effective-Hamiltonian import, correlations, and response |
 | [acase_finite_shot.py](examples/acase_finite_shot.py) | Shared measurements and finite-shot subspaces |
 | [acase_precision_acquisition.py](examples/acase_precision_acquisition.py) | Primary rank-aware acquisition and opt-in bootstrap half-width guard |
+| [sampled_precision_molecules.py](examples/sampled_precision_molecules.py) | Density-free unified precision workflow, opt-in molecular integration smoke |
 | [acase_finite_shot_response.py](examples/acase_finite_shot_response.py) | Response bootstrap and its heuristic intervals |
 | [acase_materials.py](examples/acase_materials.py) | Lattice models, projected observables, and excited states |
 | [acase_sector_backend.py](examples/acase_sector_backend.py) | Sector statevectors and matrix-free reference calculations |
