@@ -29,6 +29,7 @@ from .measured import (
     ritz_functional, ritz_uncertainty, run_certified_acase,
 )
 from .acquisition import AcquisitionError, RankStopPolicy, RitzAcquisition, acquire_ritz_precision
+from .sampled_acquisition import PrecisionAcquisitionConfig, SampledPrecisionRun
 from .generators import (
     commutator_response, compound_response, identity_generator,
     krylov_response, pauli_orbit, response_hierarchy,
@@ -195,6 +196,7 @@ __all__ = [
     "CertifiedGrowthRecord", "CertifiedResult", "CouplingBound", "Interval",
     "SharedMeasurement", "WordFunctional", "bootstrap_ritz", "certify_couplings",
     "AcquisitionError", "RankStopPolicy", "RitzAcquisition", "acquire_ritz_precision",
+    "PrecisionAcquisitionConfig", "SampledPrecisionRun",
     "coupling_functional", "entry_functionals", "ritz_functional",
     "ritz_uncertainty", "run_certified_acase",
     "Generator", "MatrixElementBank", "StreamingMatrixElementBank", "as_generators", "commutator_response",

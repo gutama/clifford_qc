@@ -140,8 +140,21 @@ def _validate_projected_solve_options(options, *, max_modes):
             raise ValueError(f"{name} must be nonnegative and finite")
 
 
+def _sampled_observation_details(observations):
+    return {"settings_identity": observations.settings_identity,
+            "counts": observations.counts,
+            "groups": [{"setting_key": g.setting_key, "support": g.support,
+                        "shots": g.shots, "histogram": dict(g.hist),
+                        "word_codes": g.word_codes,
+                        "readouts": [[code, sign, positions] for code, (sign, positions)
+                                     in sorted(g.readouts.items())]}
+                       for g in observations.batch.groups],
+            "scope": "observed histograms and signed readouts; circuits and preparation must be supplied separately for replay"}
+
+
 def run_workflow(provider, *, path, problem, unit, solve_options=None,
                  shots=None, seed=None, delta=0.05, sector_config=None,
+                 precision_config=None,
                  preparation_cost=None, validation_cost=None, provenance=None):
     """Run one existing provider under a common result and cost contract.
 
@@ -149,22 +162,28 @@ def run_workflow(provider, *, path, problem, unit, solve_options=None,
     preparation is outside the measured timings. ``problem`` and ``unit`` are
     caller-supplied labels, not inferred physical metadata. For sampled runs,
     ``shots`` is the number *per setting* (or a count vector), with a fixed seed.
-    This returns entrywise S/H confidence radii, not an energy confidence interval.
+    Fixed-endpoint sampling returns entrywise S/H radii, not an energy interval.
+    ``sampled_precision`` instead takes a predeclared PrecisionAcquisitionConfig
+    and seed, and returns the rank-aware controller's explicitly noncertified
+    Ritz intervals, stop diagnostics and cumulative joint-shot ledger.
     Sector action solving needs SciPy. Unsupported path/provider combinations are
     rejected before any sampling or solve.
     """
     import platform
     import sys
     import time
+    from dataclasses import asdict
     import numpy as np
     from .backends.sector_reference import SectorActionProvider
     from .subspace.providers import ExactProjectedProvider
     from .subspace.sampled import SampledProjectedProvider
+    from .subspace.sampled_acquisition import PrecisionAcquisitionConfig
     from .subspace.sector_solver import SectorSolveConfig, solve_sector
     from .sampled_reference import shot_vector, nonnegative_integer
 
     providers = {"exact_projection": ExactProjectedProvider,
                  "sampled_projection": SampledProjectedProvider,
+                 "sampled_precision": SampledProjectedProvider,
                  "sector_action": SectorActionProvider}
     if path not in providers:
         raise ValueError(f"unsupported workflow path: {path!r}")
@@ -177,8 +196,15 @@ def run_workflow(provider, *, path, problem, unit, solve_options=None,
                        "overlap_ridge", "norm_floor"}
     if set(options) - allowed_options:
         raise ValueError("unsupported projected solve options: " + ", ".join(sorted(set(options) - allowed_options)))
-    if path != "sampled_projection" and (shots is not None or seed is not None):
-        raise ValueError("shots and seed apply only to sampled projection")
+    if path not in {"sampled_projection", "sampled_precision"} and (shots is not None or seed is not None):
+        raise ValueError("shots and seed apply only to sampled workflows")
+    if path != "sampled_precision" and precision_config is not None:
+        raise ValueError("precision_config applies only to sampled precision")
+    if path == "sampled_precision":
+        if not isinstance(precision_config, PrecisionAcquisitionConfig):
+            raise TypeError("sampled precision requires a PrecisionAcquisitionConfig")
+        if shots is not None or seed is None:
+            raise ValueError("sampled precision requires seed and a predeclared schedule, not shots")
     if path != "sector_action" and sector_config is not None:
         raise ValueError("sector_config applies only to sector actions")
     if path == "sector_action" and options:
@@ -201,7 +227,7 @@ def run_workflow(provider, *, path, problem, unit, solve_options=None,
                              "validation_cost": validation_cost, "provenance": provenance})
     stages = {
         "preparation": _caller_stage(preparation_cost, "preparation"),
-        "sampling": _workflow_stage("not_applicable" if path != "sampled_projection" else "not_measured",
+        "sampling": _workflow_stage("not_applicable" if path not in {"sampled_projection", "sampled_precision"} else "not_measured",
                                     scope="reference sampling inside wrapper"),
         "solve": _workflow_stage(scope="provider solve and reconstruction inside wrapper"),
         "validation": _caller_stage(validation_cost, "validation"),
@@ -246,19 +272,56 @@ def run_workflow(provider, *, path, problem, unit, solve_options=None,
             status = "sampled_projected_solve_completed"
             rank, condition = solved.effective_rank, solved.condition_number
             resources, energies = solved.resources, solved.energies
-        details = {"settings_identity": observations.settings_identity,
-                   "counts": observations.counts,
-                   "groups": [{"setting_key": g.setting_key, "support": g.support,
-                               "shots": g.shots, "histogram": dict(g.hist),
-                               "word_codes": g.word_codes,
-                               "readouts": [[code, sign, positions] for code, (sign, positions)
-                                            in sorted(g.readouts.items())]}
-                              for g in observations.batch.groups],
-                   "scope": "observed histograms and signed readouts; circuits and preparation must be supplied separately for replay"}
+        details = _sampled_observation_details(observations)
         if failed:
             details["error"] = error
         assumptions = ["Sampling assumptions are required and are not verified by metadata.",
                        "The sampled Ritz energy is not a ground-state certificate or confidence interval."]
+        tier = "finite_sample_empirical"
+    elif path == "sampled_precision":
+        run = provider.acquire_precision(precision_config, seed=seed, solve_options=options,
+                                         delta=delta)
+        failed = run.error is not None
+        unconfirmed = [r for r in run.requests if r["status"] != "confirmed"]
+        stages["sampling"] = _workflow_stage("failed" if unconfirmed else "measured",
+            seconds=run.sampling_seconds, scope="sampling and validation of requested batches; excludes provider compilation")
+        stages["solve"] = _workflow_stage("failed" if failed else "measured",
+            seconds=run.inference_seconds, scope="reconstruction, rank margins, allocation, projected solves and any bootstrap")
+        status = run.status
+        residual = {"status": "not_computed", "value": None}
+        details = {"controller": "acquire_ritz_precision", "estimator": "raw_ritz",
+                   "settings_identity": provider.circuit_identity,
+                   "requests": run.requests, "looks": run.looks,
+                   "observations": [{**_sampled_observation_details(o),
+                       "seed": o.seed, "observation_identity": o.identity}
+                                    for o in run.observations],
+                   "error": run.error}
+        if failed:
+            rank, condition, energies = None, None, ()
+            resources = provider.bank.resources()
+        else:
+            acquired = run.acquisition
+            solved = acquired.result
+            rank, condition, energies = solved.effective_rank, solved.condition_number, solved.energies
+            resources = solved.resources
+            details["schedule"] = acquired.schedule
+            uncertainty = {"status": "asymptotic_schedule_adjusted",
+                           "energy_interval": asdict(acquired.interval),
+                           "naive_energy_interval": asdict(acquired.naive_interval),
+                           "bootstrap_interval": (None if acquired.bootstrap_interval is None
+                                                  else asdict(acquired.bootstrap_interval)),
+                           "root": precision_config.root, "certified": False,
+                           "scope": "predeclared-look Gaussian delta method; bootstrap and rank guard are heuristic, not confidence sequences"}
+        measurement = {"shots": run.confirmed_shots, "circuits": run.confirmed_circuits,
+                       "seed": int(seed), "shots_scope": "confirmed observations across this acquisition only",
+                       "physical_cost_complete": not unconfirmed,
+                       "unconfirmed_requested_shots": sum(r["requested_shots"] for r in unconfirmed),
+                       "measured_solve_attempts": run.measured_solve_attempts,
+                       "bootstrap_solve_attempts": run.bootstrap_solve_attempts}
+        assumptions = ["Sampling assumptions are required and are not verified by metadata.",
+                       "Independent declared bank; full rank and statistical separation are required for a precision stop.",
+                       "Adaptive pooled estimation, delta-method intervals and bootstrap diagnostics are not finite-sample certificates.",
+                       "Schedule exhaustion does not meet the declared precision target; no full-space ground-state claim."]
         tier = "finite_sample_empirical"
     else:
         solved = solve_sector(provider, config=sector_config)
@@ -271,11 +334,12 @@ def run_workflow(provider, *, path, problem, unit, solve_options=None,
         assumptions = ["Explicit classical sector actions and declared spin sector.",
                        "Numerical convergence does not identify a ground root."]
         tier = "exact_numerical_simulation"
-    elapsed = time.perf_counter() - (solve_start if path == "sampled_projection" else start)
-    stages["solve"] = _workflow_stage("failed" if failed else "measured", seconds=elapsed,
+    if path != "sampled_precision":
+        elapsed = time.perf_counter() - (solve_start if path == "sampled_projection" else start)
+        stages["solve"] = _workflow_stage("failed" if failed else "measured", seconds=elapsed,
                                       scope="reconstruction and projected solve" if path == "sampled_projection"
                                       else "provider solve; excludes prior provider construction")
-    measurement = ({"shots": observations.batch.hardware_shots,
+        measurement = ({"shots": observations.batch.hardware_shots,
                     "circuits": observations.batch.circuits,
                     "observation_identity": observations.identity,
                     "seed": int(seed), "shots_scope": "this fixed-endpoint batch only"}
@@ -292,7 +356,7 @@ def run_workflow(provider, *, path, problem, unit, solve_options=None,
                     "residual": residual, "uncertainty": uncertainty,
                     "ground_state_status": "not_established", "method_details": details},
         "request": {"solve_options": options,
-                    "sampling_delta": delta if path == "sampled_projection" else None},
+                    "sampling_delta": delta if path in {"sampled_projection", "sampled_precision"} else None},
         "evidence_schema": "clifford_qc.evidence.v1",
         "evidence": {"energies": {"tier": tier, "scope": "declared workflow and inputs; " + assumptions[0]}},
         "assumptions": assumptions,
@@ -311,6 +375,16 @@ def run_workflow(provider, *, path, problem, unit, solve_options=None,
                        "package_source_sha256": _workflow_source_digest(),
                        "scope": "installed package Python bytes at result creation plus runtime and caller metadata; not a full dependency/input closure or independent source verification"},
     }
+    if path == "sampled_precision":
+        record["request"]["precision_config"] = precision_config.as_dict()
+        record["evidence"]["rank_stop"] = {"tier": "illustrative_model",
+            "scope": "heuristic statistical cutoff margins on a declared independent bank; not a spectral certificate"}
+        if not failed:
+            record["evidence"]["energy_interval"] = {"tier": "asymptotic_bound",
+                "scope": "Gaussian delta method with predeclared-look multiplicity adjustment; not finite-sample"}
+            if run.acquisition.bootstrap_interval is not None:
+                record["evidence"]["bootstrap_interval"] = {"tier": "finite_sample_empirical",
+                    "scope": "heuristic spread of grouped resamples conditional on the observed setting budgets"}
     from .evidence import validate_evidence
     validate_evidence(record)
     return WorkflowResult(record)

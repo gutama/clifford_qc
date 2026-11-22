@@ -953,6 +953,18 @@ python examples/acase_precision_acquisition.py
 python examples/acase_precision_acquisition.py --bootstrap-half-width 0.02 --bootstrap-replicates 64
 ```
 
+For density-free sampled execution, see the [unified sampled precision
+workflow](docs/restart/UNIFIED_WORKFLOW.md). Its fast regression tests replay
+identical compiled joint histograms through the same controller and check
+physical costs, failure receipts and bootstrap accounting. The optional
+molecular smoke reuses existing FCIDUMPs and does not run in routine CI:
+
+```bash
+python -m pytest -q tests/test_sampled_precision.py
+OPENBLAS_NUM_THREADS=1 python examples/sampled_precision_molecules.py
+OPENBLAS_NUM_THREADS=1 python examples/sampled_precision_molecules.py --stretched
+```
+
 `.github/workflows/ci.yml` runs on every pull request and on every push to
 `main`. Each value gate builds its environment out of the record it verifies
 rather than out of a hand-written pin:

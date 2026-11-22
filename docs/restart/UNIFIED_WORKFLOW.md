@@ -1,6 +1,6 @@
 # Unified workflow, costs and evidence export
 
-`clifford_qc.workflows.run_workflow` gives three existing provider paths one
+`clifford_qc.workflows.run_workflow` gives four provider paths one
 versioned, JSON-compatible result. It is an opt-in orchestration interface: it
 does not replace adaptive A-CASE, the sampled ratio consumer, the measured K
 consumer, or the sector solver's richer native result. Construct the provider
@@ -11,6 +11,7 @@ solve or sample is started.
 | --- | --- | --- | --- |
 | `exact_projection` | `ExactProjectedProvider` | Exact-reference S/H and projected solve | No true residual or ground-state certificate |
 | `sampled_projection` | `SampledProjectedProvider` | Fixed-endpoint joint shots, reconstruct S/H and solve | Simultaneous entrywise radii under bounded IID assumptions; **no energy interval** |
+| `sampled_precision` | `SampledProjectedProvider` | Predeclared pilot and adaptive physical-shot rounds, rank-aware Ritz acquisition | Heuristic rank guard, asymptotic schedule-adjusted energy interval, optional heuristic bootstrap width |
 | `sector_action` | `SectorActionProvider` | Existing bounded sector solver (SciPy) | Cached-action residuals and attempts; numerical convergence does not identify the ground root |
 
 For example:
@@ -43,6 +44,102 @@ after a successful sample retain spent shots and histograms, with an empty
 energy list and a failed status. Invalid requests and failures before a valid
 sample raise; they do not generate an automatic failure receipt.
 
+### Rank-aware density-free precision acquisition
+
+For a declared independent bank and a reference exposing only `sample_joint`,
+the primary controller is also available directly on the sampled provider:
+
+```python
+from clifford_qc.subspace import PrecisionAcquisitionConfig
+from clifford_qc.subspace.sampled import SampledProjectedProvider
+from clifford_qc.workflows import run_workflow
+
+# reference is a PreparedSampledReference or compatible joint-shot reference.
+# h and gens are the Hamiltonian and independent generator bank.
+provider = SampledProjectedProvider(reference, h, gens, block_size=2)
+settings = len(provider.plan.settings)
+config = PrecisionAcquisitionConfig(
+    pilot_shots_per_group=200,
+    round_budgets=(200 * settings, 500 * settings),
+    target_std_error=0.02,
+)
+result = run_workflow(provider, path="sampled_precision", problem="LiH",
+                      unit="Ha", seed=20261122, precision_config=config,
+                      solve_options={"tau_s": 0.005})
+print(result.as_dict()["outcome"]["status"])
+# Native result is also available from provider.acquire_precision(config, seed=20261122).
+```
+
+The pilot measures every compiled setting; each later budget is a **total
+physical-shot count**, not a per-word or per-setting count. The existing
+`acquire_ritz_precision` controller operates on one accumulated joint cache,
+with covariance-aware Neyman weights keyed by the actual compiled settings
+(including non-QWC settings). Each look draws a distinct deterministic random
+stream derived from the run seed. Every batch must match reference and circuit
+identities, requested seed, assignments, signed readouts and physical counts.
+No reference density, exact expectation, exact projected pencil, or spectral
+oracle is used for inference, allocation or bootstrap. Simulated preparation
+may use a statevector at the device boundary, not in the consumer.
+
+By default, full declared rank with positive cutoff margins must persist for
+two consecutive looks **and** the estimated SE must meet its target. If rank
+is unresolved, targeted rounds buy overlap-sensitive shots. For tighter
+uncertainty, predeclare `max_bootstrap_half_width` and `bootstrap_replicates`
+in the config; without replicates there are no bootstrap solves. Replicates
+alone request a terminal diagnostic. With a width guard, eligible looks must
+also pass the bootstrap width; an exhausted schedule may still receive a
+terminal bootstrap diagnostic. Both guards are heuristic, the delta interval
+is asymptotic with a predeclared-look multiplicity adjustment, and bootstrap
+resampling conditions on the observed budgets. Neither is an anytime-valid
+confidence sequence, finite-sample certificate, or chemical accuracy claim.
+
+The raw Ritz estimator is supported with fixed numerical overlap cutoffs
+(`tau_s`, `rel_tau`, `max_condition`, `norm_floor`). Sector control variate
+certification currently requires exact-reference information and is **not**
+silently enabled on this path. The frozen molecular studies with corrected
+estimators remain distinct, as does the independent-pilot finite-sample ratio
+consumer. The fixed-endpoint path is unchanged.
+
+`target_met` means the declared guards passed; `schedule_exhausted` returns a
+diagnostic estimate, not successful precision attainment; `failed` returns
+no promoted energy. Invalid requests before sampling raise. Once a request
+is issued, every validated batch and completed look is retained if a later
+solve or sampling request fails. A failed/invalid device response is recorded
+as `unconfirmed`: its requested shots are retained but its actual physical
+cost is unknown, not inferred to be zero. The measurement ledger reports
+confirmed physical shots, circuit batch-setting counts, whether those costs
+are complete, and actual measured/replica solve attempt counts. The archive
+carries per-look requested counts, seeds, joint histograms and signed readouts
+for replay; attach preparation, operator bank and circuit definitions
+separately.
+
+The focused integration tests compare the same compiled observations with a
+separately wired replay of the common controller, exercise genuinely commuting
+non-QWC settings, reject invalid sampling receipts, and verify rank exhaustion,
+bootstrap cost and evidence export. An opt-in ideal joint-shot integration
+smoke using already declared molecular inputs is available separately from CI:
+
+```bash
+OPENBLAS_NUM_THREADS=1 python examples/sampled_precision_molecules.py
+OPENBLAS_NUM_THREADS=1 python examples/sampled_precision_molecules.py --stretched
+```
+
+These are single-seed transport checks with a loose 20 mHa estimated-SE target,
+not new coverage, cost-advantage or precision-stop validation campaigns.
+The integration smoke (seed 20261122, block size 2) produced:
+
+| Bank | Compiled settings | Retained rank by look | Confirmed shots | Outcome |
+| --- | ---: | --- | ---: | --- |
+| H4 (8 qubits) | 356 | 3, 3 | 142,400 | `target_met` |
+| LiH (8 qubits) | 278 | 3, 3 | 111,200 | `target_met` |
+| Stretched LiH (10 qubits) | 394 | 4, 4, 4 | 70,920 | `schedule_exhausted` |
+| Stretched BeH2 (12 qubits) | 555 | 3, 4, 4 | 99,900 | `schedule_exhausted` |
+
+Both stretched cases had a final SE below 20 mHa but their statistical
+cutoff margins remained negative; the rank guard correctly refused a
+precision stop even after BeH2 recovered full numerical rank. This is a
+functional integration observation, not a comparative performance claim.
+
 For a sector provider pass `path="sector_action"` and optionally a
 `SectorSolveConfig` through `sector_config`. Sector-action and projected
 workflows can have different spans and need not produce the same energies.
@@ -65,7 +162,8 @@ or the corresponding `validation_cost`. These remain labelled
 export is outside the run, stages could overlap, and process peak RSS and
 hardware time are not measured by this wrapper. Provider-specific resource
 snapshots are retained with their native scopes; some counters may reflect prior
-provider use. Circuit executions and shots count this sampled batch only. Gate
+provider use. Circuit batch-setting counts and shots refer to this fixed batch
+or the confirmed acquisition batches only. Gate
 counts, depth, device time and whole-process RSS remain unknown unless a
 separate assessment supplies them. Never infer them from a settings count.
 
@@ -103,4 +201,5 @@ Run the focused checks with:
 
 ```bash
 python -m unittest discover -s tests -p test_unified_workflow.py -v
+python -m pytest -q tests/test_sampled_precision.py
 ```

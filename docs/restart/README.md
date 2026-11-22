@@ -87,6 +87,13 @@ bootstrap width requires an explicit target and draw budget. The historical
 `acquire_ritz` engine defaults and evidence labels are unchanged; these are
 engineered stress banks, not general certificates.
 
+The [unified workflow](UNIFIED_WORKFLOW.md) now exposes `sampled_precision` on
+the coefficient-only sampled provider. It reuses the primary controller with
+compiled joint-shot settings, cumulative receipts and explicit measured and
+bootstrap costs. A single-seed integration smoke confirms normal stopping
+on H4/LiH and honest exhaustion on the near-cutoff stretched LiH/BeH2 banks;
+this is raw Ritz transport, not a new corrected-estimator coverage study.
+
 The [preregistered noise-aware selection experiment](NOISE_AWARE_SELECTION.md)
 closed negative on its equal-shot held-out criterion. An independent H4 audit
 checks the published energy trajectory and Pauli support counts.
@@ -117,6 +124,7 @@ this study does not reopen the closed sampled cost hypotheses below.
 | Graph-state readout compilation | Opt-in | Exact signed Pauli conjugation, assigned joint distributions, no-Stim compilation/sampling, six frozen-bank partitions | No spectral oracle; exact simulator used only in validation and test sampling | Fewer logical two-qubit gates on five of six tested rungs; no matched-accuracy shot or hardware claim |
 | Signed stabilizer expectations | Yes | Pure full-rank canonical signed rows, all small Pauli words, projection compatibility and large-register allocation guard | Analytic stabilizer membership; no density or spectrum oracle | Avoids reference-density expansion; no general fermionic-sector guarantee |
 | Sampled projection and correlated ratio estimation | Yes | Complex/packed controls; nonidentity overlap and finite-sample denominator gate; original 3 spin inputs and separately declared TFIM/H4/LiH validation, each at 3 budgets × 128 replicas per arm | No exact oracle in consumer/allocation; ideal statevector shots and separate independent physical-sector assessment | Both all-input 20% cost hypotheses closed negative; new TFIM-only illustrative saving of 73% does not transfer to declared molecular accuracy |
+| Sampled precision acquisition | Yes | Identical-histogram controller replay for QWC and non-QWC plans; rank exhaustion and bootstrap/shot receipts; single-seed H4/LiH and stretched LiH/BeH2 smoke | No density or exact oracle in raw Ritz consumer | Primary rank-aware controller integrated; no new coverage or cost-advantage claim |
 
 The supported first workflow is documented in the [molecular pipeline guide](../../molecular/PIPELINE.md).
 Historical phase status remains in [PHASE_STATUS.json](../../PHASE_STATUS.json)

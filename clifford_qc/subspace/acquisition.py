@@ -183,7 +183,8 @@ def uniform_group_plan(groups: Sequence[Sequence], budget: int) -> dict[int, int
 
 
 def neyman_group_plan(groups: Sequence[Sequence], cache: GroupedWordCache,
-                      functional: WordFunctional, budget: int) -> dict[int, int]:
+                      functional: WordFunctional, budget: int, *,
+                      setting_keys: Sequence | None = None) -> dict[int, int]:
     """Split a physical-shot budget by Neyman allocation, reproducibly.
 
     Setting ``g`` receives shots in proportion to the square root of the
@@ -209,11 +210,19 @@ def neyman_group_plan(groups: Sequence[Sequence], cache: GroupedWordCache,
     if statistics is None:
         raise ValueError("a setting the functional reads has no shots; measure a pilot first")
     touched = []
-    for group in groups:
+    if setting_keys is not None and (len(setting_keys) != len(groups)
+                                      or len(set(setting_keys)) != len(groups)):
+        raise ValueError("one distinct setting key is required per group")
+    if setting_keys is not None and not set(statistics).issubset(setting_keys):
+        raise ValueError("cached functional statistics do not match the compiled settings")
+    for index, group in enumerate(groups):
         words = tuple(group)
         if not words:
             continue
-        key = tuple(sorted(shared_basis(words).items()))
+        # Compiled commuting settings have explicit signed readouts, not
+        # necessarily a product basis. Keep the historical QWC keys by default.
+        key = (tuple(sorted(shared_basis(words).items())) if setting_keys is None
+               else setting_keys[index])
         if key in statistics:
             touched.append((words, math.sqrt(max(0.0, float(statistics[key][1])))))
     if not touched:
@@ -354,6 +363,16 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
     consecutive = 0
     bootstrap = None
 
+    def targeted(functional, budget):
+        keys = getattr(shared, 'acquisition_setting_keys', None)
+        try:
+            if keys is None:
+                return neyman_group_plan(shared.groups, cache, functional, budget)
+            return neyman_group_plan(shared.groups, cache, functional, budget, setting_keys=keys)
+        except _SOLVE_FAILURES as error:
+            raise AcquisitionError(f'next-round allocation failed: {error}', cache=cache,
+                                   looks=tuple(looks)) from error
+
     def bootstrap_at_look(look, point):
         # Historical terminal-only runs keep their original seed. Width
         # assessments get a deterministic independent seed per look.
@@ -385,15 +404,19 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
                 f"look {index} retained {len(point.energies)} root(s) after "
                 f"{cache.total_shots} shots, fewer than root {root} needs",
                 cache=cache, looks=tuple(looks))
-        if terms is None:
-            functional = ritz_functional(shared.bank, point.indices,
-                                         point.ritz_vector(root), point.energies[root])
-            sigma = math.sqrt(max(0.0, functional.variance(cache)))
-            energy = float(point.energies[root])
-        else:
-            correction, functional = corrected_ritz_functional(shared, cache, point, terms,
-                                                               root=root)
-            sigma, energy = correction.std_error, correction.energy
+        try:
+            if terms is None:
+                functional = ritz_functional(shared.bank, point.indices,
+                                             point.ritz_vector(root), point.energies[root])
+                sigma = math.sqrt(max(0.0, functional.variance(cache)))
+                energy = float(point.energies[root])
+            else:
+                correction, functional = corrected_ritz_functional(shared, cache, point, terms,
+                                                                   root=root)
+                sigma, energy = correction.std_error, correction.energy
+        except _SOLVE_FAILURES as error:
+            raise AcquisitionError(f'look {index} uncertainty failed: {error}', cache=cache,
+                                   looks=tuple(looks)) from error
         retained = point.resources.get("smallest_retained_overlap_eigenvalue")
         look = {"look": index, "shots": int(cache.total_shots),
                 "energy": energy, "std_error": sigma,
@@ -436,27 +459,31 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
             budget = budgets[index]
             rank_budget = budget if se_ok else (budget+1)//2
             energy_budget = budget-rank_budget
-            rank_plan = neyman_group_plan(shared.groups, cache, rank_functional, rank_budget) \
+            rank_plan = targeted(rank_functional, rank_budget) \
                 if rank_functional is not None else {}
             if not rank_plan:
                 rank_plan = uniform_group_plan(shared.groups, rank_budget)
             plan = dict(rank_plan)
             if energy_budget:
-                energy_plan = neyman_group_plan(shared.groups, cache, functional, energy_budget)
+                energy_plan = targeted(functional, energy_budget)
                 if not energy_plan:
                     energy_plan = uniform_group_plan(shared.groups, energy_budget)
                 for code, shots in energy_plan.items():
                     plan[code] = plan.get(code, 0)+shots
             look['next_rank_budget'] = rank_budget
         else:
-            plan = neyman_group_plan(shared.groups, cache, functional, budgets[index])
+            plan = targeted(functional, budgets[index])
         if not plan and (rank_stop is not None or max_bootstrap_half_width is not None):
             plan = uniform_group_plan(shared.groups, budgets[index])
         if not plan:
             # A deterministic Ritz functional: no shot can change the estimate.
             stopped = "deterministic"
             break
-        shared.measure_plan(backend, plan, cache)
+        try:
+            shared.measure_plan(backend, plan, cache)
+        except _SOLVE_FAILURES as error:
+            raise AcquisitionError(f'look {index + 1} sampling failed: {error}',
+                                   cache=cache, looks=tuple(looks)) from error
     assert point is not None
     looks[-1]["stopped"] = True
     schedule = {"pilot_shots_per_group": pilot, "round_budgets": list(budgets),
@@ -466,15 +493,19 @@ def acquire_ritz(shared: SharedMeasurement, backend, *, pilot_shots_per_group: i
         schedule['rank_stop'] = asdict(rank_stop)
     if max_bootstrap_half_width is not None:
         schedule['max_bootstrap_half_width'] = max_bootstrap_half_width
-    if terms is None:
-        interval = ritz_uncertainty(shared, cache, point, root=root, delta=delta,
-                                    family=family)
-        naive = ritz_uncertainty(shared, cache, point, root=root, delta=delta)
-    else:
-        assert correction is not None
-        schedule["control_variates"] = [term.label for term in terms]
-        interval = _corrected_interval(correction, delta, family)
-        naive = _corrected_interval(correction, delta, 1)
+    try:
+        if terms is None:
+            interval = ritz_uncertainty(shared, cache, point, root=root, delta=delta,
+                                        family=family)
+            naive = ritz_uncertainty(shared, cache, point, root=root, delta=delta)
+        else:
+            assert correction is not None
+            schedule["control_variates"] = [term.label for term in terms]
+            interval = _corrected_interval(correction, delta, family)
+            naive = _corrected_interval(correction, delta, 1)
+    except _SOLVE_FAILURES as error:
+        raise AcquisitionError(f'final interval failed: {error}', cache=cache,
+                               looks=tuple(looks)) from error
     if bootstrap_replicates is not None:
         schedule["bootstrap"] = {"replicates": bootstrap_replicates, "seed": int(bootstrap_seed)}
         if terms is not None:
