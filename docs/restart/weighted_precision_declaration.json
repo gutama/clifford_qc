@@ -1,0 +1,214 @@
+{
+  "schema": "clifford_qc.weighted_precision_declaration.v1",
+  "declared_date": "2026-11-22",
+  "historical_bindings": {
+    "docs/restart/cross_domain_ratio_declaration.json": "29e418c07e59dba016db77554f5fbc23380c67a174a55a26af049c6f3d4087d8",
+    "docs/restart/stretched_molecular_stop_declaration.json": "a18da71ff993114c0d4bedeeee918f0a60a54339ac64165e0aa68bc7c16309e3",
+    "docs/restart/rank_aware_stop_declaration.json": "d17de55bd3a3c5776228cc438e3d4b82d265852c0f1d76f8f2461318c816cacb",
+    "docs/restart/rank_aware_stop_results.json.gz": "21afbb08cad460e0a51b6a28fc135aa617d6d448b47a787a47694689ad24956e",
+    "docs/restart/graph_readout_comparison.json": "8b52122772c640f9106dfb808dcdd2940aa86f8af86b88384387a2511f5a365b",
+    "benchmarks/configs/device_cards/superconducting-like.json": "99fac3de98a34324f31dd734918bc6448ce48dd315752c12dbcc503b1d82e248"
+  },
+  "compiler": "graph_state",
+  "storage": "packed",
+  "pooling": "assigned",
+  "estimator": "raw_ritz_sampled_precision",
+  "device_card": "benchmarks/configs/device_cards/superconducting-like.json",
+  "rank_policy": {
+    "consecutive_looks": 2,
+    "margin_delta": 0.05
+  },
+  "target_std_error_Ha": 0.0016,
+  "bootstrap_half_width_Ha": 0.0016,
+  "delta": 0.05,
+  "levels": [0.68, 0.95],
+  "seed_root": 2026112301,
+  "development_seed_root": 501,
+  "seed_rule": "SeedSequence([seed_root, part_id, case_index, arm_index, regime_index, replica, stream]).generate_state(1, uint64); part_id=0 for Part A (regime_index=0) and part_id=1 for Part B; stream 0 acquisition shots, stream 1 terminal/look bootstrap, stream 2 independent replanning pilot (ritz_si_* arms only). Development seed 501 is strictly excluded from evaluation.",
+  "development": "Seed 501 calibrated shot schedules, bank anchors, and infinite-shot noisy biases across beh2_8q, lih_8q, h4_8q, and lih_10q_stretched before locking this declaration. Key pre-registration calibrations from seed 501: (1) on well-conditioned 8q banks, rank confirms at look 1 so SE-driven stops occur near SE ~ 1.1-1.5 mHa (Gaussian 1-sigma tail implies ~15-25% of unbiased stops naturally exceed 1.6 mHa while ~95% lie within 3.2 mHa); (2) on beh2_8q and lih_8q, si_qwc beat bank-weighted si_fc while two-stage ritz_si_fc cut shots 3x below si_fc even after billing its 20k pilot; (3) under depol2q_p010_r3, 10% relative-bias gating (max 3 CZ) still admits 12-16 mHa absolute bias on ~150 mHa correlation energies, whereas 5% gating (max 1 CZ) cuts bias 5.2-12.7x, and unmitigated 2% readout error in sc_card_full induces 62-125 mHa bias even on QWC. No seed-501 row enters evaluation.",
+  "cases": [
+    {
+      "name": "beh2_8q",
+      "kind": "molecule_8q",
+      "parts": ["A", "B"],
+      "n": 8,
+      "n_electrons": 4,
+      "sz": 0.0,
+      "target_spin": 0.0,
+      "fcidump": "benchmarks/data/beh2_sto3g_r1.3264.FCIDUMP",
+      "fcidump_sha256": "01ef4422b2e9e7f711895ae897a94ea11c1b0fae5a5fd91c3396fbd4d69fba76",
+      "theta": 0.3,
+      "phi": 0.2,
+      "pair_source": 1,
+      "pair_targets": [2, 3],
+      "reference_bits": ["11110000", "11001100"],
+      "solver": {"tau_s": 0.005, "max_condition": 10000.0},
+      "outer_replicas": 32,
+      "bootstrap_replicas": 32,
+      "cumulative_total_shots": [40000, 100000, 250000, 625000, 1562500, 3906250],
+      "replan_pilot_total_shots": 20000,
+      "expected_words": 1223,
+      "expected_rank": 3
+    },
+    {
+      "name": "lih_8q",
+      "kind": "molecule_8q",
+      "parts": ["A", "B"],
+      "n": 8,
+      "n_electrons": 4,
+      "sz": 0.0,
+      "target_spin": 0.0,
+      "fcidump": "benchmarks/data/lih_sto3g_r1.5949_cas4e4o.FCIDUMP",
+      "fcidump_sha256": "1163b1c1a79b20b452f429b694e55a1e34db5b636398f541074a2494d73a4130",
+      "theta": 0.3,
+      "phi": 0.2,
+      "pair_source": 1,
+      "pair_targets": [2, 3],
+      "reference_bits": ["11110000", "11001100"],
+      "solver": {"tau_s": 0.005, "max_condition": 10000.0},
+      "outer_replicas": 32,
+      "bootstrap_replicas": 32,
+      "cumulative_total_shots": [40000, 100000, 250000, 625000, 1562500, 3906250],
+      "replan_pilot_total_shots": 20000,
+      "expected_words": 3167,
+      "expected_rank": 3
+    },
+    {
+      "name": "h4_8q",
+      "kind": "molecule_8q",
+      "parts": ["A", "B"],
+      "n": 8,
+      "n_electrons": 4,
+      "sz": 0.0,
+      "target_spin": 0.0,
+      "fcidump": "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+      "fcidump_sha256": "bf32568461477cf1ec8e7c4aaae737b0c6c80bcbd83d51f783ec3a3daed5a922",
+      "theta": 0.3,
+      "phi": 0.2,
+      "pair_source": 1,
+      "pair_targets": [2, 3],
+      "reference_bits": ["11110000", "11001100"],
+      "solver": {"tau_s": 0.005, "max_condition": 10000.0},
+      "outer_replicas": 32,
+      "bootstrap_replicas": 32,
+      "cumulative_total_shots": [100000, 250000, 625000, 1562500, 3906250, 9765625],
+      "replan_pilot_total_shots": 20000,
+      "expected_words": 3051,
+      "expected_rank": 3
+    },
+    {
+      "name": "lih_10q_stretched",
+      "kind": "molecule_10q_stretched",
+      "parts": ["A"],
+      "n": 10,
+      "n_electrons": 2,
+      "fcidump": "molecular/results/lih_stretched.fcidump",
+      "fcidump_sha256": "d21e0dcfc688352d0be6b351ccb50e4c511833299202e8e1ddf7cdddd353442d",
+      "frozen_doubly_occupied": [0],
+      "active_orbitals": [1, 2, 3, 4, 5],
+      "pair_source": 0,
+      "pair_targets": [1, 2, 3],
+      "reference_bits": ["1100000000", "0011000000"],
+      "theta": 0.3,
+      "phi": 0.2,
+      "weak_mix": 0.5,
+      "solver": {"tau_s": 0.104, "max_condition": 1000000000000.0, "norm_floor": 1e-14},
+      "outer_replicas": 16,
+      "bootstrap_replicas": 16,
+      "cumulative_total_shots": [500000, 1250000, 3125000, 7812500, 19531250],
+      "replan_pilot_total_shots": 250000,
+      "expected_words": 10341,
+      "expected_rank": 4
+    }
+  ],
+  "schedule_rule": "Matched total physical-shot schedule across arms: pilot_shots_per_group = max(2, cumulative_total_shots[0] // n_settings); each subsequent round budget is max(n_settings, cumulative_total_shots[k] - cumulative_spent_so_far). For ritz_si_* arms, replan_pilot_total_shots are drawn first from an independent stream on the same-k bank-weighted si plan, billed unconditionally to total_shots, and subtracted from cumulative_total_shots before building the fresh acquisition schedule on the replanned settings.",
+  "part_a_arms": [
+    {"key": "ldf_qwc", "block_size": 1, "grouping": "largest_degree", "width_guard": false, "cases": ["beh2_8q", "lih_8q", "h4_8q", "lih_10q_stretched"]},
+    {"key": "si_qwc", "block_size": 1, "grouping": "sorted_insertion", "width_guard": false, "cases": ["beh2_8q", "lih_8q", "h4_8q", "lih_10q_stretched"]},
+    {"key": "ldf_k2", "block_size": 2, "grouping": "largest_degree", "width_guard": false, "cases": ["beh2_8q", "lih_8q", "h4_8q"]},
+    {"key": "si_k2", "block_size": 2, "grouping": "sorted_insertion", "width_guard": false, "cases": ["beh2_8q", "lih_8q", "h4_8q", "lih_10q_stretched"]},
+    {"key": "ldf_fc", "block_size": "full", "grouping": "largest_degree", "width_guard": false, "cases": ["beh2_8q", "lih_8q", "h4_8q"]},
+    {"key": "si_fc", "block_size": "full", "grouping": "sorted_insertion", "width_guard": false, "cases": ["beh2_8q", "lih_8q", "h4_8q"]},
+    {"key": "ritz_si_fc", "block_size": "full", "grouping": "ritz_replan", "pilot_arm": "si_fc", "overlap_weight": 0.5, "width_guard": false, "cases": ["beh2_8q", "lih_8q", "h4_8q"]},
+    {"key": "ritz_si_k2", "block_size": 2, "grouping": "ritz_replan", "pilot_arm": "si_k2", "overlap_weight": 0.5, "width_guard": false, "cases": ["lih_10q_stretched"]},
+    {"key": "si_fc_width", "block_size": "full", "grouping": "sorted_insertion", "width_guard": true, "cases": ["beh2_8q", "lih_8q", "h4_8q"]}
+  ],
+  "part_b_noise_regimes": [
+    {
+      "key": "depol2q_p002_r3",
+      "p_1q": 0.0,
+      "p_2q": 0.002,
+      "routing_2q_multiplier": 3.0,
+      "p_readout": 0.0,
+      "galic_tight_eps": 0.01,
+      "galic_moderate_eps": 0.02
+    },
+    {
+      "key": "depol2q_p010_r3",
+      "p_1q": 0.0,
+      "p_2q": 0.01,
+      "routing_2q_multiplier": 3.0,
+      "p_readout": 0.0,
+      "galic_tight_eps": 0.05,
+      "galic_moderate_eps": 0.10
+    },
+    {
+      "key": "sc_card_full",
+      "p_1q": 0.001,
+      "p_2q": 0.01,
+      "routing_2q_multiplier": 3.0,
+      "p_readout": 0.02,
+      "galic_tight_eps": 0.05,
+      "galic_moderate_eps": 0.10
+    }
+  ],
+  "part_b_arms": [
+    {"key": "si_qwc", "block_size": 1, "grouping": "sorted_insertion", "gate_tier": "none"},
+    {"key": "si_fc_unconstrained", "block_size": "full", "grouping": "sorted_insertion", "gate_tier": "none"},
+    {"key": "si_fc_galic_tight", "block_size": "full", "grouping": "sorted_insertion", "gate_tier": "tight"},
+    {"key": "si_fc_galic_moderate", "block_size": "full", "grouping": "sorted_insertion", "gate_tier": "moderate"}
+  ],
+  "part_b_outer_replicas": 16,
+  "device_scenario_us": {
+    "preparation_per_qubit": 1.0,
+    "one_qubit_layer": 0.05,
+    "two_qubit_layer": 0.3,
+    "readout_reset": 2.0
+  },
+  "primary_criteria": {
+    "P1a_weighted_vs_unweighted": {
+      "scope": "Part A across beh2_8q, lih_8q, h4_8q at matched block sizes k in {1, 2, 8}",
+      "rule": "For each (case, k) pair, weighted sorted insertion achieves <= 0.80 * median total physical shots of unweighted largest_degree (or strictly lower mean shots when medians tie on the discrete look grid), with >= 30/32 target_met stops, zero reduced-rank stops, and 95% schedule-adjusted bootstrap-spread coverage not rejected by one-sided exact binomial test (Bonferroni alpha = 0.05 / 9).",
+      "interpretation": "Confirmatory check on declared 8q banks; shot ratio 95% bootstrap CI reported alongside medians."
+    },
+    "P1b_ritz_replan_vs_bank_fc": {
+      "scope": "Part A across beh2_8q, lih_8q, h4_8q comparing ritz_si_fc (including billed replanning pilot) vs si_fc and si_qwc",
+      "rule": "Report paired shot ratio (total physical shots of ritz_si_fc / si_fc), RMSE, 95% coverage, and empirical R vs state-independent R_hat. Explicitly test whether ritz_si_fc lowers median/mean total physical shots below si_fc after billing its pilot; report honestly if si_qwc matches or beats FC on state-dependent variance.",
+      "interpretation": "Predeclared comparative endpoint without forcing FC to beat QWC."
+    },
+    "P2_stretched_rank_transfer": {
+      "scope": "Part A on lih_10q_stretched (16 outer replicas)",
+      "rule": "si_k2 and ritz_si_k2 each achieve >= 12/16 true precision stops (target_met and |error| <= 1.6 mHa), <= 1/16 false precision stops, and zero reduced-rank stops, matching the RANK_AWARE_STOP feasibility bar while reporting realized shot savings against ldf_qwc and si_qwc."
+    },
+    "P3_galic_noise_gate": {
+      "scope": "Part B on beh2_8q, lih_8q, h4_8q under depol2q_p002_r3 and depol2q_p010_r3 (2Q-isolated) plus sc_card_full (diagnostic)",
+      "rule": "Under both 2Q-isolated regimes, si_fc_galic_tight achieves strictly lower exact infinite-shot bias |E_noisy_inf - E_exact| and lower finite-shot RMSE than si_fc_unconstrained on all three molecules, and strictly fewer false precision stops (target_met with |error| > 1.6 mHa) whenever unconstrained FC has |bias| > 1.6 mHa. Under sc_card_full, explicitly report readout-dominated bias across all arms including QWC without claiming grouping mitigates readout flips."
+    }
+  },
+  "secondary_endpoints": [
+    "All-attempt target_met, within_1sigma (<=1.6 mHa), within_2sigma (<=3.2 mHa), false_precision_stops, exhaustions, failures, reduced_rank_stops",
+    "State-independent R_hat, terminal empirical covariance-aware R from GroupedWordCache, and calibration ratio R / R_hat",
+    "Logical CZ total/max, routed 2Q gates, illustrative device_seconds, classical planning/solve/bootstrap wall time, peak RSS",
+    "Exact infinite-shot noisy bias, finite-shot bias, RMSE, and MSE = bias^2 + variance decomposition (Part B)",
+    "Unconditional and stop-conditional 68% and 95% coverage and median widths for delta and schedule-adjusted bootstrap-spread intervals",
+    "Bootstrap-width guard overhead (si_fc_width vs si_fc)"
+  ],
+  "failure_policy": "All attempts, physical shots (including replanning pilots), and measured/bootstrap solves are counted unconditionally. Exhaustions and numerical failures never count as true precision stops and count as uncovered in unconditional coverage. Atomic checkpoints preserve every completed row; unexpected errors abort without selective retries.",
+  "environment": {
+    "python": "3.12.14",
+    "numpy": "2.5.2",
+    "scipy": "1.18.0",
+    "threads": 1
+  },
+  "limitations": "Small 8-qubit three-direction molecular banks and one 10-qubit engineered near-cutoff stretched bank; raw Ritz sampled_precision estimator without exact-oracle-certified control variates; ideal statevector and gate-level depolarizing/readout simulation rather than calibrated quantum hardware. Fixed-bank exact projected energies are the estimands, not full-CI chemical accuracy. Rank-margin and terminal bootstrap intervals are heuristic, not finite-sample or anytime-valid certificates."
+}
