@@ -102,7 +102,10 @@ covariance-aware `R`, and 2Q gate cost across rungs), and opt-in weighted or
 Ritz-replanned `SampledProjectedProvider` integration. Frozen historical
 `compile_block_measurement_plan` / `synthesize_block_settings` elimination
 defaults and default `SampledProjectedProvider` circuit identities are
-unchanged.
+unchanged. The result-free [weighted measurement and adaptive precision
+preregistration](WEIGHTED_PRECISION.md) declares the combined ideal-shot and
+gate-level noisy-readout evaluation on the molecular banks; no evaluation seeds
+have been run yet.
 
 The [preregistered noise-aware selection experiment](NOISE_AWARE_SELECTION.md)
 closed negative on its equal-shot held-out criterion. An independent H4 audit

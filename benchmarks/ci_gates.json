@@ -105,6 +105,28 @@
                 "tests/test_rank_stopping.py"]
     },
     {
+      "commands": [["benchmarks/check_weighted_precision.py", "--declaration-only"]],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_weighted_precision",
+      "inputs": ["docs/restart/weighted_precision_declaration.json",
+                 "docs/restart/cross_domain_ratio_declaration.json",
+                 "docs/restart/stretched_molecular_stop_declaration.json",
+                 "docs/restart/rank_aware_stop_declaration.json",
+                 "docs/restart/rank_aware_stop_results.json.gz",
+                 "docs/restart/graph_readout_comparison.json",
+                 "benchmarks/configs/device_cards/superconducting-like.json",
+                 "benchmarks/data/beh2_sto3g_r1.3264.FCIDUMP",
+                 "benchmarks/data/lih_sto3g_r1.5949_cas4e4o.FCIDUMP",
+                 "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+                 "molecular/results/lih_stretched.fcidump"],
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 3,
+      "watch": ["benchmarks/*weighted_precision*", "benchmarks/noisy_readout_sim.py",
+                "docs/restart/*weighted_precision*", "tests/test_weighted_precision.py",
+                "tests/test_noisy_readout_sim.py"]
+    },
+    {
       "commands": [
         [
           "benchmarks/check_target_acquisition.py",
