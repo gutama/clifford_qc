@@ -1,0 +1,19 @@
+{
+  "generator": {
+    "path": "paper_weighted_precision/make_tables.py",
+    "sha256": "a3aa1c9b438792632f9a30616a182001c8b30ecbe8bfa65a8b1e24b41a8c891a"
+  },
+  "outputs": {
+    "numbers.tex": "6600d79fb1dda12b105628619b8690089bd5ff0f8f8e8f4b8dd6b0548593dba8",
+    "p1_verdicts.tex": "5e2d91274200537c04e5f377ff744fbabd2ee8ea7e62321779182d04d9a125c5",
+    "p2_and_width.tex": "15d0109990e53457897e1cd7d70978dfca4e5b2826e4d5e32c5ef9bfd65396af",
+    "part_a_full.tex": "9df55ae23d8a6009ef62c218ac6d7c7022638dbe019fff855c721fa34adee787",
+    "part_b_noisy.tex": "e8983606fbf27ce71b770c18932ecca372fa02c5f0dc3934e1a2062ee70b4a6a",
+    "protocol_banks.tex": "a0279ef5afa53c0e7a30a503029827b726a9df08e6d9c1083537b01143827172"
+  },
+  "schema": "clifford_qc.weighted_precision_table_manifest.v1",
+  "sources": {
+    "docs/restart/weighted_precision_declaration.json": "969609af9dca74c963cb89780bfe451d8a1212ccc5314ffbdcf953f37d972954",
+    "docs/restart/weighted_precision_results.json.gz": "cca0bf47ddbda59784d28f2cbe0cdb14dffd336508ef8fee281e3df014b1e976"
+  }
+}

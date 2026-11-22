@@ -1,0 +1,33 @@
+{
+  "figures": {
+    "fig1_shot_savings_and_grid.pdf": {
+      "sources": {
+        "docs/restart/weighted_precision_declaration.json": "969609af9dca74c963cb89780bfe451d8a1212ccc5314ffbdcf953f37d972954",
+        "docs/restart/weighted_precision_results.json.gz": "cca0bf47ddbda59784d28f2cbe0cdb14dffd336508ef8fee281e3df014b1e976"
+      }
+    },
+    "fig2_r_emp_vs_r_hat.pdf": {
+      "sources": {
+        "docs/restart/weighted_precision_declaration.json": "969609af9dca74c963cb89780bfe451d8a1212ccc5314ffbdcf953f37d972954",
+        "docs/restart/weighted_precision_results.json.gz": "cca0bf47ddbda59784d28f2cbe0cdb14dffd336508ef8fee281e3df014b1e976"
+      }
+    },
+    "fig3_stretched_rank_and_width.pdf": {
+      "sources": {
+        "docs/restart/weighted_precision_declaration.json": "969609af9dca74c963cb89780bfe451d8a1212ccc5314ffbdcf953f37d972954",
+        "docs/restart/weighted_precision_results.json.gz": "cca0bf47ddbda59784d28f2cbe0cdb14dffd336508ef8fee281e3df014b1e976"
+      }
+    },
+    "fig4_noisy_bias_variance.pdf": {
+      "sources": {
+        "docs/restart/weighted_precision_declaration.json": "969609af9dca74c963cb89780bfe451d8a1212ccc5314ffbdcf953f37d972954",
+        "docs/restart/weighted_precision_results.json.gz": "cca0bf47ddbda59784d28f2cbe0cdb14dffd336508ef8fee281e3df014b1e976"
+      }
+    }
+  },
+  "generator": {
+    "path": "paper_weighted_precision/make_figures.py",
+    "sha256": "6af7aa752e22f78d45cf2f0b1e3058dc0946462357f03adc690e1eb17864989d"
+  },
+  "schema": "clifford_qc.weighted_precision_figure_manifest.v1"
+}
