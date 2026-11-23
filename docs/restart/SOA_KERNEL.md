@@ -72,3 +72,46 @@ Every cell passed term-for-term oracle parity (`max_abs_diff < 1e-8`) and exact
 `(S, H)` matrix agreement (`max_diff < 1e-10`) against `MV` and
 `MatrixElementBank`. These timings are exploratory machine measurements, not
 hardware-independent scientific claims.
+
+## Kaggle Tesla T4 GPU parity and CPU-vs-GPU crossover
+
+Verified on Kaggle (`2× NVIDIA Tesla T4`, 15,360 MiB VRAM, CUDA 13.0, Python
+3.13.16, NumPy 2.1.3, CuPy 14.0.1, PyTorch 2.11.0+cu130, 4 CPU cores) at commit
+`5136e89`:
+
+- **Test suite:** `pytest --noconftest -v tests/test_soa_kernel.py` — **83/83
+  passed** (including `test_gpu_backends_match_numpy_when_available` covering
+  CuPy single-word dense/sort, CuPy multiword `n=40`/`n=64`, and PyTorch CUDA
+  single-word dense/sort against NumPy and `MV`).
+- **Full sweep (`python benchmarks/benchmark_soa_kernel.py --backends all --gpu-sweep --repeats 5 --warmup 2`):**
+
+| Workload | Legacy `MV` / Bank | NumPy CPU | CuPy T4 GPU | PyTorch T4 GPU | Best GPU vs. NumPy / `MV` |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Random $n=8, t=300$ (90k pairs) | 0.202 s cold | **0.0031 s** (29.0 Mpairs/s) | 0.0042 s | 0.0046 s | 0.7× (CPU wins) / 48.2× |
+| Random $n=8, t=1000$ (1M pairs) | 2.050 s cold | 0.0359 s (27.8 Mpairs/s) | **0.0068 s** (147.3 Mpairs/s) | 0.0094 s | **5.3×** / **301.9×** |
+| Random $n=8, t=3000$ (9M pairs) | 18.066 s cold | 0.2336 s (38.5 Mpairs/s) | **0.0311 s** (289.7 Mpairs/s) | 0.0420 s | **7.5×** / **581.5×** |
+| Random $n=12, t=1000$ (1M pairs) | 2.986 s cold | 0.1385 s (sort) | **0.0302 s** (33.2 Mpairs/s) | 0.0329 s | **4.6×** / **99.0×** |
+| Random $n=12, t=3000$ (9M pairs) | 29.015 s cold | 1.5993 s (sort) | **0.2551 s** (35.3 Mpairs/s) | 0.3323 s | **6.3×** / **113.7×** |
+| Random $n=12, t=6000$ (36M pairs) | skipped | 10.791 s (dense) | **0.7841 s** (45.9 Mpairs/s) | 1.0254 s | **13.8×** / — |
+| Random $n=12, t=10000$ (100M pairs) | skipped | 27.675 s (dense) | **1.1969 s** (83.6 Mpairs/s) | 1.5685 s | **23.1×** / — |
+| Random $n=16, t=2000$ (4M pairs) | 15.063 s cold | 0.7252 s (sort) | **0.1338 s** (29.9 Mpairs/s) | 0.1487 s | **5.4×** / **112.6×** |
+| Random $n=16, t=4000$ (16M pairs) | skipped | 3.3750 s (sort) | **0.7968 s** (20.1 Mpairs/s) | 0.9982 s | **4.2×** / — |
+| Random $n=16, t=6000$ (36M pairs) | skipped | 7.2534 s (sort) | **1.7984 s** (20.0 Mpairs/s) | 2.2475 s | **4.0×** / — |
+| $\text{H}_4$ / $\text{LiH}$ / $\text{BeH}_2$ 8q $H^2$ | 0.050 / 0.053 / 0.007 s | **0.0014 / 0.0013 / 0.0005 s** | 0.0033 / 0.0034 / 0.0042 s | 0.0038 / 0.0036 / 0.0041 s | CPU wins (<40k pairs) |
+| $\text{H}_2\text{O}$ 12q $H^2$ (304k pairs) | 0.540 s cold | 0.0159 s (19.1 Mpairs/s) | **0.0059 s** (51.5 Mpairs/s) | **0.0059 s** (51.8 Mpairs/s) | **2.7×** / **92.1×** |
+| Spin-adapted banks ($m=10$, $\text{H}_4$–$\text{H}_2\text{O}$) | 0.317–1.307 s | **0.033–0.081 s** (9.6–16.1×) | 0.498–0.543 s | 0.507–0.543 s | CPU wins (many small pairs) |
+| Commutator $n=16, t=1500$ (2.25M pairs) | — | 0.2220 s (5.20× pre-filter) | **0.0363 s** (15.11× pre-filter) | 0.0422 s (12.86×) | **6.1×** vs. NumPy comm |
+| Multiword $n=40, t=800$ (640k pairs) | skipped | 0.3322 s (1.9 Mpairs/s) | **0.0318 s** (20.1 Mpairs/s) | — | **10.4×** / — |
+| Multiword $n=64, t=800$ (640k pairs) | skipped | 0.3300 s (1.9 Mpairs/s) | **0.0307 s** (20.8 Mpairs/s) | — | **10.7×** / — |
+| Multiword $n=64, t=1500$ (2.25M pairs) | skipped | 1.6646 s (1.4 Mpairs/s) | **0.1419 s** (15.9 Mpairs/s) | — | **11.7×** / — |
+
+**Empirical CPU-vs-GPU crossover:** On Tesla T4, per-call host-to-device and
+kernel launch overhead is ~3–4 ms, so pure NumPy CPU wins on small chemistry
+products and per-pair bank assembly (`< 10^5` pairs per call, where NumPy
+already achieves 9.6–41.6× over legacy `MV`). Above ~`2.5 × 10^5` pairs per call
+(matching the `backend="auto"` threshold of `250,000` pairs), the fused CuPy
+`__popcll` kernel pulls decisively ahead—reaching 2.7× over NumPy on $\text{H}_2\text{O}$
+12q $H^2$ (92× vs. `MV`), 10–11.7× on 40q/64q multiword products, and 23.1× on
+100M-pair 12q dense outer products (289.7 Mpairs/s peak on 8q dense, 581.5× vs.
+legacy `MV`).
+
