@@ -1,0 +1,37 @@
+{
+  "figures": {
+    "fig1_shot_savings_and_grid.pdf": {
+      "sha256": "73deb838f782aff31a237a36fff75fad5820dd488ea0bdf9dca36e03da313d45",
+      "sources": {
+        "docs/restart/weighted_precision_declaration.json": "969609af9dca74c963cb89780bfe451d8a1212ccc5314ffbdcf953f37d972954",
+        "docs/restart/weighted_precision_results.json.gz": "cca0bf47ddbda59784d28f2cbe0cdb14dffd336508ef8fee281e3df014b1e976"
+      }
+    },
+    "fig2_r_emp_vs_r_hat.pdf": {
+      "sha256": "b1bc30ce1fecb9ef94871fb559a1767f763b58fbe9db43711025de917e79def7",
+      "sources": {
+        "docs/restart/weighted_precision_declaration.json": "969609af9dca74c963cb89780bfe451d8a1212ccc5314ffbdcf953f37d972954",
+        "docs/restart/weighted_precision_results.json.gz": "cca0bf47ddbda59784d28f2cbe0cdb14dffd336508ef8fee281e3df014b1e976"
+      }
+    },
+    "fig3_stretched_rank_and_width.pdf": {
+      "sha256": "b0ddd4fd8113db600c1558ce26fbdffd7d9632198e905b2ab0f8810d9ab6fab5",
+      "sources": {
+        "docs/restart/weighted_precision_declaration.json": "969609af9dca74c963cb89780bfe451d8a1212ccc5314ffbdcf953f37d972954",
+        "docs/restart/weighted_precision_results.json.gz": "cca0bf47ddbda59784d28f2cbe0cdb14dffd336508ef8fee281e3df014b1e976"
+      }
+    },
+    "fig4_noisy_bias_variance.pdf": {
+      "sha256": "ffd5deef75bd15b2dd2f0c4ff3d1af661286faed597de22349a59e5797e85a89",
+      "sources": {
+        "docs/restart/weighted_precision_declaration.json": "969609af9dca74c963cb89780bfe451d8a1212ccc5314ffbdcf953f37d972954",
+        "docs/restart/weighted_precision_results.json.gz": "cca0bf47ddbda59784d28f2cbe0cdb14dffd336508ef8fee281e3df014b1e976"
+      }
+    }
+  },
+  "generator": {
+    "path": "paper_weighted_precision/make_figures.py",
+    "sha256": "65851fd7b998475b1d3c7f402f6c1a72f6066690adad81c3d48dfc13377686c2"
+  },
+  "schema": "clifford_qc.weighted_precision_figure_manifest.v1"
+}

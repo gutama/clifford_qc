@@ -709,6 +709,31 @@
     {
       "commands": [
         [
+          "paper_weighted_precision/check_manuscript.py"
+        ],
+        [
+          "paper_weighted_precision/check_manuscript.py",
+          "--self-test"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "paper_weighted_precision_check_manuscript",
+      "inputs": [
+        "docs/restart/weighted_precision_declaration.json",
+        "docs/restart/weighted_precision_results.json.gz"
+      ],
+      "max_output_bytes": 16777216,
+      "tier": "core",
+      "timeout": 5,
+      "watch": [
+        "paper_weighted_precision/**",
+        "docs/restart/weighted_precision_declaration.json",
+        "docs/restart/weighted_precision_results.json.gz"
+      ]
+    },
+    {
+      "commands": [
+        [
           "benchmarks/check_phase17_more_declaration.py"
         ]
       ],

@@ -80,6 +80,7 @@ not be silently rewritten to match a later result.
 | [Measurement/ADAPT manuscript](../paper/README.md) | Measurement and adaptive-selection research. |
 | [A-CASE source snapshot](../paper_acase/README.md) | Historical paper source and its own provenance boundary. |
 | [DA-CASE manuscript](../paper_dacase/README.md) | Separate manuscript and validation scope. |
+| [Weighted measurement & precision manuscript](../paper_weighted_precision/README.md) | Short methods paper backed by the preregistered 1,408-acquisition Commit 2 record. |
 | [Citation metadata](../CITATION.cff) | Software and research citations. |
 
 Identify the method and software commit when reporting a result. Paper versions,
