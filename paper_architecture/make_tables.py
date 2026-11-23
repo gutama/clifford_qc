@@ -114,7 +114,7 @@ def _system(identifier: str) -> str:
 # describes.
 # ---------------------------------------------------------------------------
 KERNEL_MODULES = (
-    "multivector.py", "pauli_kernel.py", "pauli.py", "clifford.py", "gates.py",
+    "multivector.py", "pauli_kernel.py", "soa_kernel.py", "pauli.py", "clifford.py", "gates.py",
     "states.py", "fermion.py", "channels.py", "dense_reference.py",
     "sparse.py", "pauli_action.py", "pauli_structure.py", "diagnostics.py",
     "matrix.py", "selection.py",
