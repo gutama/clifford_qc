@@ -129,7 +129,7 @@ def render_protocol_banks(decl: dict[str, Any], record: dict[str, Any]) -> str:
             bank_col = label if idx == 0 else ""
             words_col = f"${sys_rec['words']:,}$" if idx == 0 else ""
             rank_col = (
-                f"${sys_rec['exact_rank']}$ (${spec[-1]:.4f}$ / ${tau_s:.3f}$)"
+                f"${sys_rec['exact_rank']}$ (${spec[-1]:.4f}$; ${tau_s:.3f}$)"
                 if idx == 0
                 else ""
             )

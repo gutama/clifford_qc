@@ -363,8 +363,8 @@ deterministically from \texttt{seed\_root = \wpSeedRoot} via NumPy
 \begin{table*}[t]
 \centering
 \caption{Molecular test banks, exact projected energy targets, minimum
-normalized overlap eigenvalue and cutoff (shown as \(\lambda_{\min}/\tau_S\),
-not their evaluated ratio), Pauli word counts, and static
+normalized overlap eigenvalue and cutoff (shown as \(\lambda_{\min}; \tau_S\)),
+Pauli word counts, and static
 Part~A compiled \texttt{graph\_state} plan metrics.  All numbers are generated
 from the committed Commit~2 record.}
 \label{tab:protocol_banks}
@@ -372,7 +372,7 @@ from the committed Commit~2 record.}
 \small
 \begin{tabular}{l r l r l r r r r}
 \toprule
-Bank & Words & Rank (\(\lambda_{\min} / \tau_S\)) & Exact \(E\) (Ha) & Arm & Settings & \(\Rhat\) & \(\mathrm{CZ}_{\mathrm{tot}}\) (\(\CZmax\)) & \(d_{2\mathrm{q},\max}\) \\
+Bank & Words & Rank (\(\lambda_{\min}; \tau_S\)) & Exact \(E\) (Ha) & Arm & Settings & \(\Rhat\) & \(\mathrm{CZ}_{\mathrm{tot}}\) (\(\CZmax\)) & \(d_{2\mathrm{q},\max}\) \\
 \midrule
 \tableinput{tables/protocol_banks.tex}
 \bottomrule
@@ -431,6 +431,14 @@ uniform acquisition uses \(\max(2,\lfloor T_0/M\rfloor)\) shots per setting.
 Later rounds use the remaining cumulative target, subject to the declared
 minimum budget; thus the first look can differ by integer rounding across
 arms, while subsequent looks share the same physical-shot grid here. The
+\(2.5\times\) geometric look spacing was chosen deliberately to span up to
+roughly two orders of magnitude in total physical shots across only \(L=5\)--\(6\)
+sequential looks, trading coarser shot-count quantization against the
+sequential multiple-look Bonferroni multipliers
+(\(z_{1-\delta/(2L)}\) and \(z_{1-\delta_r/(6L)}\)) and per-look
+resampling cost; a finer grid (such as \(1.5\times\) or \(\sqrt{2}\times\))
+would resolve smaller cost differences at the expense of more looks, wider
+schedule-adjusted intervals, and stricter rank-margin thresholds. The
 two-stage arms pay a separate same-block-size pilot (nominally 20,000 shots
 for 8q and 250,000 for 10q) and subtract its realized shots before acquiring
 fresh data; pilot outcomes are not pooled into the final acquisition.
@@ -644,6 +652,13 @@ Arm / Bank & True stops & False (RR) & Med.\ / Mean (M) & Mean ratio (95\% CI) &
 \end{tabular}
 \end{table*}
 
+Both analyses in this subsection evaluate the trade-off between stopping-guard
+reliability and physical-shot cost: Panel~A tests whether weighted \(k=2\)
+measurement plans preserve rank-margin reliability on a near-cutoff ten-qubit
+bank, whereas Panel~B quantifies the extra shot and resampling cost of adding
+the opt-in bootstrap half-width guard on the well-conditioned eight-qubit
+banks.
+
 Both weighted \(k=2\) arms pass P2 on \texttt{lih\_10q\_stretched}
 (Table~\ref{tab:p2_and_width}, Panel~A; Fig.~\ref{fig:stretched_and_width}(a)).
 With \(\lambda_{\min} = 0.10417\) sitting just \(1.7\times 10^{-4}\) above
@@ -662,6 +677,7 @@ false stops, and \(0\) reduced-rank stops. All four arms have median cost
 95\% bootstrap interval (\wpStretchedRitzWidth{}\,\(\mHa\), \(16/16\)
 coverage).
 
+Turning from rank-margin reliability to explicit interval-width control,
 Table~\ref{tab:p2_and_width} (Panel~B) and
 Fig.~\ref{fig:stretched_and_width}(b) quantify the opt-in bootstrap half-width
 guard (\texttt{si\_fc\_width} vs.\ \texttt{si\_fc}).  Enforcing a \(1.6\,\mHa\)
@@ -751,9 +767,19 @@ not impose a shot-cost criterion or require absolute error below the target.
 The Part~B ledger therefore also reports mean shot cost: for H\(_4\), tight
 gating uses \(2.5\times\) the mean shots of unconstrained FC under either
 pure-2Q regime, while markedly reducing bias. For LiH, QWC is cheaper than
-both FC alternatives and exactly unbiased under pure-2Q noise. These are
-accuracy--cost trade-offs, not evidence that tight gating dominates every
-alternative.
+both FC alternatives and exactly unbiased under pure-2Q noise. Structurally,
+tight gating (\(\CZmax=1\)) expands the FC partitions back to \(307\),
+\(720\), and \(745\) settings on BeH\(_2\), LiH, and H\(_4\) --- nearly
+identical to QWC's \(312\), \(768\), and \(794\) settings
+(Table~\ref{tab:part_b_noisy}) --- effectively reverting almost to QWC under
+the declared gate cap. By contrast, Part~A's depth-1 disjoint-pair grouping
+(\texttt{si\_k2}) achieves much stronger compression (\(44\), \(298\), and
+\(399\) settings, \(\CZmax=4\)) while passing the ten-qubit rank-stress test.
+Because Part~B was frozen prior to evaluation without a \texttt{si\_k2} arm,
+benchmarking depth-1 \(k=2\) grouping directly against tight and moderate
+GALIC gating under pure-2Q noise is a natural follow-up. Overall, these
+results are accuracy--cost trade-offs, not evidence that tight gating dominates
+every alternative.
 
 \section{Scope, Limitations, and Practical Guidance}
 \label{sec:discussion}
@@ -777,8 +803,11 @@ measurement in \pkg{}:
     mitigation.}  At \(p_{2\mathrm{q}}=0.002, r_{\mathrm{route}}=3\),
     \(\CZmax=1\) gives sub-mHa absolute bias on these banks; for the higher
     pure-2Q noise rate, compare against QWC (\(\CZmax=0\)) before accepting
-    entangling readouts. Hardware decisions require measured calibration and
-    a separate systematic-error budget.
+    entangling readouts. The \texttt{sc\_card\_full} regime was included
+    specifically to bound the unmitigated systematic-error floor of the full
+    device card and demonstrate why any hardware deployment must pair GALIC
+    two-qubit gating with calibrated readout error mitigation and a separate
+    systematic-error budget.
   \item \textbf{Keep rank/margin confirmation as the default stopping guard and
     bootstrap half-width gating as opt-in} when tighter empirical error
     control justifies its observed shot overhead.
@@ -792,6 +821,12 @@ claim hardware performance, asymptotic scaling, quantum advantage, or
 finite-sample/anytime-valid interval guarantees.  The single failed P1a cell on
 LiH (\(k=8\)) and the combined-noise failure of all arms under
 \texttt{sc\_card\_full} are retained as first-class experimental outcomes.
+All four banks share a fixed two-determinant reference state
+\(\cos(0.3)\ket{a}+e^{0.2i}\sin(0.3)\ket{b}\) and small subspace dimension;
+because the observed variance savings and the QWC-versus-FC crossover on LiH
+depend on state-specific marginal variances and within-setting covariances,
+relative performance may shift for more strongly correlated reference states
+or larger, more ill-conditioned subspaces (\(m \ge 10\)).
 The bank and schedule design and decision rules were informed by development
 simulations before freezing. Independent evaluation
 replicates test sampling variability conditional on those choices, not
@@ -800,8 +835,9 @@ near-cutoff experiment is not a sweep over ranks or condition numbers, and
 the small replicate counts limit conclusions about rare failures. In
 particular, \(16/16\) successes corresponds to a two-sided 95\% Wilson
 lower bound of about 0.81, not guaranteed success. Alternative adaptive
-allocations, overlapping measurement groups, finer look grids and
-hardware-calibrated mitigation remain relevant comparisons for future work.
+allocations, noisy \(k=2\) benchmarks, overlapping measurement groups, finer
+look grids, and hardware-calibrated mitigation remain relevant comparisons for
+future work.
 
 \section{Conclusion}
 \label{sec:conclusion}
