@@ -42,6 +42,8 @@ openfermion = ["openfermion>=1.6"]
 pytket = ["pytket>=1.30"]
 pennylane = ["pennylane>=0.38"]
 pyzx = ["pyzx>=0.8", "numpy>=1.24"]
+cupy = ["cupy-cuda12x>=13"]
+torch = ["torch>=2.2"]
 bridges = ["clifford-qc[stim,openfermion,pytket,pennylane,pyzx]"]
 release = ["build>=1", "twine>=5"]
 

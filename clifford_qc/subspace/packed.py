@@ -142,7 +142,18 @@ class GlobalWordTable:
         """
         if not codes:
             return []
-        wanted = np.array(codes, dtype=np.int64)
+        try:
+            wanted = np.array(codes, dtype=np.int64)
+        except OverflowError as exc:
+            raise OverflowError(
+                "GlobalWordTable stores signed int64 codes (n <= 31); "
+                "use clifford_qc.soa_kernel.SoAWordTable for n > 31"
+            ) from exc
+        if bool(np.any(wanted < 0)):
+            raise OverflowError(
+                "GlobalWordTable stores signed int64 codes (n <= 31); "
+                "use clifford_qc.soa_kernel.SoAWordTable for n > 31"
+            )
         positions = ((wanted.astype(np.uint64) * np.uint64(self._MIX))
                      >> np.uint64(64 - self._shift)).astype(np.intp)
         occupants = self._slots[positions]
@@ -162,6 +173,14 @@ class GlobalWordTable:
 
     def intern(self, code: int) -> int:
         """Return this word's index, assigning the next one if it is new."""
+        if isinstance(code, bool) or not isinstance(code, (int, np.integer)):
+            raise TypeError(f"GlobalWordTable expects an integer Pauli code, got {type(code).__name__}")
+        code = int(code)
+        if code < 0 or code > (1 << 63) - 1:
+            raise OverflowError(
+                "GlobalWordTable stores signed int64 codes (n <= 31); "
+                "use clifford_qc.soa_kernel.SoAWordTable for n > 31"
+            )
         position = self._probe(code)
         occupant = self._slots[position]
         if occupant != 0:
