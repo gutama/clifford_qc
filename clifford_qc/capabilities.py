@@ -111,6 +111,16 @@ CAPABILITIES: dict[str, Capability] = {
             "PyZX diagram interchange and circuit optimisation",
             ("bridges.pyzx_bridge",),
         ),
+        Capability(
+            "soa_gpu_cupy", ("cupy",), "cupy",
+            "fused CUDA __popcll SoA Pauli products and commutators",
+            ("soa_kernel.soa_mul", "soa_kernel.soa_commutator"),
+        ),
+        Capability(
+            "soa_gpu_torch", ("torch",), "torch",
+            "PyTorch CUDA SoA Pauli products and commutators",
+            ("soa_kernel.soa_mul", "soa_kernel.soa_commutator"),
+        ),
     )
 }
 
