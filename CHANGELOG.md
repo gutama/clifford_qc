@@ -14,6 +14,30 @@ Benchmark campaigns, their declarations and their outcomes are recorded in
 
 ### Added
 
+- **Structure-of-arrays product kernel in the exact bank (Rank 5b).**
+  `MatrixElementBank(..., kernel="soa")`, `StreamingMatrixElementBank` (which
+  inherits it), `projected_matrices(..., kernel="soa")` and
+  `solve_subspace(..., kernel="soa")` compute `H A_j`, `A_i' A_j` and
+  `A_i' H A_j` with `clifford_qc.soa_kernel.soa_mul` instead of the
+  dictionary product. The kernel batches XOR/popcount over packed code arrays,
+  merges by sorting, and never reads or fills the process-wide word memo.
+  It produces the same words and coefficients (tested to `1e-12`; equal to
+  the last bit on the bundled molecular pools), the same word ledger, and the
+  same A-CASE selections. Rows are inserted in ascending code order, so a
+  matrix entry may differ from the `mv` route in its last few ulps.
+  `kernel="mv"` stays the default and the only route committed records
+  replay through; `kernel="soa"` is a speed option for new runs and reports
+  `product_kernel` in `projected_matrices` resources.
+  `PauliSoA.to_mv()` now enforces `MV`'s invariants on whole arrays and adopts
+  the dictionary directly, about 5x faster than re-validating each term.
+  `benchmarks/run_soa_bank_throughput.py` measures pair throughput on the
+  frozen Phase 2M pools and one full A-CASE solve per kernel in fresh
+  interpreters, and checks the selected labels and energy against
+  `bank_policy_matrix.json`; its result is
+  `benchmarks/timing_results/soa_bank_throughput.json`, kept outside
+  `reference_results/` because it is a host-specific timing record, not a
+  replayable one.
+
 - **Bootstrap interval at the acquisition stop**
   ([docs/restart/BOOTSTRAP_STOP.md](docs/restart/BOOTSTRAP_STOP.md)).
   `acquire_ritz(bootstrap_replicates=..., bootstrap_seed=...)` resamples the

@@ -50,8 +50,30 @@ class ProjectedProblem:
         )
 
 
+# How pair products are *computed*, independent of how rows are stored.
+# ``mv`` is the dictionary geometric product ``MV.__mul__`` and stays the
+# default: it fixes each row's insertion order, which fixes the summation order
+# of ``MV.trace_pairing``, and every committed record was produced that way.
+# ``soa`` runs the same products through :mod:`clifford_qc.soa_kernel`
+# (batched XOR/popcount over structure-of-arrays codes, merged by sorting, and
+# no process-wide word memo). It yields the same words and coefficients as
+# ``mv`` -- identical in exact arithmetic and, on the test suite's banks,
+# usually to the last bit -- but inserts each row's words in ascending code
+# order, so a matrix entry can differ from the ``mv`` route in its last few
+# ulps. It is a speed option for new runs, not a replay route for old ones.
+KERNELS = ("mv", "soa")
+DEFAULT_KERNEL = "mv"
+
+
+def _check_kernel(kernel: str) -> str:
+    if kernel not in KERNELS:
+        raise ValueError(f"kernel must be one of {KERNELS}, got {kernel!r}")
+    return kernel
+
+
 def projected_matrices(rho: MV, hamiltonian, generators: Sequence,
-                       *, track_support: bool = True) -> tuple[np.ndarray, np.ndarray, dict]:
+                       *, track_support: bool = True,
+                       kernel: str = DEFAULT_KERNEL) -> tuple[np.ndarray, np.ndarray, dict]:
     """Assemble ``(S, H)`` exactly, plus the §6 resource metrics.
 
     Two evaluation routes, identical in exact arithmetic:
@@ -69,7 +91,13 @@ def projected_matrices(rho: MV, hamiltonian, generators: Sequence,
     It is much cheaper on wide generators, and correspondingly blind: no
     element operator is ever formed, so ``W`` and ``S_H`` are reported as
     ``None``. Use it to explore, not to make a compactness claim.
+
+    ``kernel`` selects how operator products are computed (see ``KERNELS``):
+    ``"mv"`` (default) is the dictionary product every committed record used;
+    ``"soa"`` is the vectorized structure-of-arrays kernel. Both report the
+    same resources; matrix entries agree to floating-point summation order.
     """
+    _check_kernel(kernel)
     gens = as_generators(generators)
     H = as_multivector(hamiltonian)
     if not H.is_hermitian():
@@ -88,14 +116,26 @@ def projected_matrices(rho: MV, hamiltonian, generators: Sequence,
     max_element_support = 0
     products = 0
 
-    h_acted = [H * g.mv for g in gens]  # H A_j, shared down each column
+    if kernel == "soa":
+        from ..soa_kernel import PauliSoA, soa_mul
+        soa_gens = [PauliSoA.from_mv(g.mv) for g in gens]
+        soa_h = PauliSoA.from_mv(H)
+        soa_h_acted = [soa_mul(soa_h, g) for g in soa_gens]
+        soa_adjoints = [g.dagger() for g in soa_gens]
+        h_acted = [op.to_mv() for op in soa_h_acted]
+    else:
+        h_acted = [H * g.mv for g in gens]  # H A_j, shared down each column
     products += m
     if track_support:
         adjoints = [g.mv.dagger() for g in gens]
         for j in range(m):
             for i in range(j + 1):
-                overlap_op = adjoints[i] * gens[j].mv
-                element_op = adjoints[i] * h_acted[j]
+                if kernel == "soa":
+                    overlap_op = soa_mul(soa_adjoints[i], soa_gens[j]).to_mv()
+                    element_op = soa_mul(soa_adjoints[i], soa_h_acted[j]).to_mv()
+                else:
+                    overlap_op = adjoints[i] * gens[j].mv
+                    element_op = adjoints[i] * h_acted[j]
                 products += 2
                 if overlap_op.nnz() > max_overlap_support:
                     max_overlap_support = overlap_op.nnz()
@@ -123,7 +163,7 @@ def projected_matrices(rho: MV, hamiltonian, generators: Sequence,
             S[j, i] = S[i, j].conjugate()
             Hm[j, i] = Hm[i, j].conjugate()
 
-    resources = {
+    resources: dict[str, Any] = {
         "basis_size": m,
         "support_tracked": bool(track_support),
         "word_universe": len(words) if track_support else None,
@@ -135,6 +175,10 @@ def projected_matrices(rho: MV, hamiltonian, generators: Sequence,
         "reference_purity": purity,
         "assemble_seconds": time.perf_counter() - started,
     }
+    # Reported only off the default route, so the ``mv`` resources -- which
+    # committed records store key for key -- are unchanged.
+    if kernel != DEFAULT_KERNEL:
+        resources["product_kernel"] = kernel
     return S, Hm, resources
 
 
@@ -142,7 +186,8 @@ def solve_subspace(rho: MV, hamiltonian, generators: Sequence, *,
                    tau_s: float = DEFAULT_TAU_S, rel_tau: float = 0.0,
                    max_condition: float = DEFAULT_MAX_CONDITION,
                    norm_floor: float = DEFAULT_NORM_FLOOR,
-                   track_support: bool = True) -> SubspaceResult:
+                   track_support: bool = True,
+                   kernel: str = DEFAULT_KERNEL) -> SubspaceResult:
     """Assemble and solve one fixed-basis A-CASE subspace.
 
     The Ritz values obey ``E_sub >= E_0`` and are monotone non-increasing under
@@ -152,7 +197,8 @@ def solve_subspace(rho: MV, hamiltonian, generators: Sequence, *,
     """
     gens = as_generators(generators)
     S, Hm, resources = projected_matrices(rho, hamiltonian, gens,
-                                          track_support=track_support)
+                                          track_support=track_support,
+                                          kernel=kernel)
     return solve_projected(S, Hm, [g.label for g in gens], tau_s=tau_s,
                            rel_tau=rel_tau, max_condition=max_condition,
                            norm_floor=norm_floor, resources=resources)
@@ -173,6 +219,7 @@ STORAGE_POLICY = "retain_all"
 # equivalence tests exist to hold.
 STORAGE_BACKENDS = ("object", "packed")
 DEFAULT_STORAGE_BACKEND = "object"
+
 
 
 def _identity_key(mv: MV) -> tuple:
@@ -205,7 +252,9 @@ class MatrixElementBank:
 
     def __init__(self, rho: MV | ExactReference, hamiltonian, generators: Iterable = (), *,
                  storage: str = DEFAULT_STORAGE_BACKEND,
-                 layout: str = "interleaved", coefficient_only: bool = False):
+                 layout: str = "interleaved", coefficient_only: bool = False,
+                 kernel: str = DEFAULT_KERNEL):
+        _check_kernel(kernel)
         if storage not in STORAGE_BACKENDS:
             raise ValueError(
                 f"storage must be one of {STORAGE_BACKENDS}, got {storage!r}")
@@ -246,6 +295,17 @@ class MatrixElementBank:
         self._generators: list[Generator] = []
         self._adjoints: list[MV] = []
         self._h_acted: list[MV] = []
+        # ``kernel="soa"`` keeps a structure-of-arrays twin of every generator,
+        # adjoint and ``H A_j`` so pair products never leave the array kernel;
+        # the ``MV`` lists above stay populated for every other reader.
+        self._kernel = kernel
+        self._soa_H = None
+        self._soa_generators: list[Any] = []
+        self._soa_adjoints: list[Any] = []
+        self._soa_h_acted: list[Any] = []
+        if kernel == "soa":
+            from ..soa_kernel import PauliSoA
+            self._soa_H = PauliSoA.from_mv(self._H)
         self._by_label: dict[str, int] = {}
         self._by_terms: dict[tuple, int] = {}
 
@@ -338,7 +398,16 @@ class MatrixElementBank:
         self._generators.append(gen)
         self._adjoints.append(gen.mv.dagger())
         started = time.perf_counter()
-        self._h_acted.append(self._H * gen.mv)
+        if self._kernel == "soa":
+            from ..soa_kernel import PauliSoA, soa_mul
+            soa_gen = PauliSoA.from_mv(gen.mv)
+            soa_acted = soa_mul(cast(PauliSoA, self._soa_H), soa_gen)
+            self._soa_generators.append(soa_gen)
+            self._soa_adjoints.append(soa_gen.dagger())
+            self._soa_h_acted.append(soa_acted)
+            self._h_acted.append(soa_acted.to_mv())
+        else:
+            self._h_acted.append(self._H * gen.mv)
         self._seconds += time.perf_counter() - started
         self._by_label[gen.label] = index
         self._by_terms[key] = index
@@ -379,6 +448,21 @@ class MatrixElementBank:
                 self._universe.add(code)
                 self._new_words[owner] += 1
 
+    @property
+    def kernel(self) -> str:
+        """How pair products are computed: ``"mv"`` or ``"soa"`` (see ``KERNELS``)."""
+        return self._kernel
+
+    def _pair_products(self, i: int, j: int) -> tuple[MV, MV]:
+        """``(A_i' A_j, A_i' H A_j)`` through the bank's product kernel."""
+        if self._kernel == "soa":
+            from ..soa_kernel import soa_mul
+            adjoint = self._soa_adjoints[i]
+            return (soa_mul(adjoint, self._soa_generators[j]).to_mv(),
+                    soa_mul(adjoint, self._soa_h_acted[j]).to_mv())
+        return (self._adjoints[i] * self._generators[j].mv,
+                self._adjoints[i] * self._h_acted[j])
+
     def _build_pair(self, i: int, j: int, *, evaluate: bool = False) -> None:
         """Compute and cache the ``i <= j`` element operators of one pair.
 
@@ -390,8 +474,7 @@ class MatrixElementBank:
         make committed records irreproducible across the two routes.
         """
         started = time.perf_counter()
-        overlap_op = self._adjoints[i] * self._generators[j].mv
-        element_op = self._adjoints[i] * self._h_acted[j]
+        overlap_op, element_op = self._pair_products(i, j)
         self._seconds += time.perf_counter() - started
         # Accounting runs on the freshly built operators, before storage gets a
         # say, so the word ledger is identical under either backend.

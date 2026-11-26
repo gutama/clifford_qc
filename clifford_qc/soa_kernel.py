@@ -167,7 +167,8 @@ def array_to_int_codes(n: int, codes: np.ndarray) -> list[int]:
     """Convert packed single-word or multiword codes back to Python ints."""
     validate_n(n)
     if codes.ndim == 1:
-        return [int(x) for x in codes.tolist()]
+        # ``tolist`` already yields Python ints for unsigned integer arrays.
+        return codes.tolist()
     w = codes.shape[1]
     out: list[int] = []
     for row in codes.tolist():
@@ -497,9 +498,25 @@ class PauliSoA:
         return out
 
     def to_mv(self) -> Any:
-        from .multivector import MV
+        """Convert to an :class:`~clifford_qc.multivector.MV` with the same terms.
 
-        return MV(self.n, self.to_terms())
+        The result equals ``MV(self.n, self.to_terms())`` term for term and
+        byte for byte, including ``MV``'s absolute ``TOL`` pruning (an operator
+        built with ``tol=0.0`` may hold smaller coefficients). Terms are
+        inserted in ascending code order. The invariants ``MV.__init__`` would
+        re-check per term -- valid codes, ``abs(c) > TOL``, no ``-0.0`` -- are
+        enforced here on whole arrays, so the dictionary is adopted directly.
+        """
+        from .multivector import MV, TOL as MV_TOL
+
+        codes, coeffs = self.codes, self.coeffs
+        if coeffs.size:
+            keep = np.abs(coeffs) > MV_TOL
+            if not bool(np.all(keep)):
+                codes, coeffs = codes[keep], coeffs[keep]
+            coeffs = _canonical_complex(coeffs)
+        return MV._from_canonical_terms(
+            self.n, dict(zip(array_to_int_codes(self.n, codes), coeffs.tolist())))
 
     def _coerce(self, other: Any) -> "PauliSoA":
         if isinstance(other, PauliSoA):

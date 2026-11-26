@@ -183,6 +183,23 @@ class MV:
                     self.terms[kk] = self.terms.get(kk, 0j) + cv
             self.terms = {k: v for k, v in self.terms.items() if abs(v) > TOL}
 
+    @classmethod
+    def _from_canonical_terms(cls, n: int, terms: dict[int, complex]) -> "MV":
+        """Adopt ``terms`` without re-validating them -- an internal fast path.
+
+        The caller guarantees what :meth:`__init__` would otherwise establish:
+        every key is a valid ``int`` word code for ``n`` qubits, every value is
+        a Python ``complex`` with ``abs(value) > TOL``, and no component is
+        ``-0.0``. :meth:`clifford_qc.soa_kernel.PauliSoA.to_mv` is the one
+        producer; it enforces those invariants with array operations, which is
+        what makes adopting its output cheaper than replaying it term by term.
+        The dictionary is adopted, not copied.
+        """
+        obj = cls.__new__(cls)
+        obj.n = n
+        obj.terms = terms
+        return obj
+
     @staticmethod
     def scalar(n: int, c: complex = 1.0) -> "MV":
         return MV(n, {0: c})
