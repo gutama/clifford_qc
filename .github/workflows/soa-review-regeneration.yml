@@ -1,0 +1,61 @@
+name: SoA review artifact generation
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    if: github.event.pull_request.number == 195 && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/record-environment
+        with:
+          reference-record: protocol_cost.json
+      - run: python -m pip install matplotlib -c constraints.txt
+      - name: Regenerate architecture outputs
+        run: |
+          python paper_architecture/make_tables.py
+          python -c 'from paper_architecture import make_figures as f; f._style(); f.layer_stack(); f._write_manifest()'
+      - name: Targeted validation
+        run: |
+          ruff check clifford_qc molecular tests benchmarks
+          python -m mypy
+          python -m pytest tests/test_soa_bank_kernel.py tests/test_soa_kernel.py tests/test_paper_architecture_gate.py -q
+          python paper_architecture/check_manuscript.py
+      - name: Source-bound H4 solve and pair throughput smoke
+        if: ${{ !cancelled() }}
+        run: |
+          python benchmarks/run_soa_bank_throughput.py --systems h4 h2o_stretched --pairs 100 --repeats 2 --solve-system h4 --solve-kernels mv soa auto
+      - name: Export generated artifacts
+        if: ${{ !cancelled() }}
+        run: |
+          python - <<'PY'
+          import base64
+          import hashlib
+          import subprocess
+          from pathlib import Path
+          paths = subprocess.check_output(["git", "diff", "--name-only", "--", "paper_architecture"], text=True).splitlines()
+          current = "benchmarks/timing_results/soa_bank_throughput_current.json"
+          if Path(current).is_file():
+              paths.append(current)
+          for path in paths:
+              payload = Path(path).read_bytes()
+              encoded = base64.b64encode(payload).decode("ascii")
+              print("CQC_ARTIFACT_META|" + path + "|" + str(len(payload)) + "|" + hashlib.sha256(payload).hexdigest())
+              for offset in range(0, len(encoded), 4000):
+                  print("CQC_ARTIFACT_CHUNK|" + path + "|" + str(offset) + "|" + encoded[offset:offset+4000])
+          PY
