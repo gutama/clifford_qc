@@ -132,8 +132,8 @@ class GlobalWordTable:
         word against a dict's ``138``. Most of those calls are *hits*: a bank
         with coefficient reuse of fifty sees each word about fifty times and
         assigns it once. So the first probe is computed for the whole row at
-        once, and only the entries it does not resolve -- an empty slot, or a
-        collision landing on some other word -- fall back to the scalar path.
+        once, including up to eight probes along existing collision chains.
+        Unseen words and longer chains fall back to the scalar path.
 
         Resolving hits against the slot array as it stands at entry is safe
         even though the fallback may grow the table underneath: assigned indices
@@ -156,15 +156,25 @@ class GlobalWordTable:
             )
         positions = ((wanted.astype(np.uint64) * np.uint64(self._MIX))
                      >> np.uint64(64 - self._shift)).astype(np.intp)
-        occupants = self._slots[positions]
-        # -1 marks "the first probe did not settle this one": either the slot
-        # was empty or it holds a different word. Both go to the scalar path.
+        # Resolve existing entries against the immutable table at entry,
+        # including short collision chains. Unseen words and long chains
+        # still pass through intern() in emission order: IDs never move.
         out = np.full(len(wanted), -1, dtype=np.int64)
-        occupied = np.flatnonzero(occupants)
-        if occupied.size:
+        pending = np.arange(len(wanted), dtype=np.intp)
+        mask = len(self._slots) - 1
+        for _ in range(8):
+            occupants = self._slots[positions[pending]]
+            occupied = occupants != 0
+            live = pending[occupied]
+            if not live.size:
+                break
             indices = occupants[occupied].astype(np.intp) - 1
-            hit = self._codes[indices] == wanted[occupied]
-            out[occupied[hit]] = indices[hit]
+            hit = self._codes[indices] == wanted[live]
+            out[live[hit]] = indices[hit]
+            pending = live[~hit]
+            if not pending.size:
+                break
+            positions[pending] = (positions[pending] + 1) & mask
         resolved = out.tolist()
         if (out < 0).any():
             for position in np.flatnonzero(out < 0):
@@ -214,7 +224,10 @@ class GlobalWordTable:
         return int(self._codes[index])
 
     def codes(self, indices: Iterable[int]) -> list[int]:
-        return [int(self._codes[i]) for i in indices]
+        index_array = (np.asarray(indices, dtype=np.intp)
+                       if isinstance(indices, (np.ndarray, list, tuple))
+                       else np.fromiter(indices, dtype=np.intp))
+        return self._codes[index_array].tolist()
 
     def nbytes(self) -> int:
         """The table's own arrays. No boxed object is counted, or held.
@@ -341,29 +354,21 @@ class PackedRowStore:
             raise KeyError(f"row {key} is already packed; rows are immutable")
         if operator.n != self.n:
             raise ValueError("operator lives in a different algebra")
-        terms = list(operator.terms.items())
-        interned = self._table.intern_many([code for code, _ in terms])
-        emitted = [(index, coefficient)
-                   for index, (_, coefficient) in zip(interned, terms)]
-        order = sorted(range(len(emitted)), key=lambda p: emitted[p][0])
-        # ``generation[p]`` is the ascending slot the p-th emitted term landed
-        # in, so walking p in order replays the emission sequence.
-        generation = np.empty(len(emitted), dtype=INDEX_DTYPE)
-        for ascending_slot, emitted_position in enumerate(order):
-            generation[emitted_position] = ascending_slot
-        indices = np.fromiter((emitted[p][0] for p in order),
-                              dtype=INDEX_DTYPE, count=len(order))
-        start, stop = self._indices.extend(indices)
+        terms = operator.terms
+        interned = np.asarray(self._table.intern_many(list(terms)), dtype=INDEX_DTYPE)
+        order = np.argsort(interned, kind="stable")
+        # generation[p] is the ascending slot of emitted term p. Compute the
+        # same inverse permutation in NumPy; never change the pairing order.
+        generation = np.empty(len(interned), dtype=INDEX_DTYPE)
+        generation[order] = np.arange(len(order), dtype=INDEX_DTYPE)
+        start, stop = self._indices.extend(interned[order])
         self._generation.extend(generation)
-        values = [emitted[p][1] for p in order]
+        values = np.fromiter(terms.values(), dtype=np.complex128, count=len(terms))[order]
         if self.layout == "interleaved":
-            self._data.extend(np.fromiter(values, dtype=np.complex128,
-                                          count=len(values)))
+            self._data.extend(values)
         else:
-            self._real.extend(np.fromiter((v.real for v in values),
-                                          dtype=np.float64, count=len(values)))
-            self._imag.extend(np.fromiter((v.imag for v in values),
-                                          dtype=np.float64, count=len(values)))
+            self._real.extend(values.real)
+            self._imag.extend(values.imag)
         self._rows[key] = (start, stop)
 
     # ---------------------------------------------------------------- read

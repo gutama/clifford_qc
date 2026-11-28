@@ -27,6 +27,7 @@ claim, and wall times depend on the host recorded beside them. Run
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import platform
@@ -44,7 +45,8 @@ import numpy as np  # noqa: E402
 
 CONFIG = ROOT / "benchmarks/configs/bank_policy_matrix.json"
 FROZEN = ROOT / "benchmarks/reference_results/bank_policy_matrix.json"
-OUTPUT = ROOT / "benchmarks/timing_results/soa_bank_throughput.json"
+OUTPUT = ROOT / "benchmarks/timing_results/soa_bank_throughput_current.json"
+ARCHIVE = ROOT / "benchmarks/timing_results/soa_bank_throughput.json"
 KERNELS = ("mv", "soa")
 ARM_BY_STORAGE = {"object": "object_retain", "packed": "packed_retain"}
 
@@ -95,11 +97,27 @@ def _cpu_model():
     return platform.processor() or None
 
 
-def git_head():
-    try:
-        return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-    except (OSError, subprocess.CalledProcessError):
-        return None
+def source_identity(specs):
+    """Bind the actual run to committed, retrievable code and frozen inputs."""
+    def git(*args):
+        return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
+
+    paths = sorted({CONFIG, FROZEN, Path(__file__).resolve(),
+                    *(ROOT / spec["source"]["path"] for spec in specs)})
+    relative = [path.relative_to(ROOT).as_posix() for path in paths]
+    dirty = git("status", "--porcelain", "--untracked-files=all", "--",
+                "clifford_qc", *relative)
+    if dirty:
+        raise ValueError(f"timing needs clean committed sources and inputs:\n{dirty}")
+    for path in relative:
+        git("ls-files", "--error-unmatch", "--", path)
+    return {
+        "status": "clean_committed_source",
+        "commit": git("rev-parse", "HEAD"),
+        "package_tree": git("rev-parse", "HEAD:clifford_qc"),
+        "inputs_sha256": {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
+                          for name in relative},
+    }
 
 
 # ------------------------------------------------------------------ pairs
@@ -176,6 +194,7 @@ def solve_worker(system_id, kernel, storage):
     finished = time.perf_counter()
     return {
         "system": system_id, "kernel": kernel, "storage": storage,
+        "effective_kernel": bank.kernel,
         "basis_size": len(result.indices),
         "preparation_seconds": prepared - started,
         "solve_seconds": finished - prepared,
@@ -202,6 +221,8 @@ def measure_solve(system_id, storage, kernels, energy_atol):
     for cell in json.loads(FROZEN.read_text())["cells"]:
         if cell["system"] == system_id and cell["arm"][0] == arm:
             frozen = cell
+    if frozen is None:
+        raise ValueError(f"no frozen control cell for {system_id}/{arm}")
     checks = {}
     for kernel, run in runs.items():
         check = {}
@@ -219,7 +240,7 @@ def measure_solve(system_id, storage, kernels, energy_atol):
         checks[kernel] = check
     summary = {"system": system_id, "storage": storage, "runs": runs, "frozen_checks": checks,
                "energy_atol": energy_atol}
-    if set(runs) == set(KERNELS):
+    if set(KERNELS).issubset(runs):
         summary["speedup_solve"] = runs["mv"]["solve_seconds"] / runs["soa"]["solve_seconds"]
         summary["speedup_products"] = runs["mv"]["product_seconds"] / runs["soa"]["product_seconds"]
     return summary
@@ -238,7 +259,8 @@ def main(argv=None):
     parser.add_argument("--solve-storage", choices=sorted(ARM_BY_STORAGE), default="packed",
                         help="packed keeps peak RSS near 2.6 GiB on h2o_stretched; "
                              "object needs about 10 GiB")
-    parser.add_argument("--solve-kernels", nargs="+", choices=KERNELS, default=list(KERNELS))
+    parser.add_argument("--solve-kernels", nargs="+", choices=(*KERNELS, "auto"),
+                        default=list(KERNELS))
     parser.add_argument("--energy-atol", type=float, default=1e-10)
     parser.add_argument("--skip-solve", action="store_true")
     parser.add_argument("--output", type=Path, default=OUTPUT)
@@ -248,12 +270,22 @@ def main(argv=None):
         print(json.dumps(solve_worker(*args.worker)))
         return 0
 
+    if args.output.resolve() == ARCHIVE.resolve():
+        parser.error("the historical timing archive is immutable; use another output path")
+    if args.pairs < 1 or args.repeats < 1:
+        parser.error("--pairs and --repeats must be positive")
+    if not np.isfinite(args.atol) or args.atol < 0 or not np.isfinite(args.energy_atol) or args.energy_atol < 0:
+        parser.error("tolerances must be finite and nonnegative")
     config = load_config()
+    specs = [system_spec(config, name) for name in args.systems]
+    if not args.skip_solve:
+        specs.append(system_spec(config, args.solve_system))
+    source = source_identity(specs)
     record = {
-        "schema": "clifford_qc.soa_bank_throughput.v1",
-        "claim_boundary": ("Timing only. Wall times are host-specific; the parity and "
-                           "frozen-label checks are the portable part of this record."),
-        "git_head": git_head(), "host": host(),
+        "schema": "clifford_qc.soa_bank_throughput.v2",
+        "claim_boundary": ("Timing only. Wall times are host-specific; parity and "
+                           "frozen-label checks apply to the declared workloads."),
+        "git_head": source["commit"], "source_identity": source, "host": host(),
         "pairs": [measure_pairs(system_spec(config, s), args.pairs, args.repeats, args.atol)
                   for s in args.systems],
     }
@@ -265,7 +297,7 @@ def main(argv=None):
         record["solve"] = measure_solve(args.solve_system, args.solve_storage,
                                         args.solve_kernels, args.energy_atol)
     passed = all(item["parity"]["passed"] for item in record["pairs"]) and all(
-        check.get("passed", True) for check in record.get("solve", {}).get("frozen_checks", {}).values())
+        check.get("passed", False) for check in record.get("solve", {}).get("frozen_checks", {}).values())
     record["passed"] = passed
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(record, indent=1, sort_keys=True) + "\n")

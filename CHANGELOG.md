@@ -14,29 +14,25 @@ Benchmark campaigns, their declarations and their outcomes are recorded in
 
 ### Added
 
-- **Structure-of-arrays product kernel in the exact bank (Rank 5b).**
-  `MatrixElementBank(..., kernel="soa")`, `StreamingMatrixElementBank` (which
-  inherits it), `projected_matrices(..., kernel="soa")` and
-  `solve_subspace(..., kernel="soa")` compute `H A_j`, `A_i' A_j` and
-  `A_i' H A_j` with `clifford_qc.soa_kernel.soa_mul` instead of the
-  dictionary product. The kernel batches XOR/popcount over packed code arrays,
-  merges by sorting, and never reads or fills the process-wide word memo.
-  It produces the same words and coefficients (tested to `1e-12`; equal to
-  the last bit on the bundled molecular pools), the same word ledger, and the
-  same A-CASE selections. Rows are inserted in ascending code order, so a
-  matrix entry may differ from the `mv` route in its last few ulps.
-  `kernel="mv"` stays the default and the only route committed records
-  replay through; `kernel="soa"` is a speed option for new runs and reports
-  `product_kernel` in `projected_matrices` resources.
-  `PauliSoA.to_mv()` now enforces `MV`'s invariants on whole arrays and adopts
-  the dictionary directly, about 5x faster than re-validating each term.
-  `benchmarks/run_soa_bank_throughput.py` measures pair throughput on the
-  frozen Phase 2M pools and one full A-CASE solve per kernel in fresh
-  interpreters, and checks the selected labels and energy against
-  `bank_policy_matrix.json`; its result is
-  `benchmarks/timing_results/soa_bank_throughput.json`, kept outside
-  `reference_results/` because it is a host-specific timing record, not a
-  replayable one.
+- **Structure-of-arrays bank products and packed-row optimization (Rank 5b).**
+  `MatrixElementBank`, `StreamingMatrixElementBank`, `projected_matrices`,
+  `solve_subspace` and `run_acase` accept an explicit `kernel="soa"`.
+  Both projection routes use array products, including the support-free
+  weighted-reference contractions, without the word memo. The SoA conversion
+  validates code ranges/order, preserves constructor cutoff decisions near
+  `TOL`, and applies that cutoff at intermediate product boundaries.
+  Floating-point reduction order can still differ from the dictionary route.
+  Non-default bank results report the effective kernel; `kernel="auto"`
+  additionally records its requested policy. Auto is a provisional,
+  deterministic bank-wide heuristic, not a universal performance guarantee.
+  Historical callers retain `mv`; see [the throughput guide](REPRODUCING.md#soa-exact-bank-throughput-timing-evidence-only).
+  Packed row insertion uses a vectorized permutation and coefficient gather
+  without changing the assigned IDs, generation order or byte layout.
+  The append-only word table resolves short probe chains in batches while
+  assigning new IDs in the original order. These changes do not replace the
+  separately declared timing/validation campaign.
+  The original timing JSON is an unverified archive; the producer now binds
+  fresh timings to a clean committed source tree and exact frozen inputs.
 
 - **Bootstrap interval at the acquisition stop**
   ([docs/restart/BOOTSTRAP_STOP.md](docs/restart/BOOTSTRAP_STOP.md)).

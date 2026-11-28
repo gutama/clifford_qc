@@ -1,5 +1,6 @@
 {
- "claim_boundary": "Timing only. Wall times are host-specific; the parity and frozen-label checks are the portable part of this record.",
+ "claim_boundary": "Historical timing observation only. The reported source commit was unavailable from the remote during review; neither parity nor timing is independently source-bound by this archive. Do not use it to authorize a default change.",
+ "source_provenance": {"status": "unverified_archive", "reported_commit": "250ba6deadecdd8d368a64e78c3f4afca91cd252", "note": "Original observations preserved; never relabel this execution with a later commit."},
  "git_head": "250ba6deadecdd8d368a64e78c3f4afca91cd252",
  "host": {
   "cpu_count": 2,

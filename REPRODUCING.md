@@ -7,6 +7,36 @@ find a campaign and its declaration, result and checks. The
 recorded numerical verification from strict replay. Commands and environments
 below are scoped to their individual records; they are not interchangeable.
 
+## SoA exact-bank throughput (timing evidence only)
+
+The experimental `auto` policy is deterministic and bank-wide: select SoA
+when the Hamiltonian contains at least 128 Pauli words and the register has
+at most 31 qubits; otherwise keep the dictionary kernel. This provisional
+heuristic is not a demonstrated universal crossover. All historical record
+producers retain the `mv` default and new reproductions should pass
+`kernel="mv"` explicitly. The nondefault route reports both the requested
+policy (if auto) and the actual product kernel in the resource ledger.
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_soa_bank_throughput.py --systems h4 h2o_stretched \
+    --pairs 100 --repeats 2 --solve-system h4 --solve-kernels mv soa auto \
+    --output benchmarks/timing_results/soa_bank_throughput_current.json
+```
+
+The script requires clean committed package sources, producer and frozen
+inputs and records their commit, package tree and input hashes. Its fresh
+processes compare selected labels and energy against the matching Phase 2M
+cell and report product time, whole-solve time and peak RSS. Use
+`--solve-system h2o_stretched --solve-storage packed` for the original
+larger workload; the default full comparison can take many minutes.
+Use `--skip-solve` to test pair-product parity alone. The original
+`benchmarks/timing_results/soa_bank_throughput.json` is retained as an
+unverified historical observation because its reported execution commit
+could not be retrieved. A new run must never overwrite it or change its
+recorded source identity. Timing results are not scientific reference
+records and do not license a default switch by themselves.
+
 ## Column-budget convergence
 
 `benchmarks/PACKET_BUDGET_CONVERGENCE_DECLARATION.md` and
