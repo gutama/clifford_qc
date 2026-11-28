@@ -25,7 +25,8 @@ Benchmark campaigns, their declarations and their outcomes are recorded in
   Non-default bank results report the effective kernel; `kernel="auto"`
   additionally records its requested policy. Auto is a provisional,
   deterministic bank-wide heuristic, not a universal performance guarantee.
-  Historical callers retain `mv`; see [the throughput guide](REPRODUCING.md#soa-exact-bank-throughput-timing-evidence-only).
+  The prepared-solve and molecular CLI default to auto for new runs, with
+  `--kernel mv` for replay. Historical Python callers retain `mv`; see [the throughput guide](REPRODUCING.md#soa-exact-bank-throughput-timing-evidence-only).
   Packed row insertion uses a vectorized permutation and coefficient gather
   without changing the assigned IDs, generation order or byte layout.
   The append-only word table resolves short probe chains in batches while

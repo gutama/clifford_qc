@@ -180,7 +180,10 @@ states need not be prepared separately.
 The example uses a deliberately small candidate pool and no ground-state oracle.
 `max_size=3` allows up to three additions beyond the initial identity direction.
 This example uses exact classical expectations; finite-shot workflows have
-separate examples below. An exact projected solve does not certify convergence
+separate examples below. For new exact calculations, pass `kernel="auto"` or
+`kernel="soa"` to `run_acase`; the prepared-solve and molecular CLI default to
+`--kernel auto`. Historical Python calls retain the dictionary path and replay
+can be pinned with `kernel="mv"` or `--kernel mv`. An exact projected solve does not certify convergence
 to the full ground state.
 
 For a bounded example of full residual reporting, run

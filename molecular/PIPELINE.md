@@ -88,6 +88,7 @@ Validation can still be expensive and is not needed for every solve.
 | `solve` | `--reference-mode` | `determinant`; `legacy_mv` selects the prior density path |
 | `solve` | `--reference-arithmetic` | `legacy_trace`; `analytic` changes determinant summation/scaling explicitly |
 | `solve` | `--storage` | `object`; alternative: `packed` |
+| `solve` | `--kernel` | `auto` for new CLI runs; `soa` or `mv` explicitly (pin `mv` for historical replay) |
 | `solve` | `--policy` | `retain_all`; alternative: `stream_recompute` |
 | `solve` | `--frontier-pairs` | `32`; nonretained pair capacity when streaming |
 | `validate` | `--output` | Required; reference-record JSON path |

@@ -34,7 +34,7 @@ jobs:
         run: |
           ruff check clifford_qc molecular tests benchmarks
           python -m mypy
-          python -m pytest tests/test_soa_bank_kernel.py tests/test_soa_kernel.py tests/test_paper_architecture_gate.py -q
+          python -m pytest tests/test_soa_bank_kernel.py tests/test_soa_kernel.py tests/test_paper_architecture_gate.py tests/test_pipeline_refactoring.py tests/test_molecular_workflow.py -q
           python paper_architecture/check_manuscript.py
       - name: Source-bound H4 solve and pair throughput smoke
         if: ${{ !cancelled() }}
@@ -53,6 +53,42 @@ jobs:
           if Path(current).is_file():
               paths.append(current)
           for path in paths:
+              payload = Path(path).read_bytes()
+              encoded = base64.b64encode(payload).decode("ascii")
+              print("CQC_ARTIFACT_META|" + path + "|" + str(len(payload)) + "|" + hashlib.sha256(payload).hexdigest())
+              for offset in range(0, len(encoded), 4000):
+                  print("CQC_ARTIFACT_CHUNK|" + path + "|" + str(offset) + "|" + encoded[offset:offset+4000])
+          PY
+
+  large-paired-solve:
+    if: github.event.pull_request.number == 195 && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/record-environment
+        with:
+          reference-record: protocol_cost.json
+      - name: Source-bound stretched H2O full paired solve
+        run: |
+          python benchmarks/run_soa_bank_throughput.py --systems h2o_stretched --pairs 300 --repeats 2 --solve-system h2o_stretched --solve-storage packed --solve-kernels mv soa --output benchmarks/timing_results/soa_bank_throughput_h2o.json
+      - name: Export timing artifact
+        if: ${{ !cancelled() }}
+        run: |
+          python - <<'PY'
+          import base64
+          import hashlib
+          from pathlib import Path
+          path = "benchmarks/timing_results/soa_bank_throughput_h2o.json"
+          if Path(path).is_file():
               payload = Path(path).read_bytes()
               encoded = base64.b64encode(payload).decode("ascii")
               print("CQC_ARTIFACT_META|" + path + "|" + str(len(payload)) + "|" + hashlib.sha256(payload).hexdigest())

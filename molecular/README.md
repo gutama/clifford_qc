@@ -27,6 +27,7 @@ separate `clifford_qc.pipeline solve` command in [PIPELINE.md](PIPELINE.md).
 
 | Option | Default and effect |
 |---|---|
+| `--kernel` | `auto` for new CLI runs; `soa` or `mv` explicitly (pin `mv` for historical reproduction) |
 | `--molecules` | All seven catalog entries; accepts one or more keys |
 | `--max-additions` | Catalog budget, otherwise candidate count; explicit values override the catalog. `0` keeps only the identity |
 | `--max-candidates` | `0` uses the full SD pool; a positive value truncates generator order |

@@ -13,9 +13,11 @@ The experimental `auto` policy is deterministic and bank-wide: select SoA
 when the Hamiltonian contains at least 128 Pauli words and the register has
 at most 31 qubits; otherwise keep the dictionary kernel. This provisional
 heuristic is not a demonstrated universal crossover. All historical record
-producers retain the `mv` default and new reproductions should pass
-`kernel="mv"` explicitly. The nondefault route reports both the requested
-policy (if auto) and the actual product kernel in the resource ledger.
+producers retain the `mv` Python API default and new reproductions should pass
+`kernel="mv"` explicitly. The prepared-solve and molecular-run CLI entry points
+default to `auto` for new runs; use `--kernel mv` to reproduce an older CLI run.
+The nondefault route reports both the requested policy (if auto) and the
+actual product kernel in the resource ledger.
 
 ```bash
 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \

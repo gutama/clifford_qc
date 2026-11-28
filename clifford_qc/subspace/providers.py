@@ -71,14 +71,14 @@ class ExactProjectedProvider:
     capabilities = frozenset({"exact_projected_blocks"})
 
     def __init__(self, reference, hamiltonian, generators=(), *, storage="object",
-                 policy="retain_all", frontier_pairs=32, layout="interleaved"):
+                 policy="retain_all", frontier_pairs=32, layout="interleaved", kernel="mv"):
         reference = require_exact_reference(reference)
         if policy not in ("retain_all", "stream_recompute"):
             raise ValueError("policy must be retain_all or stream_recompute")
         cls = MatrixElementBank if policy == "retain_all" else StreamingMatrixElementBank
         kwargs = {} if policy == "retain_all" else {"frontier_pairs": frontier_pairs}
         self._bank = cls(reference, hamiltonian, generators, storage=storage,
-                         layout=layout, **kwargs)
+                         layout=layout, kernel=kernel, **kwargs)
         self._reference_identity = reference.metadata.identity
         self._hamiltonian_identity = operator_identity(self._bank.hamiltonian)
         self._policy, self._storage, self._layout = policy, storage, layout
@@ -94,6 +94,8 @@ class ExactProjectedProvider:
         inputs = ["exact_projection.v1", self.reference_identity,
                         self.hamiltonian_identity, self._policy, self._storage, self._layout,
                         [operator_identity(self._bank.generator(i).mv) for i in range(len(self._bank))]]
+        if self._bank.requested_kernel != "mv":
+            inputs.append(["product_kernel", self._bank.requested_kernel, self._bank.kernel])
         return hashlib.sha256(json.dumps(inputs, separators=(",", ":")).encode()).hexdigest()
 
     @property

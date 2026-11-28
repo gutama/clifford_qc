@@ -154,7 +154,7 @@ class PeakRSS:
 def simulate(key: str, spec: dict, out_dir: Path, *, max_candidates=0,
              max_additions=None, target_error_mha=1.5936, storage="object",
              policy="retain_all", frontier_pairs=32, complete_sd="auto",
-             reference_method="dense", refresh_chemistry=False) -> dict:
+             reference_method="dense", refresh_chemistry=False, kernel="mv") -> dict:
     """Return a comparative record; record/summary persistence belongs to run.py."""
     t0 = time.time()
     print(f"\n---> Processing {spec['name']} ({key.upper()})...")
@@ -240,7 +240,7 @@ def simulate(key: str, spec: dict, out_dir: Path, *, max_candidates=0,
             config=ACASEConfig(max_size=max_size, leakage_tol=1e-10,
                                exact_ground_energy=e_exact, target_error=target_error),
             max_candidates=max_candidates, storage=storage, policy=policy,
-            frontier_pairs=frontier_pairs)
+            frontier_pairs=frontier_pairs, kernel=kernel)
     rho0 = adaptive.bank.reference
     t_adaptive_elapsed = time.time() - t_adaptive_start
     e_acase = float(adaptive.result.ground_energy)
@@ -420,7 +420,7 @@ def simulate(key: str, spec: dict, out_dir: Path, *, max_candidates=0,
         with PeakRSS() as sd_rss:
             sd_spectrum = solve_subspace(
                 rho0, model.hamiltonian,
-                [identity_generator(model.n), *all_candidates]
+                [identity_generator(model.n), *all_candidates], kernel=kernel
             )
         t_sd_elapsed = time.time() - t_sd_start
         print(f"  SD Peak RSS: {sd_rss.peak / 2**30:.2f} GiB "
@@ -446,6 +446,10 @@ def simulate(key: str, spec: dict, out_dir: Path, *, max_candidates=0,
         print("  Complete SD Subspace: skipped; spin-checked determinant CISD "
               f"error {(e_cisd_det - e_exact) * 1000.0:+.4f} mHa")
 
+    if kernel != "mv":
+        record["requested_product_kernel"] = kernel
+        record["sd_product_kernel"] = (
+            sd_spectrum.resources["product_kernel"] if run_complete_sd else None)
     record.update({
         "e_sd_complete": e_sd,
         "error_sd_mha": err_sd_mha,

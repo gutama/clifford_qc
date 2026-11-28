@@ -78,7 +78,8 @@ def test_candidate_budget_and_storage_preserve_scientific_result(tmp_path):
 
 
 @pytest.mark.parametrize("options", [{"max_candidates": -1}, {"max_candidates": True},
-    {"storage": "invalid"}, {"policy": "invalid"}, {"frontier_pairs": 0}, {"max_rank": 0}])
+    {"storage": "invalid"}, {"policy": "invalid"}, {"frontier_pairs": 0}, {"max_rank": 0},
+    {"kernel": "invalid"}])
 def test_invalid_solver_options_fail_before_model_preparation(options):
     with pytest.raises(ValueError):
         solve_prepared(None, **options)
@@ -132,6 +133,7 @@ def test_driver_isolates_workers_and_recovers_each_completed_record(tmp_path):
         key = command[command.index("--worker") + 1]
         seen.append(key)
         assert kwargs["pass_fds"] and kwargs["cwd"] == ROOT
+        assert command[command.index("--kernel") + 1] == "auto"
         _atomic_json(tmp_path / f"{key}_results.json", {"key": key})
     with patch("molecular.run.subprocess.run", side_effect=worker):
         main(["--molecules", "lih", "hf", "--output-directory", str(tmp_path), "--max-additions", "0"])
