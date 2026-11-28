@@ -112,8 +112,8 @@
     ],
     "gates": 87,
     "named_in_workflow": 80,
-    "producers": 86,
-    "producers_without_gate": 26,
+    "producers": 87,
+    "producers_without_gate": 27,
     "run_on_every_pull_request": 69,
     "same_stem_pairs": 60
   },
@@ -239,7 +239,7 @@
         "modules": 4
       },
       "kernel": {
-        "lines": 4808,
+        "lines": 4893,
         "modules": 16
       },
       "measurement": {
@@ -251,11 +251,11 @@
         "modules": 9
       },
       "orchestration": {
-        "lines": 910,
+        "lines": 917,
         "modules": 3
       },
       "subspace": {
-        "lines": 22119,
+        "lines": 22257,
         "modules": 55
       },
       "surface": {
@@ -263,9 +263,9 @@
         "modules": 1
       }
     },
-    "package_lines": 44735,
+    "package_lines": 44965,
     "package_modules": 137,
-    "test_lines": 53271,
-    "test_modules": 214
+    "test_lines": 53517,
+    "test_modules": 215
   }
 }
