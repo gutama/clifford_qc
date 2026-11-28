@@ -14,6 +14,27 @@ Benchmark campaigns, their declarations and their outcomes are recorded in
 
 ### Added
 
+- **Structure-of-arrays bank products and packed-row optimization (Rank 5b).**
+  `MatrixElementBank`, `StreamingMatrixElementBank`, `projected_matrices`,
+  `solve_subspace` and `run_acase` accept an explicit `kernel="soa"`.
+  Both projection routes use array products, including the support-free
+  weighted-reference contractions, without the word memo. The SoA conversion
+  validates code ranges/order, preserves constructor cutoff decisions near
+  `TOL`, and applies that cutoff at intermediate product boundaries.
+  Floating-point reduction order can still differ from the dictionary route.
+  Non-default bank results report the effective kernel; `kernel="auto"`
+  additionally records its requested policy. Auto is a provisional,
+  deterministic bank-wide heuristic, not a universal performance guarantee.
+  The prepared-solve and molecular CLI default to auto for new runs, with
+  `--kernel mv` for replay. Historical Python callers retain `mv`; see [the throughput guide](REPRODUCING.md#soa-exact-bank-throughput-timing-evidence-only).
+  Packed row insertion uses a vectorized permutation and coefficient gather
+  without changing the assigned IDs, generation order or byte layout.
+  The append-only word table resolves short probe chains in batches while
+  assigning new IDs in the original order. These changes do not replace the
+  separately declared timing/validation campaign.
+  The original timing JSON is an unverified archive; the producer now binds
+  fresh timings to a clean committed source tree and exact frozen inputs.
+
 - **Bootstrap interval at the acquisition stop**
   ([docs/restart/BOOTSTRAP_STOP.md](docs/restart/BOOTSTRAP_STOP.md)).
   `acquire_ritz(bootstrap_replicates=..., bootstrap_seed=...)` resamples the

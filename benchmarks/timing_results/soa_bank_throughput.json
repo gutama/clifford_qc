@@ -1,0 +1,255 @@
+{
+ "claim_boundary": "Historical timing observation only. The reported source commit was unavailable from the remote during review; neither parity nor timing is independently source-bound by this archive. Do not use it to authorize a default change.",
+ "source_provenance": {"status": "unverified_archive", "reported_commit": "250ba6deadecdd8d368a64e78c3f4afca91cd252", "note": "Original observations preserved; never relabel this execution with a later commit."},
+ "git_head": "250ba6deadecdd8d368a64e78c3f4afca91cd252",
+ "host": {
+  "cpu_count": 2,
+  "kernel_cache_size_env": null,
+  "machine": "x86_64",
+  "numpy": "2.5.5",
+  "processor": "Intel(R) Xeon(R) Processor @ 2.90GHz",
+  "python": "3.14.8",
+  "threads": {
+   "MKL_NUM_THREADS": "1",
+   "OMP_NUM_THREADS": "1",
+   "OPENBLAS_NUM_THREADS": "1"
+  }
+ },
+ "pairs": [
+  {
+   "hamiltonian_terms": null,
+   "kernels": {
+    "mv": {
+     "best_h_acted_seconds": 0.03825899899993601,
+     "best_pair_seconds": 1.4877268569999842,
+     "output_coefficients_per_second": 236957.47531968076,
+     "pairs_per_second": 201.6499188600742,
+     "runs": [
+      {
+       "h_acted_seconds": 0.03825899899993601,
+       "pair_seconds": 1.6837233109999943
+      },
+      {
+       "h_acted_seconds": 0.05430147900005977,
+       "pair_seconds": 1.5434512890000178
+      },
+      {
+       "h_acted_seconds": 0.05675007300010293,
+       "pair_seconds": 1.4877268569999842
+      }
+     ]
+    },
+    "soa": {
+     "best_h_acted_seconds": 0.008346857999981694,
+     "best_pair_seconds": 0.17716685900006723,
+     "output_coefficients_per_second": 1989807.8116283938,
+     "pairs_per_second": 1693.3189519372027,
+     "runs": [
+      {
+       "h_acted_seconds": 0.009217484000032528,
+       "pair_seconds": 0.18138207799995598
+      },
+      {
+       "h_acted_seconds": 0.008346857999981694,
+       "pair_seconds": 0.1887111249999407
+      },
+      {
+       "h_acted_seconds": 0.00835801799996716,
+       "pair_seconds": 0.17716685900006723
+      }
+     ]
+    }
+   },
+   "n_qubits": 8,
+   "output_coefficients": 352528,
+   "pairs": 300,
+   "parity": {
+    "atol": 1e-12,
+    "max_abs_coefficient_difference": 2.7755575615628914e-17,
+    "passed": true,
+    "same_words": true
+   },
+   "repeats": 3,
+   "speedup_pairs": 8.397320274213472,
+   "system": "h4"
+  },
+  {
+   "hamiltonian_terms": null,
+   "kernels": {
+    "mv": {
+     "best_h_acted_seconds": 0.11375437300000613,
+     "best_pair_seconds": 4.557374207999942,
+     "output_coefficients_per_second": 407775.16069183487,
+     "pairs_per_second": 65.82737916789559,
+     "runs": [
+      {
+       "h_acted_seconds": 0.11375437300000613,
+       "pair_seconds": 4.652509476999967
+      },
+      {
+       "h_acted_seconds": 0.24106550199996946,
+       "pair_seconds": 4.813681567000003
+      },
+      {
+       "h_acted_seconds": 0.2375496040000371,
+       "pair_seconds": 4.557374207999942
+      }
+     ]
+    },
+    "soa": {
+     "best_h_acted_seconds": 0.017655844000046272,
+     "best_pair_seconds": 0.37810072799993577,
+     "output_coefficients_per_second": 4915050.044548753,
+     "pairs_per_second": 793.4393609526479,
+     "runs": [
+      {
+       "h_acted_seconds": 0.017655844000046272,
+       "pair_seconds": 0.39365481799995905
+      },
+      {
+       "h_acted_seconds": 0.019104774000084035,
+       "pair_seconds": 0.37810072799993577
+      },
+      {
+       "h_acted_seconds": 0.02000699099994563,
+       "pair_seconds": 0.40971136500002103
+      }
+     ]
+    }
+   },
+   "n_qubits": 14,
+   "output_coefficients": 1858384,
+   "pairs": 300,
+   "parity": {
+    "atol": 1e-12,
+    "max_abs_coefficient_difference": 1.7763568394002505e-15,
+    "passed": true,
+    "same_words": true
+   },
+   "repeats": 3,
+   "speedup_pairs": 12.053333597391847,
+   "system": "h2o_stretched"
+  }
+ ],
+ "passed": true,
+ "schema": "clifford_qc.soa_bank_throughput.v1",
+ "solve": {
+  "energy_atol": 1e-10,
+  "frozen_checks": {
+   "mv": {
+    "energy_abs_difference_from_frozen": 0.0,
+    "frozen_arm": "packed_retain",
+    "frozen_first_pair_build_seconds": 770.0138533863792,
+    "frozen_solve_seconds": 1503.5632178380038,
+    "labels_match_frozen": true,
+    "passed": true
+   },
+   "soa": {
+    "energy_abs_difference_from_frozen": 8.526512829121202e-14,
+    "frozen_arm": "packed_retain",
+    "frozen_first_pair_build_seconds": 770.0138533863792,
+    "frozen_solve_seconds": 1503.5632178380038,
+    "labels_match_frozen": true,
+    "passed": true
+   }
+  },
+  "runs": {
+   "mv": {
+    "basis_size": 31,
+    "energy": "-0x1.2ade6570733bep+6",
+    "kernel": "mv",
+    "labels": [
+     "I",
+     "E(10,11<-8,9)",
+     "E(12,13<-6,7)",
+     "E(10,13<-6,9)",
+     "E(11,12<-7,8)",
+     "E(10,11<-2,9)",
+     "E(10,11<-3,8)",
+     "E(10<-8)",
+     "E(12,13<-2,3)",
+     "E(11,12<-2,7)",
+     "E(10,13<-3,6)",
+     "E(13<-7)",
+     "E(10,11<-2,3)",
+     "E(11<-3)",
+     "E(11<-9)",
+     "E(10<-2)",
+     "E(10,13<-7,8)",
+     "E(11,12<-6,9)",
+     "E(12,13<-8,9)",
+     "E(12<-6)",
+     "E(10,11<-6,7)",
+     "E(10,11<-4,5)",
+     "E(12,13<-4,5)",
+     "E(12,13<-2,9)",
+     "E(12,13<-3,8)",
+     "E(10,12<-6,8)",
+     "E(11,13<-7,9)",
+     "E(10,13<-2,7)",
+     "E(10,12<-2,6)",
+     "E(11,12<-3,6)",
+     "E(11,13<-3,7)"
+    ],
+    "pairs_built": 3906,
+    "peak_rss_bytes": 3958202368,
+    "preparation_seconds": 3.2695612180000353,
+    "product_seconds": 408.18582457499133,
+    "solve_seconds": 1323.169674476,
+    "stopped_reason": "basis budget reached",
+    "storage": "packed",
+    "system": "h2o_stretched"
+   },
+   "soa": {
+    "basis_size": 31,
+    "energy": "-0x1.2ade6570733c4p+6",
+    "kernel": "soa",
+    "labels": [
+     "I",
+     "E(10,11<-8,9)",
+     "E(12,13<-6,7)",
+     "E(10,13<-6,9)",
+     "E(11,12<-7,8)",
+     "E(10,11<-2,9)",
+     "E(10,11<-3,8)",
+     "E(10<-8)",
+     "E(12,13<-2,3)",
+     "E(11,12<-2,7)",
+     "E(10,13<-3,6)",
+     "E(13<-7)",
+     "E(10,11<-2,3)",
+     "E(11<-3)",
+     "E(11<-9)",
+     "E(10<-2)",
+     "E(10,13<-7,8)",
+     "E(11,12<-6,9)",
+     "E(12,13<-8,9)",
+     "E(12<-6)",
+     "E(10,11<-6,7)",
+     "E(10,11<-4,5)",
+     "E(12,13<-4,5)",
+     "E(12,13<-2,9)",
+     "E(12,13<-3,8)",
+     "E(10,12<-6,8)",
+     "E(11,13<-7,9)",
+     "E(10,13<-2,7)",
+     "E(10,12<-2,6)",
+     "E(11,12<-3,6)",
+     "E(11,13<-3,7)"
+    ],
+    "pairs_built": 3906,
+    "peak_rss_bytes": 3772321792,
+    "preparation_seconds": 3.1823029430001952,
+    "product_seconds": 27.974264262008546,
+    "solve_seconds": 872.721464493,
+    "stopped_reason": "basis budget reached",
+    "storage": "packed",
+    "system": "h2o_stretched"
+   }
+  },
+  "speedup_products": 14.591476678417695,
+  "speedup_solve": 1.516142009002476,
+  "storage": "packed",
+  "system": "h2o_stretched"
+ }
+}

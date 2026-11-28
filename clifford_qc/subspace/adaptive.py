@@ -884,6 +884,7 @@ def _require_matching_bank(bank: MatrixElementBank, rho, hamiltonian) -> None:
 def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
               initial: Sequence | None = None,
               bank: MatrixElementBank | None = None,
+              kernel: str | None = None,
               max_size: int = 10,
               roots: int = 1, aggregation: str = "mean",
               min_lowering: float = DEFAULT_MIN_LOWERING,
@@ -910,7 +911,9 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
 
     A supplied ``bank`` fixes the reference and Hamiltonian; ``rho`` and
     ``hamiltonian`` must then be the ones it was built on, and a mismatch is
-    an error rather than a silently different problem.
+    an error rather than a silently different problem. Pass ``kernel="soa"``
+    or ``kernel="auto"`` for a new bank; a supplied bank owns the policy.
+    Omitting the option retains the historical dictionary-kernel default.
 
     Candidate scoring and selection stay separate mathematical functions.
     Numerical work for a growth decision is isolated in the private evaluator,
@@ -944,8 +947,10 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
 
     started = time.perf_counter()
     if bank is None:
-        bank = MatrixElementBank(rho, hamiltonian)
+        bank = MatrixElementBank(rho, hamiltonian, kernel="mv" if kernel is None else kernel)
     else:
+        if kernel is not None:
+            raise ValueError("a supplied bank already owns the product kernel")
         _require_matching_bank(bank, rho, hamiltonian)
     initial_gens = (as_generators(initial) if initial is not None
                     else [identity_generator(bank.n)])

@@ -127,6 +127,33 @@ def _canonical_complex(coeffs: np.ndarray) -> np.ndarray:
     return _canonical_complex_from_parts(c.real, c.imag)
 
 
+def _mv_cutoff_mask(coeffs: np.ndarray, tol: float) -> np.ndarray:
+    """Use the MV constructor's Python-complex cutoff at rounding boundaries."""
+    magnitudes = np.abs(coeffs)
+    keep = magnitudes > tol
+    # Array and CPython complex abs can round differently at the cutoff.
+    # Ordinary values need no scalar work. Recheck a conservative band and
+    # nonfinite magnitudes with the same arithmetic as MV.__init__.
+    band = 16 * np.finfo(np.float64).eps * tol
+    near = (np.abs(magnitudes - tol) <= band) | ~np.isfinite(magnitudes)
+    for position in np.flatnonzero(near):
+        keep[position] = abs(complex(coeffs[position])) > tol
+    return keep
+
+
+def _strictly_increasing_codes(codes: np.ndarray) -> bool:
+    if codes.shape[0] < 2:
+        return True
+    if codes.ndim == 1:
+        return bool(np.all(codes[1:] > codes[:-1]))
+    # Little-endian limbs: the most significant unequal limb wins.
+    increasing = np.zeros(codes.shape[0] - 1, dtype=np.bool_)
+    for limb in range(codes.shape[1]):
+        left, right = codes[:-1, limb], codes[1:, limb]
+        increasing = (right > left) | ((right == left) & increasing)
+    return bool(np.all(increasing))
+
+
 def _multiword_sort_key(codes: np.ndarray) -> np.ndarray:
     """Big-endian fixed-width byte view matching integer ascending order."""
     w = codes.shape[1]
@@ -167,7 +194,8 @@ def array_to_int_codes(n: int, codes: np.ndarray) -> list[int]:
     """Convert packed single-word or multiword codes back to Python ints."""
     validate_n(n)
     if codes.ndim == 1:
-        return [int(x) for x in codes.tolist()]
+        # ``tolist`` already yields Python ints for unsigned integer arrays.
+        return codes.tolist()
     w = codes.shape[1]
     out: list[int] = []
     for row in codes.tolist():
@@ -497,9 +525,49 @@ class PauliSoA:
         return out
 
     def to_mv(self) -> Any:
-        from .multivector import MV
+        """Convert to an :class:`~clifford_qc.multivector.MV` with the same terms.
 
-        return MV(self.n, self.to_terms())
+        The result equals ``MV(self.n, self.to_terms())`` term for term and
+        byte for byte, including ``MV``'s absolute ``TOL`` pruning (an operator
+        built with ``tol=0.0`` may hold smaller coefficients). Terms are
+        inserted in ascending code order. The invariants ``MV.__init__`` would
+        re-check per term -- valid codes, ``abs(c) > TOL``, no ``-0.0`` -- are
+        enforced here on whole arrays, so the dictionary is adopted directly.
+        """
+        from .multivector import MV, TOL as MV_TOL
+
+        # codes and coeffs are public mutable arrays. Do not adopt an invalid
+        # code or prune an earlier duplicate before the last-write-wins
+        # conversion that the ordinary constructor would have received.
+        if (not np.issubdtype(self.codes.dtype, np.unsignedinteger)
+                or self.coeffs.ndim != 1
+                or self.coeffs.shape[0] != self.codes.shape[0]):
+            return MV(self.n, self.to_terms())
+        codes = _validate_code_array(self.n, self.codes)
+        coeffs = self.coeffs
+        if not _strictly_increasing_codes(codes):
+            return MV(self.n, self.to_terms())
+        if coeffs.size:
+            keep = _mv_cutoff_mask(coeffs, MV_TOL)
+            if not bool(np.all(keep)):
+                codes, coeffs = codes[keep], coeffs[keep]
+            coeffs = _canonical_complex(coeffs)
+        return MV._from_canonical_terms(
+            self.n, dict(zip(array_to_int_codes(self.n, codes), coeffs.tolist())))
+
+    def pruned_for_mv(self) -> "PauliSoA":
+        """Apply the MV cutoff to a canonical product before it is reused.
+
+        Reduction order can still differ from MV's dictionary product. This
+        controls the cutoff arithmetic, not bit-for-bit summation parity.
+        """
+        from .multivector import TOL as MV_TOL
+
+        keep = _mv_cutoff_mask(self.coeffs, MV_TOL)
+        if bool(np.all(keep)):
+            return self
+        return PauliSoA(self.n, self.codes[keep], self.coeffs[keep],
+                        tol=0.0, is_sorted_unique=True)
 
     def _coerce(self, other: Any) -> "PauliSoA":
         if isinstance(other, PauliSoA):

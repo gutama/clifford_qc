@@ -197,6 +197,18 @@ class TestPreparedProblem(unittest.TestCase):
             record = json.loads(output.read_text())
             self.assertFalse(record['stopping_uses_oracle'])
             self.assertEqual(record['resources']['storage_policy'], 'stream_recompute')
+            self.assertEqual(record['resources']['requested_product_kernel'], 'auto')
+            self.assertIn(record['resources']['product_kernel'], ('mv', 'soa'))
+            legacy_output = Path(directory) / 'legacy.json'
+            pipeline_main(['solve', str(prepared), '--output', str(legacy_output),
+                           '--policy', 'stream_recompute', '--storage', 'packed',
+                           '--frontier-pairs', '1', '--max-additions', '1', '--kernel', 'mv'])
+            legacy = json.loads(legacy_output.read_text())
+            self.assertNotIn('product_kernel', legacy['resources'])
+            self.assertEqual(legacy['labels'], record['labels'])
+            self.assertAlmostEqual(legacy['energy'], record['energy'], places=10)
+            self.assertNotEqual(legacy['resources']['provider_cache_identity'],
+                                record['resources']['provider_cache_identity'])
             validation = Path(directory) / 'validation.json'
             pipeline_main(['validate', str(prepared), '--output', str(validation),
                            '--method', 'dense'])

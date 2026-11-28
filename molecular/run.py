@@ -80,6 +80,8 @@ def parser():
     p.add_argument("--target-error-mha", type=float, default=1.5936,
                    help="oracle-assisted stopping tolerance; 0 disables the oracle stop")
     p.add_argument("--storage", choices=("object", "packed"), default="object")
+    p.add_argument("--kernel", choices=("auto", "mv", "soa"), default="auto",
+                   help="new runs use auto; pin mv for historical replay")
     p.add_argument("--policy", choices=("retain_all", "stream_recompute"), default="retain_all")
     p.add_argument("--frontier-pairs", type=int, default=32)
     p.add_argument("--complete-sd", choices=("auto", "on", "off"), default="auto")
@@ -101,7 +103,7 @@ def main(argv=None):
         p.error("--target-error-mha must be finite and nonnegative")
     options = {key: getattr(args, key) for key in
                ("max_candidates", "max_additions", "target_error_mha", "storage", "policy",
-                "frontier_pairs", "complete_sd", "reference_method")}
+                "frontier_pairs", "complete_sd", "reference_method", "kernel")}
     directory = args.output_directory.resolve()
     directory.mkdir(parents=True, exist_ok=True)
     if args.worker:

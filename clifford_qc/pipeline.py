@@ -15,17 +15,19 @@ from .prepared import PreparedProblem, prepare_fcidump, _atomic_json, implementa
 
 def solve_prepared(prepared, *, config=None, storage="object", policy="retain_all",
                    frontier_pairs=32, max_rank=2, max_candidates=0,
-                   reference_mode="determinant", reference_arithmetic="legacy_trace"):
+                   reference_mode="determinant", reference_arithmetic="legacy_trace", kernel="mv"):
     from .models.metadata import spin_convention
     from .backends import ExactMVBackend
     from .subspace.adaptive import ACASEConfig, run_acase
     from .subspace.fermionic_generators import determinant_excitations, occupied_spin_orbitals
-    from .subspace.projection import MatrixElementBank
+    from .subspace.projection import KERNELS, MatrixElementBank
     from .subspace.streaming import StreamingMatrixElementBank
     from .reference_states import (DeterminantReference, UnsupportedReferenceOperation,
                                    operator_identity)
     from .subspace.providers import ExactProjectedProvider
 
+    if kernel not in KERNELS:
+        raise ValueError(f"kernel must be one of {KERNELS}")
     if policy not in ("retain_all", "stream_recompute"):
         raise ValueError("policy must be retain_all or stream_recompute")
     if storage not in ("object", "packed"):
@@ -69,14 +71,16 @@ def solve_prepared(prepared, *, config=None, storage="object", policy="retain_al
         candidates = candidates[:max_candidates]
     if reference_mode == "determinant":
         provider = ExactProjectedProvider(reference, model.hamiltonian, storage=storage,
-                                           policy=policy, frontier_pairs=frontier_pairs)
+                                           policy=policy, frontier_pairs=frontier_pairs,
+                                           kernel=kernel)
         bank = provider.bank
         reference_identity = provider.reference_identity
     else:
         reference = ExactMVBackend().state(model.reference, ())
-        bank = (MatrixElementBank(reference, model.hamiltonian, storage=storage)
+        bank = (MatrixElementBank(reference, model.hamiltonian, storage=storage, kernel=kernel)
                 if policy == "retain_all" else StreamingMatrixElementBank(
-                    reference, model.hamiltonian, storage=storage, frontier_pairs=frontier_pairs))
+                    reference, model.hamiltonian, storage=storage, frontier_pairs=frontier_pairs,
+                    kernel=kernel))
         reference_identity = operator_identity(reference)
     result = run_acase(reference, model.hamiltonian, candidates, bank=bank, config=cfg)
     if provider is not None:
@@ -200,6 +204,8 @@ def main(argv=None):
                                  default="legacy_trace",
                                  help="determinant row arithmetic; legacy_trace requires fewer than 40 qubits")
             command.add_argument("--storage", choices=("object", "packed"), default="object")
+            command.add_argument("--kernel", choices=("auto", "mv", "soa"), default="auto",
+                                 help="new runs use auto; pin mv for historical replay")
             command.add_argument("--policy", choices=("retain_all", "stream_recompute"), default="retain_all")
             command.add_argument("--frontier-pairs", type=int, default=32)
             command.add_argument("--max-additions", type=int, default=10)
@@ -235,7 +241,8 @@ def main(argv=None):
                                        storage=args.storage, policy=args.policy,
                                        frontier_pairs=args.frontier_pairs, max_rank=args.max_rank,
                                        max_candidates=args.max_candidates, reference_mode=args.reference_mode,
-                                       reference_arithmetic=args.reference_arithmetic)
+                                       reference_arithmetic=args.reference_arithmetic,
+                                       kernel=args.kernel)
         elif args.stage == "solve-sector":
             from .subspace.sector_solver import SectorSolveConfig
             try:

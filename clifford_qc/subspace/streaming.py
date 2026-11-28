@@ -88,8 +88,7 @@ class StreamingMatrixElementBank(MatrixElementBank):
     def _build_pair(self, i, j, *, evaluate=False):
         key = (i, j)
         started = time.perf_counter()
-        overlap = self._adjoints[i] * self._generators[j].mv
-        element = self._adjoints[i] * self._h_acted[j]
+        overlap, element = self._pair_products(i, j)
         self._seconds += time.perf_counter() - started
         count = overlap.nnz() + element.nnz()
         self._physical_builds += 1
